@@ -6,8 +6,8 @@ export const network: Network = process.env.EXPO_PUBLIC_NETWORK === 'mainnet' ? 
 
 export const privy = {
   appId: 'cmul70rwg04dv0cjy2hgogv50',
-  // Native app client from the Privy dashboard (App settings → Clients). Web doesn't use it.
-  clientId: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID ?? '',
+  // Native app client (dashboard: App settings → Clients). Public, like the app ID. Web doesn't use it.
+  clientId: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || 'client-WY6dyrwek4P4TtG1H167Jxd3UFnGGgH9iucUoTCBuhAVN',
 } as const;
 
 export const solana = {
