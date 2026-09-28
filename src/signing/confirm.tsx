@@ -115,6 +115,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       <Modal visible={!!pending} transparent animationType="slide" onRequestClose={cancel}>
         <Pressable style={styles.backdrop} onPress={phase.kind === 'review' ? cancel : undefined}>
           <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
+            <View style={styles.grabber} />
             {plan ? (
               <>
                 <Text variant="title">{TITLES[plan.kind]}</Text>
@@ -172,13 +173,18 @@ const styles = StyleSheet.create({
     maxWidth: maxContentWidth,
     alignSelf: 'center',
     backgroundColor: colors.bgSurface,
-    borderTopLeftRadius: radii.lg,
-    borderTopRightRadius: radii.lg,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.accentPink,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: spacing.xl,
+    paddingTop: spacing.md,
     gap: spacing.xl,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: radii.pill,
+    backgroundColor: colors.textDisabled,
   },
   summary: {
     gap: spacing.md,

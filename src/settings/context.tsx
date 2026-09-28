@@ -9,12 +9,15 @@ export type Settings = {
   stealthMode: boolean;
   // Show zero-balance assets in the Home breakdown.
   showEmptyPockets: boolean;
+  // Promo banners the user closed.
+  dismissedPromos: string[];
 };
 
 const DEFAULTS: Settings = {
   displayCurrency: 'NGN',
   stealthMode: false,
   showEmptyPockets: false,
+  dismissedPromos: [],
 };
 
 const KEY = 'atlas:settings:v1';

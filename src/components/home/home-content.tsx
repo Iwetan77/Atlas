@@ -3,32 +3,30 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { BalanceState } from '@/api/balance';
 import { useAtlasAuth } from '@/auth/context';
-import { BalanceCard } from '@/components/home/balance-card';
-import { Holdings } from '@/components/home/holdings';
+import { HeroBalance } from '@/components/home/hero-balance';
 import { NextSteps } from '@/components/next-steps';
-import { PromoBanner } from '@/components/promo-banner';
+import { PromoBanner, type Promo } from '@/components/promo-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { showDevTools } from '@/config';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
-
-const WELCOME = {
-  id: 'welcome',
-  eyebrow: 'New',
-  title: 'Welcome to Atlas',
-  body: 'One balance for everything: stocks, memes, crypto, and cash out to your bank.',
-};
+import { colors, radii } from '@/theme';
 
 // Home layout, fed by a balance source. The real screen passes the engine balance; the testnet
 // preview passes labelled sample data.
 export function HomeContent({ balance, banner }: { balance: BalanceState; banner?: string }) {
   const { email } = useAtlasAuth();
-  const { stealthMode, showEmptyPockets, displayCurrency, update } = useSettings();
+  const { stealthMode, showEmptyPockets, displayCurrency, dismissedPromos, update } = useSettings();
   const { data } = balance;
   const hasFunds = !!data && Number(data.total.amount) > 0;
-  const initial = (email?.[0] ?? 'A').toUpperCase();
+
+  const welcome: Promo = {
+    id: 'welcome',
+    title: 'Welcome to Atlas',
+    body: 'One balance for stocks, memes and crypto. Cash out to your bank any time.',
+    art: 'planet',
+    cta: { label: 'Explore', onPress: () => router.push('/trade') },
+  };
 
   return (
     <Screen>
@@ -37,24 +35,20 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
           onPress={() => router.push('/profile')}
           accessibilityRole="button"
           accessibilityLabel="Profile and settings"
-          style={styles.avatar}>
-          <Text variant="heading" color="accentPinkTint">
-            {initial}
-          </Text>
-        </Pressable>
-        <Text variant="title" color="accentPink">
-          atlas
-        </Text>
-        {showDevTools ? (
-          <Pressable onPress={() => router.push('/dev')} hitSlop={8} style={styles.devChip}>
-            <Icon name="construct-outline" size={14} color="accentPinkTint" />
-            <Text variant="label" color="accentPinkTint">
-              Dev
+          style={styles.avatarRing}>
+          <View style={styles.avatar}>
+            <Text variant="heading" color="accentPinkTint">
+              {(email?.[0] ?? 'A').toUpperCase()}
             </Text>
-          </Pressable>
-        ) : (
-          <View style={styles.avatarSpacer} />
-        )}
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/deposit')}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Your QR code">
+          <Icon name="qr-code-outline" size={28} color="textPrimary" />
+        </Pressable>
       </View>
 
       {banner ? (
@@ -63,39 +57,34 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
         </Text>
       ) : null}
 
-      <BalanceCard
+      <HeroBalance
         balance={data}
         loading={balance.loading}
         error={balance.error}
+        currency={displayCurrency}
         stealth={stealthMode}
+        showEmptyPockets={showEmptyPockets}
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
         onDeposit={() => router.push('/deposit')}
       />
 
-      {data ? (
-        <Holdings
-          holdings={data.holdings}
-          currency={displayCurrency}
-          showEmptyPockets={showEmptyPockets}
-          stealth={stealthMode}
-        />
-      ) : null}
-
       <NextSteps
         steps={[
+          { key: 'account', title: 'Create your account', subtitle: 'Your wallet is ready', done: true },
           {
             key: 'deposit',
             title: 'Make a deposit',
-            subtitle: 'Add money in naira or crypto',
-            icon: 'arrow-down',
+            subtitle: "Then you're ready",
             done: hasFunds,
-            onPress: () => router.push('/deposit'),
+            action: { label: 'Deposit', onPress: () => router.push('/deposit') },
           },
         ]}
       />
 
-      <PromoBanner promo={WELCOME} />
+      {dismissedPromos.includes(welcome.id) ? null : (
+        <PromoBanner promo={welcome} onDismiss={() => update({ dismissedPromos: [...dismissedPromos, welcome.id] })} />
+      )}
     </Screen>
   );
 }
@@ -106,27 +95,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  avatarRing: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.pill,
+    borderWidth: 2,
+    borderColor: colors.accentPink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.accentPink,
     backgroundColor: colors.accentPinkDim,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarSpacer: {
-    width: 40,
-  },
-  devChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
 });

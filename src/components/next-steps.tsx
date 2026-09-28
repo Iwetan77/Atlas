@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
+import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
 
@@ -10,8 +11,7 @@ export type Step = {
   title: string;
   subtitle: string;
   done: boolean;
-  icon: IconName;
-  onPress?: () => void;
+  action?: { label: string; onPress: () => void };
 };
 
 // Home checklist for new users; disappears once every step is done.
@@ -20,42 +20,39 @@ export function NextSteps({ steps }: { steps: Step[] }) {
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
-    <Card style={styles.card}>
+    <Card variant="outlined" style={styles.card}>
       <View style={styles.header}>
-        <Text variant="heading">Next steps</Text>
-        <Text variant="label" color="textSecondary">
-          {doneCount}/{steps.length}
-        </Text>
+        <Text variant="bodyStrong">Next steps</Text>
+        <View style={styles.count}>
+          <Text variant="label" color="accentPinkTint">
+            {doneCount} of {steps.length}
+          </Text>
+        </View>
       </View>
-      {steps.map((step) => (
-        <Pressable
-          key={step.key}
-          disabled={step.done || !step.onPress}
-          onPress={step.onPress}
-          style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.accentPinkDim }]}>
-          <View
-            style={[
-              styles.check,
-              step.done
-                ? { backgroundColor: colors.accentPink, borderColor: colors.accentPink }
-                : { backgroundColor: colors.accentPinkDim, borderColor: colors.accentPinkDim },
-            ]}>
-            <Icon
-              name={step.done ? 'checkmark' : step.icon}
-              size={18}
-              color={step.done ? 'textOnAccent' : 'accentPinkTint'}
-            />
+      <View style={styles.track}>
+        <View style={[styles.fill, { width: `${(doneCount / steps.length) * 100}%` }]} />
+      </View>
+
+      {steps.map((step, i) => (
+        <View key={step.key} style={[styles.row, i > 0 && styles.rowDivider]}>
+          <View style={[styles.check, step.done ? styles.checkDone : styles.checkTodo]}>
+            {step.done ? <Icon name="checkmark" size={14} color="textOnAccent" /> : null}
           </View>
           <View style={styles.text}>
-            <Text variant="bodyStrong" color={step.done ? 'textSecondary' : 'textPrimary'}>
+            <Text
+              variant="bodyStrong"
+              color={step.done ? 'textSecondary' : 'textPrimary'}
+              style={step.done && styles.struck}>
               {step.title}
             </Text>
             <Text variant="caption" color="textSecondary">
               {step.subtitle}
             </Text>
           </View>
-          {!step.done && step.onPress ? <Icon name="chevron-forward" size={18} color="accentPink" /> : null}
-        </Pressable>
+          {!step.done && step.action ? (
+            <PillButton label={step.action.label} tone="secondary" size="sm" onPress={step.action.onPress} />
+          ) : null}
+        </View>
       ))}
     </Card>
   );
@@ -63,33 +60,61 @@ export function NextSteps({ steps }: { steps: Step[] }) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.xs,
+  },
+  count: {
+    paddingVertical: spacing.xxs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentPinkDim,
+  },
+  track: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.bgSurface,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accentPink,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+  },
+  rowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
   },
   check: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkDone: {
+    backgroundColor: colors.accentPink,
+  },
+  checkTodo: {
+    borderWidth: 2,
+    borderColor: colors.textSecondary,
   },
   text: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  struck: {
+    textDecorationLine: 'line-through',
   },
 });

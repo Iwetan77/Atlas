@@ -72,7 +72,7 @@ function RootStack() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
       <Stack.Protected guard={authenticated}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deposit" />
         <Stack.Screen name="profile" />
         <Stack.Protected guard={showDevTools}>

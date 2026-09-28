@@ -1,71 +1,73 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { colors, spacing } from '@/theme';
+import { colors, radii, spacing } from '@/theme';
 
 export type Promo = {
   id: string;
-  eyebrow?: string;
-  icon?: IconName;
   title: string;
   body: string;
-  cta?: string;
-  onPress?: () => void;
+  art?: IconName;
+  cta?: { label: string; onPress: () => void };
 };
 
-// Generic slot at the bottom of Home for campaigns and announcements.
-export function PromoBanner({ promo }: { promo: Promo }) {
+// Generic campaign/announcement slot at the bottom of Home (MiniPay's "3 Years of MiniPay" card).
+export function PromoBanner({ promo, onDismiss }: { promo: Promo; onDismiss?: () => void }) {
   return (
-    <Pressable disabled={!promo.onPress} onPress={promo.onPress} accessibilityRole={promo.onPress ? 'button' : undefined}>
-      <Card style={styles.card}>
-        <View style={styles.accent} />
-        <View style={styles.accentIcon}>
-          <Icon name={promo.icon ?? 'sparkles'} size={22} color="accentPink" />
-        </View>
-        {promo.eyebrow ? (
-          <Text variant="overline" color="accentPinkTint">
-            {promo.eyebrow}
-          </Text>
+    <View style={styles.card}>
+      <View style={styles.art}>
+        <Icon name={promo.art ?? 'sparkles'} size={72} color="tilePink" />
+      </View>
+      <View style={styles.titleRow}>
+        <Text variant="heading" style={styles.title}>
+          {promo.title}
+        </Text>
+        {onDismiss ? (
+          <Pressable onPress={onDismiss} hitSlop={12} accessibilityRole="button" accessibilityLabel="Dismiss">
+            <Icon name="close" size={22} color="textPrimary" />
+          </Pressable>
         ) : null}
-        <Text variant="heading">{promo.title}</Text>
-        <Text color="textSecondary">{promo.body}</Text>
-        {promo.cta ? (
-          <View style={styles.cta}>
-            <Text variant="label" color="accentPink">
-              {promo.cta}
-            </Text>
-            <Icon name="arrow-forward" size={14} color="accentPink" />
-          </View>
-        ) : null}
-      </Card>
-    </Pressable>
+      </View>
+      <Text color="textPrimary" style={styles.body}>
+        {promo.body}
+      </Text>
+      {promo.cta ? (
+        <PillButton label={promo.cta.label} tone="secondary" size="sm" onPress={promo.cta.onPress} style={styles.cta} />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     gap: spacing.sm,
+    padding: spacing.xl,
+    borderRadius: radii.lg,
+    backgroundColor: colors.accentPinkDim,
     overflow: 'hidden',
   },
-  accent: {
+  art: {
     position: 'absolute',
-    right: -30,
-    top: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.accentPinkDim,
+    right: spacing.lg,
+    bottom: spacing.sm,
+    opacity: 0.9,
   },
-  accentIcon: {
-    position: 'absolute',
-    right: spacing.xl,
-    top: spacing.xl,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  title: {
+    flex: 1,
+  },
+  body: {
+    opacity: 0.85,
+    maxWidth: '78%',
   },
   cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
   },
 });

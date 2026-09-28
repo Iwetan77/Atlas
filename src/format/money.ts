@@ -23,10 +23,14 @@ export function formatUsd(amount: string): string {
 }
 
 // Token amounts: trim trailing zeros, cap at 6 decimals ("0.100000" → "0.1").
-export function formatTokenAmount(amount: string, symbol: string): string {
+export function formatTokenNumber(amount: string): string {
   const n = Number(amount);
   const digits = n !== 0 && Math.abs(n) < 0.0001 ? 8 : 6;
-  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: digits }).format(n)} ${symbol}`;
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: digits }).format(n);
+}
+
+export function formatTokenAmount(amount: string, symbol: string): string {
+  return `${formatTokenNumber(amount)} ${symbol}`;
 }
 
 export const HIDDEN = '••••••';

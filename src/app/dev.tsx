@@ -116,7 +116,7 @@ export default function DevScreen() {
   return (
     <Screen>
       <BackHeader title="Developer" />
-      <Card level="alt" style={styles.card}>
+      <Card variant="alt" style={styles.card}>
         {rows.map(([label, value]) => (
           <Pressable
             key={label}
