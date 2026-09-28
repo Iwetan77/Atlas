@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
@@ -6,14 +6,17 @@ import { colors, radii, spacing } from '@/theme';
 type Props = Omit<PressableProps, 'children'> & {
   label: string;
   tone?: 'primary' | 'secondary';
+  loading?: boolean;
 };
 
-export function PillButton({ label, tone = 'primary', disabled, style, ...rest }: Props) {
+export function PillButton({ label, tone = 'primary', disabled, loading, style, ...rest }: Props) {
   const primary = tone === 'primary';
+  const inactive = disabled || loading;
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
+      disabled={inactive}
       style={(state) => [
         styles.pill,
         {
@@ -30,16 +33,20 @@ export function PillButton({ label, tone = 'primary', disabled, style, ...rest }
         typeof style === 'function' ? style(state) : style,
       ]}
       {...rest}>
-      <Text variant="bodyStrong" color={primary ? 'textOnAccent' : 'textPrimary'}>
-        {label}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={primary ? colors.textOnAccent : colors.accentPink} />
+      ) : (
+        <Text variant="bodyStrong" color={primary ? 'textOnAccent' : 'textPrimary'}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   pill: {
-    flex: 1,
+    minHeight: 50,
     borderRadius: radii.pill,
     borderWidth: 1.5,
     paddingVertical: spacing.md,
