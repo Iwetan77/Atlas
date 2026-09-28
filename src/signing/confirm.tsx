@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useCallback, useContext, useRef, useStat
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { ExecutionPlan, IntentKind, SentTx } from '@/api/contract';
+import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { waitForTx } from '@/signing/chains';
@@ -17,7 +17,10 @@ export type ActionReport = {
   transactions: number;
   confirmations: number;
   walletPrompts: number;
+  // Broadcast by the app and landed.
   sent: SentTx[];
+  // Signed for the engine to land (submit: 'engine'); the caller hands these to the engine.
+  signed: SignedTx[];
 };
 
 export class ActionCancelled extends Error {
@@ -80,9 +83,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     confirmations.current += 1;
     const stopWatching = watchWalletPrompts();
     const sent: SentTx[] = [];
+    const signed: SignedTx[] = [];
     try {
-      for (const [i, tx] of plan.transactions.entries()) {
-        setPhase({ kind: 'signing', step: i + 1 });
+      for (const [index, tx] of plan.transactions.entries()) {
+        setPhase({ kind: 'signing', step: index + 1 });
+        if (tx.chain === 'solana' && tx.submit === 'engine') {
+          signed.push({ index, transaction: await signer.sign(tx) });
+          continue;
+        }
         const result = await signer.send(tx);
         await waitForTx(result);
         sent.push(result);
@@ -93,6 +101,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         confirmations: confirmations.current,
         walletPrompts: stopWatching(),
         sent,
+        signed,
       });
       close();
     } catch (e) {

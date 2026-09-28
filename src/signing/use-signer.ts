@@ -49,5 +49,17 @@ export function useSigner(): Signer {
     [ethWallet, solWallet],
   );
 
-  return { ready: !!ethWallet && !!solWallet, send };
+  const sign = useCallback(
+    async (tx: UnsignedTx): Promise<string> => {
+      if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
+      if (!solWallet) throw new Error('Solana wallet is not ready');
+      const provider = await solWallet.getProvider();
+      const transaction = VersionedTransaction.deserialize(Buffer.from(tx.transaction, 'base64'));
+      const { signedTransaction } = await provider.request({ method: 'signTransaction', params: { transaction } });
+      return Buffer.from(signedTransaction.serialize()).toString('base64');
+    },
+    [solWallet],
+  );
+
+  return { ready: !!ethWallet && !!solWallet, send, sign };
 }

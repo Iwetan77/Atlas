@@ -5,4 +5,6 @@ import type { SentTx, UnsignedTx } from '@/api/contract';
 export type Signer = {
   ready: boolean;
   send: (tx: UnsignedTx) => Promise<SentTx>;
+  // Sign without broadcasting, for transactions the engine lands (submit: 'engine'). Base64 out.
+  sign: (tx: UnsignedTx) => Promise<string>;
 };

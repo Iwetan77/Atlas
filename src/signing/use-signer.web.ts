@@ -1,7 +1,7 @@
 // Web signer: Privy React SDK with wallet UIs forced off, so the confirm sheet stays the only prompt.
 // Every transaction asks for Privy gas sponsorship (configured engine-side); users never hold gas.
 import { useSendTransaction } from '@privy-io/react-auth';
-import { useSignAndSendTransaction, useWallets } from '@privy-io/react-auth/solana';
+import { useSignAndSendTransaction, useSignTransaction, useWallets } from '@privy-io/react-auth/solana';
 import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { useCallback } from 'react';
@@ -18,6 +18,7 @@ export function useSigner(): Signer {
   const { wallets: addresses } = useAtlasAuth();
   const { sendTransaction } = useSendTransaction();
   const { signAndSendTransaction } = useSignAndSendTransaction();
+  const { signTransaction } = useSignTransaction();
   const { wallets: solanaWallets } = useWallets();
 
   const solWallet = solanaWallets.find((w) => w.address === addresses.solana);
@@ -51,5 +52,20 @@ export function useSigner(): Signer {
     [addresses.base, solWallet, sendTransaction, signAndSendTransaction],
   );
 
-  return { ready: !!addresses.base && !!solWallet, send };
+  const sign = useCallback(
+    async (tx: UnsignedTx): Promise<string> => {
+      if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
+      if (!solWallet) throw new Error('Solana wallet is not ready');
+      const { signedTransaction } = await signTransaction({
+        transaction: new Uint8Array(Buffer.from(tx.transaction, 'base64')),
+        wallet: solWallet,
+        chain: solana.chainId,
+        options: { uiOptions: noWalletUi },
+      });
+      return Buffer.from(signedTransaction).toString('base64');
+    },
+    [solWallet, signTransaction],
+  );
+
+  return { ready: !!addresses.base && !!solWallet, send, sign };
 }
