@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { DisplayCurrency, Holding } from '@/api/contract';
 import { Card } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenAmount, HIDDEN } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
@@ -35,9 +36,7 @@ export function Holdings({ holdings, currency, showEmptyPockets, stealth }: Prop
         <Text variant="label" color="textSecondary">
           {open ? 'Hide breakdown' : 'See breakdown'}
         </Text>
-        <Text variant="heading" color="accentPink" style={{ transform: [{ rotate: open ? '-90deg' : '90deg' }] }}>
-          ›
-        </Text>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={16} color="accentPink" />
       </Pressable>
 
       {open ? (
@@ -84,7 +83,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   list: {
     gap: spacing.sm,

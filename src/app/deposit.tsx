@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   qr: {
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.qrBackground,
     borderRadius: radii.md,
     padding: spacing.sm,
   },

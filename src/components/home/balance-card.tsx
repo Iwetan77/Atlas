@@ -1,11 +1,12 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { BalanceResponse } from '@/api/contract';
-import { Card } from '@/components/ui/card';
+import { GlowCard } from '@/components/ui/glow-card';
+import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatUsd, HIDDEN } from '@/format/money';
-import { spacing } from '@/theme';
+import { colors, radii, spacing } from '@/theme';
 
 type Props = {
   balance: BalanceResponse | null;
@@ -30,85 +31,119 @@ export function BalanceCard({
   onWithdraw,
 }: Props) {
   return (
-    <Card style={styles.card}>
+    <GlowCard style={styles.card}>
       <View style={styles.header}>
-        <Text variant="label" color="textSecondary">
-          Balance
+        <Text variant="overline" color="textSecondary">
+          Total balance
         </Text>
-        <Pressable onPress={onToggleStealth} hitSlop={10} accessibilityRole="button">
-          <Text variant="label" color="accentPinkTint">
-            {stealth ? 'Show' : 'Hide'}
-          </Text>
+        <Pressable
+          onPress={onToggleStealth}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={stealth ? 'Show balance' : 'Hide balance'}>
+          <Icon name={stealth ? 'eye-off-outline' : 'eye-outline'} size={20} color="textSecondary" />
         </Pressable>
       </View>
 
       {balance ? (
-        <>
-          <Text variant="display" accessibilityLabel={stealth ? 'Balance hidden' : undefined}>
+        <View style={styles.figures}>
+          <Text variant="display" adjustsFontSizeToFit numberOfLines={1}>
             {stealth ? HIDDEN : formatMoney(balance.total)}
           </Text>
           {balance.total.currency !== 'USD' ? (
-            <Text color="textSecondary">{stealth ? HIDDEN : formatUsd(balance.totalUsd)}</Text>
+            <Text color="textSecondary">≈ {stealth ? HIDDEN : formatUsd(balance.totalUsd)}</Text>
           ) : null}
           {balance.pending ? (
-            <Text variant="caption" color="accentPinkTint">
-              {stealth ? HIDDEN : formatMoney(balance.pending)} arriving
-            </Text>
+            <View style={styles.pending}>
+              <Icon name="time-outline" size={14} color="accentPinkTint" />
+              <Text variant="label" color="accentPinkTint">
+                {stealth ? HIDDEN : formatMoney(balance.pending)} arriving
+              </Text>
+            </View>
           ) : null}
           {error ? (
             <Text variant="caption" color="textSecondary">
               Couldn&apos;t refresh just now. Showing your last balance.
             </Text>
           ) : null}
-        </>
+        </View>
       ) : error && !loading ? (
-        <View style={styles.unavailable}>
-          <Text variant="heading" color="textSecondary">
+        <View style={styles.figures}>
+          <Text variant="title" color="textSecondary">
             Balance unavailable
           </Text>
-          <Pressable onPress={onRetry} hitSlop={8}>
+          <Pressable onPress={onRetry} hitSlop={8} style={styles.retry}>
+            <Icon name="refresh" size={14} color="accentPinkTint" />
             <Text variant="label" color="accentPinkTint">
               Try again
             </Text>
           </Pressable>
         </View>
       ) : (
-        <Text variant="display" color="textDisabled">
-          —
-        </Text>
+        <View style={styles.figures}>
+          <View style={styles.skeleton} />
+          <View style={[styles.skeleton, styles.skeletonSmall]} />
+        </View>
       )}
 
       <View style={styles.actions}>
-        <PillButton label="Deposit" disabled={!onDeposit} onPress={onDeposit} style={styles.action} />
+        <PillButton label="Deposit" icon="arrow-down" disabled={!onDeposit} onPress={onDeposit} style={styles.action} />
         <PillButton
           label="Withdraw"
+          icon="arrow-up"
           tone="secondary"
           disabled={!onWithdraw}
           onPress={onWithdraw}
           style={styles.action}
         />
       </View>
-    </Card>
+    </GlowCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.sm,
+    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  unavailable: {
+  figures: {
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    minHeight: 84,
+    justifyContent: 'center',
+  },
+  pending: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xxs + 1,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentPinkDim,
+  },
+  retry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  skeleton: {
+    height: 40,
+    width: '70%',
+    borderRadius: radii.sm,
+    backgroundColor: colors.bgSurfaceAlt,
+  },
+  skeletonSmall: {
+    height: 16,
+    width: '35%',
   },
   actions: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginTop: spacing.lg,
   },
   action: {
     flex: 1,

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
 
@@ -9,6 +10,7 @@ export type Step = {
   title: string;
   subtitle: string;
   done: boolean;
+  icon: IconName;
   onPress?: () => void;
 };
 
@@ -36,13 +38,13 @@ export function NextSteps({ steps }: { steps: Step[] }) {
               styles.check,
               step.done
                 ? { backgroundColor: colors.accentPink, borderColor: colors.accentPink }
-                : { borderColor: colors.border },
+                : { backgroundColor: colors.accentPinkDim, borderColor: colors.accentPinkDim },
             ]}>
-            {step.done ? (
-              <Text variant="label" color="textOnAccent">
-                ✓
-              </Text>
-            ) : null}
+            <Icon
+              name={step.done ? 'checkmark' : step.icon}
+              size={18}
+              color={step.done ? 'textOnAccent' : 'accentPinkTint'}
+            />
           </View>
           <View style={styles.text}>
             <Text variant="bodyStrong" color={step.done ? 'textSecondary' : 'textPrimary'}>
@@ -52,11 +54,7 @@ export function NextSteps({ steps }: { steps: Step[] }) {
               {step.subtitle}
             </Text>
           </View>
-          {!step.done && step.onPress ? (
-            <Text variant="heading" color="accentPink">
-              ›
-            </Text>
-          ) : null}
+          {!step.done && step.onPress ? <Icon name="chevron-forward" size={18} color="accentPink" /> : null}
         </Pressable>
       ))}
     </Card>
@@ -83,9 +81,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   check: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
