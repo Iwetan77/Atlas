@@ -6,7 +6,7 @@ export type OtpStatus = 'idle' | 'sending' | 'awaiting-code' | 'verifying' | 'do
 export type OtpFlow = {
   status: OtpStatus;
   error: string | null;
-  sendCode: (phone: string) => Promise<void>;
+  sendCode: (target: string) => Promise<void>;
   submitCode: (code: string) => Promise<void>;
   reset: () => void;
 };
@@ -20,17 +20,16 @@ export type AtlasAuth = {
   ready: boolean;
   authenticated: boolean;
   userId: string | null;
-  phone: string | null;
   email: string | null;
   wallets: AtlasWallets;
   // Both wallets exist and are usable. Screens that sign wait on this.
   walletsReady: boolean;
-  phoneLogin: OtpFlow;
-  // Adds a phone number to an account that signed in another way (the "Connect phone number" step).
-  phoneLink: OtpFlow;
+  // Google is the main way in. Email codes are the fallback for people without a Google account.
+  // (Privy's SMS only reaches US/Canada, so phone numbers can't be a login here.)
   loginWithGoogle: () => Promise<void>;
   googleLoading: boolean;
   googleError: string | null;
+  emailLogin: OtpFlow;
   logout: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
 };

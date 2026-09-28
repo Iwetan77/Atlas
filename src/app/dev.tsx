@@ -84,7 +84,6 @@ export default function DevScreen() {
     ['Network', network],
     ['Privy user', auth.userId],
     ['Email', auth.email],
-    ['Phone', auth.phone],
     ['Solana wallet', solana],
     ['Base wallet', base],
     ['Balances', balances ? `${balances.solana} · ${balances.base}` : null],

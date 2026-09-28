@@ -23,13 +23,8 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.actions}>
-        <PillButton label="Continue with phone number" onPress={() => router.push('/sign-in-phone')} />
-        <PillButton
-          label="Continue with Google"
-          tone="secondary"
-          loading={googleLoading}
-          onPress={loginWithGoogle}
-        />
+        <PillButton label="Continue with Google" loading={googleLoading} onPress={loginWithGoogle} />
+        <PillButton label="Continue with email" tone="secondary" onPress={() => router.push('/sign-in-email')} />
         {googleError ? <Text color="danger">{googleError}</Text> : null}
       </View>
     </Screen>

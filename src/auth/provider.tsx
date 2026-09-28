@@ -4,9 +4,8 @@ import {
   getAccessToken,
   useEmbeddedEthereumWallet,
   useEmbeddedSolanaWallet,
-  useLinkSMS,
+  useLoginWithEmail,
   useLoginWithOAuth,
-  useLoginWithSMS,
   usePrivy,
 } from '@privy-io/expo';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -39,17 +38,12 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
 
-  const smsLogin = useLoginWithSMS();
-  const smsLink = useLinkSMS();
   const oauth = useLoginWithOAuth();
+  const email = useLoginWithEmail();
 
-  const phoneLogin = useOtpFlow(
-    useCallback((phone) => smsLogin.sendCode({ phone }), [smsLogin]),
-    useCallback((code, phone) => smsLogin.loginWithCode({ code, phone }), [smsLogin]),
-  );
-  const phoneLink = useOtpFlow(
-    useCallback((phone) => smsLink.sendCode({ phone }), [smsLink]),
-    useCallback((code, phone) => smsLink.linkWithCode({ code, phone }), [smsLink]),
+  const emailLogin = useOtpFlow(
+    useCallback((to) => email.sendCode({ email: to }), [email]),
+    useCallback((code, to) => email.loginWithCode({ code, email: to }), [email]),
   );
 
   const solanaAddress = sol.status === 'connected' ? (sol.wallets[0]?.address ?? null) : null;
@@ -76,21 +70,17 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const value = useMemo<AtlasAuth>(() => {
     const accounts = user?.linked_accounts ?? [];
-    const phone = accounts.find((a) => a.type === 'phone');
-    const email =
-      accounts.find((a) => a.type === 'google_oauth')?.email ??
-      accounts.find((a) => a.type === 'email')?.address ??
-      null;
     return {
       ready: isReady,
       authenticated: !!user,
       userId: user?.id ?? null,
-      phone: phone && 'number' in phone ? (phone.number ?? null) : null,
-      email,
+      email:
+        accounts.find((a) => a.type === 'google_oauth')?.email ??
+        accounts.find((a) => a.type === 'email')?.address ??
+        null,
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
-      phoneLogin,
-      phoneLink,
+      emailLogin,
       loginWithGoogle: async () => {
         await oauth.login({ provider: 'google' });
       },
@@ -99,7 +89,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken: () => getAccessToken(),
     };
-  }, [user, isReady, solanaAddress, baseAddress, phoneLogin, phoneLink, oauth, logout]);
+  }, [user, isReady, solanaAddress, baseAddress, emailLogin, oauth, logout]);
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
 }

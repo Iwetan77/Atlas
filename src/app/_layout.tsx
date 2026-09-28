@@ -57,14 +57,13 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
       <Stack.Protected guard={authenticated}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="connect-phone" options={{ presentation: 'modal' }} />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
         </Stack.Protected>
       </Stack.Protected>
       <Stack.Protected guard={!authenticated}>
         <Stack.Screen name="sign-in" />
-        <Stack.Screen name="sign-in-phone" />
+        <Stack.Screen name="sign-in-email" />
       </Stack.Protected>
     </Stack>
   );

@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useAtlasAuth } from '@/auth/context';
 import { NextSteps } from '@/components/next-steps';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
@@ -12,8 +11,6 @@ import { spacing } from '@/theme';
 
 // Balance data is wired to the engine in Phase 2; until then the card shows no figure rather than a fake one.
 export default function HomeScreen() {
-  const { phone } = useAtlasAuth();
-
   return (
     <Screen>
       <View style={styles.header}>
@@ -42,13 +39,6 @@ export default function HomeScreen() {
 
       <NextSteps
         steps={[
-          {
-            key: 'phone',
-            title: 'Connect phone number',
-            subtitle: 'Receive from anyone',
-            done: !!phone,
-            onPress: () => router.push('/connect-phone'),
-          },
           {
             key: 'deposit',
             title: 'Make a deposit',

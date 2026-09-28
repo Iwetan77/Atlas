@@ -3,9 +3,8 @@
 import {
   PrivyProvider,
   useCreateWallet,
-  useLinkPhone,
+  useLoginWithEmail,
   useLoginWithOAuth,
-  useLoginWithSms,
   usePrivy,
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
@@ -32,7 +31,7 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={privy.appId}
       config={{
-        loginMethods: ['sms', 'google'],
+        loginMethods: ['google', 'email'],
         defaultChain: chain,
         supportedChains: [chain],
         solana: { rpcs: solanaRpcs },
@@ -64,17 +63,12 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const { createWallet: createEthWallet } = useCreateWallet();
   const { createWallet: createSolWallet } = useCreateSolanaWallet();
 
-  const sms = useLoginWithSms();
-  const link = useLinkPhone();
   const oauth = useLoginWithOAuth();
+  const email = useLoginWithEmail();
 
-  const phoneLogin = useOtpFlow(
-    useCallback((phone) => sms.sendCode({ phoneNumber: phone }), [sms]),
-    useCallback((code) => sms.loginWithCode({ code }), [sms]),
-  );
-  const phoneLink = useOtpFlow(
-    useCallback((phone) => link.sendCode({ phoneNumber: phone }), [link]),
-    useCallback((code) => link.linkWithCode({ code }), [link]),
+  const emailLogin = useOtpFlow(
+    useCallback((to) => email.sendCode({ email: to }), [email]),
+    useCallback((code) => email.loginWithCode({ code }), [email]),
   );
 
   const accounts = (user?.linkedAccounts ?? []) as WalletAccount[];
@@ -102,19 +96,17 @@ function AuthBridge({ children }: { children: ReactNode }) {
       ready,
       authenticated,
       userId: user?.id ?? null,
-      phone: user?.phone?.number ?? null,
       email: user?.google?.email ?? user?.email?.address ?? null,
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
-      phoneLogin,
-      phoneLink,
+      emailLogin,
       loginWithGoogle: () => oauth.initOAuth({ provider: 'google' }),
       googleLoading: oauth.loading,
       googleError: oauth.state.status === 'error' ? errorMessage(oauth.state.error) : null,
       logout,
       getAccessToken,
     }),
-    [ready, authenticated, user, solanaAddress, baseAddress, phoneLogin, phoneLink, oauth, logout, getAccessToken],
+    [ready, authenticated, user, solanaAddress, baseAddress, emailLogin, oauth, logout, getAccessToken],
   );
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
