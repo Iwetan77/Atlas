@@ -1,14 +1,14 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { useFonts } from 'expo-font';
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, type ErrorBoundaryProps, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
+import { StartupError, StartupStatus } from '@/components/startup-status';
 import { showDevTools } from '@/config';
 import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
@@ -29,6 +29,11 @@ const navTheme = {
   },
 };
 
+// Any render crash lands here with its message instead of a blank or red screen.
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <StartupError error={error} retry={retry} />;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     SpaceGrotesk_600SemiBold,
@@ -37,8 +42,16 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
   });
-  // The splash stays up until fonts are in; a font that fails to load falls back to the system face.
-  if (!fontsLoaded && !fontError) return null;
+  const fontsSettled = fontsLoaded || !!fontError;
+
+  // The native splash only waits for fonts. Sign-in start-up shows its own status screen, so a
+  // stalled SDK can never hide behind the splash.
+  useEffect(() => {
+    if (fontsSettled) SplashScreen.hideAsync();
+  }, [fontsSettled]);
+
+  // A font that fails to load falls back to the system face.
+  if (!fontsSettled) return null;
 
   return (
     <ThemeProvider value={navTheme}>
@@ -55,19 +68,9 @@ export default function RootLayout() {
 }
 
 function RootStack() {
-  const { ready, authenticated } = useAtlasAuth();
+  const { ready, authenticated, initError } = useAtlasAuth();
 
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
-
-  if (!ready) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accentPink} />
-      </View>
-    );
-  }
+  if (!ready || initError) return <StartupStatus error={initError} />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
@@ -87,12 +90,3 @@ function RootStack() {
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgBase,
-  },
-});

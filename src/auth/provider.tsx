@@ -35,7 +35,7 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
 }
 
 function AuthBridge({ children }: { children: ReactNode }) {
-  const { user, isReady, logout } = usePrivy();
+  const { user, isReady, error: privyError, logout } = usePrivy();
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
 
@@ -76,6 +76,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
     const accounts = user?.linked_accounts ?? [];
     return {
       ready: isReady,
+      initError: privyError ? errorMessage(privyError) : null,
       authenticated: !!user,
       userId: user?.id ?? null,
       email:
@@ -94,7 +95,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken: () => getAccessToken(),
     };
-  }, [user, isReady, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);
+  }, [user, isReady, privyError, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
 }

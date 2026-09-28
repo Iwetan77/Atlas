@@ -70,7 +70,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "export:web": "expo export -p web",
-    "start:tunnel": "expo start --tunnel"
+    "start:tunnel": "expo start --tunnel --clear"
   },
   "private": true
 }

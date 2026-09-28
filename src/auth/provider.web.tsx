@@ -99,6 +99,8 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const value = useMemo<AtlasAuth>(
     () => ({
       ready,
+      // The React SDK reports init problems through its own console errors, not a hook value.
+      initError: null,
       authenticated,
       userId: user?.id ?? null,
       email: user?.google?.email ?? user?.email?.address ?? null,

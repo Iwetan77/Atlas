@@ -18,6 +18,8 @@ export type AtlasWallets = {
 
 export type AtlasAuth = {
   ready: boolean;
+  // The auth SDK failed to initialise (bad client config, blocked network…). Shown on start-up.
+  initError: string | null;
   authenticated: boolean;
   userId: string | null;
   email: string | null;
