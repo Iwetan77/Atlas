@@ -60,6 +60,7 @@ function RootStack() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
       <Stack.Protected guard={authenticated}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="deposit" />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
           <Stack.Screen name="dev-home-preview" />

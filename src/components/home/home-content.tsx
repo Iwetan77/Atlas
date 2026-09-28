@@ -51,6 +51,7 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
         stealth={stealthMode}
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
+        onDeposit={() => router.push('/deposit')}
       />
 
       {data ? (
@@ -69,6 +70,7 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
             title: 'Make a deposit',
             subtitle: 'Add money in naira or crypto',
             done: hasFunds,
+            onPress: () => router.push('/deposit'),
           },
         ]}
       />

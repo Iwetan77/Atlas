@@ -109,3 +109,19 @@ export type BalanceResponse = {
   holdings: Holding[];
   asOfUnixMs: number;
 };
+
+// ── Deposits ────────────────────────────────────────────────────────────────────────────
+// Naira in by bank transfer: GET /v1/deposit/bank-account → the user's Daya virtual account.
+export type BankDepositAccount = {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  currency: 'NGN';
+};
+
+// Card/bank via Circle Onramp: POST /v1/onramp/session → short-lived hosted widget URL.
+// The engine picks the destination wallet from the token; the URL must not be cached or logged.
+export type OnrampSession = {
+  widgetUrl: string;
+  expiresAtUnixMs: number;
+};
