@@ -7,6 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { showDevTools } from '@/config';
+import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -29,7 +30,9 @@ export default function RootLayout() {
     <ThemeProvider value={navTheme}>
       <StatusBar style="light" />
       <AtlasAuthProvider>
-        <RootStack />
+        <ConfirmProvider>
+          <RootStack />
+        </ConfirmProvider>
       </AtlasAuthProvider>
     </ThemeProvider>
   );

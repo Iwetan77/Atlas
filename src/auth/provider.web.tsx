@@ -9,14 +9,22 @@ import {
   usePrivy,
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import { base, baseSepolia } from 'viem/chains';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
-import { network, privy } from '@/config';
+import { network, privy, solana } from '@/config';
 import { colors } from '@/theme';
+
+const solanaRpcs = {
+  [solana.chainId]: {
+    rpc: createSolanaRpc(solana.rpcUrl),
+    rpcSubscriptions: createSolanaRpcSubscriptions(solana.rpcUrl.replace(/^http/, 'ws')),
+  },
+};
 
 export function AtlasAuthProvider({ children }: { children: ReactNode }) {
   const chain = network === 'mainnet' ? base : baseSepolia;
@@ -27,6 +35,7 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
         loginMethods: ['sms', 'google'],
         defaultChain: chain,
         supportedChains: [chain],
+        solana: { rpcs: solanaRpcs },
         appearance: { theme: 'dark', accentColor: colors.accentPink },
         embeddedWallets: {
           ethereum: { createOnLogin: 'all-users' },
