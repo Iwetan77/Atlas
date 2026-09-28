@@ -34,3 +34,30 @@ export function formatTokenAmount(amount: string, symbol: string): string {
 }
 
 export const HIDDEN = '••••••';
+
+// "₦", "$", "KSh"… for amount inputs that show the symbol beside a bare number.
+export function currencySymbol(currency: DisplayCurrency): string {
+  const part = new Intl.NumberFormat(LOCALES[currency], { style: 'currency', currency })
+    .formatToParts(0)
+    .find((p) => p.type === 'currency');
+  return part?.value ?? currency;
+}
+
+// Unit prices: memecoins trade far below 1, so small prices keep significant digits
+// (₦0.02830) instead of rounding to ₦0.03.
+export function formatPrice(money: Money): string {
+  const n = Number(money.amount);
+  if (n === 0 || Math.abs(n) >= 1) return formatMoney(money);
+  return new Intl.NumberFormat(LOCALES[money.currency], {
+    style: 'currency',
+    currency: money.currency,
+    maximumSignificantDigits: 4,
+  }).format(n);
+}
+
+// "10000.5" → "10,000.5" for amount inputs; keeps a trailing "." or decimals the user is typing.
+export function groupDigits(raw: string): string {
+  const [whole, frac] = raw.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return frac === undefined ? grouped : `${grouped}.${frac}`;
+}

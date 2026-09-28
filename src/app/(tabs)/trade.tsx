@@ -1,52 +1,135 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import type { AssetCategory, MarketAsset } from '@/api/contract';
+import { useAssets } from '@/api/markets';
+import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
-import { IconTile, SoonChip } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { formatPrice } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
 
-// Stocks, memes and crypto share one screen and one buy flow; chips only filter.
-const CATEGORIES = ['Popular', 'Stocks', 'Memes', 'Crypto'] as const;
+// Stocks, memes and crypto share one list and one buy flow; chips only filter.
+const CATEGORIES: { key: AssetCategory; label: string }[] = [
+  { key: 'popular', label: 'Popular' },
+  { key: 'stocks', label: 'Stocks' },
+  { key: 'memes', label: 'Memes' },
+  { key: 'crypto', label: 'Crypto' },
+];
 
-// Layout for Phase 3. Search and the market list go live when the engine's quote endpoint does.
 export default function TradeScreen() {
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Popular');
+  const [category, setCategory] = useState<AssetCategory>('popular');
+  const [query, setQuery] = useState('');
+  const { assets, error, loading, reload } = useAssets(category, query);
 
   return (
     <Screen>
       <Text variant="title">Trade</Text>
-      <Field prefix={<Icon name="search" size={20} color="textSecondary" />} placeholder="Search anything" editable={false} />
+      <Field
+        prefix={<Icon name="search" size={20} color="textSecondary" />}
+        placeholder="Search stocks, memes, crypto"
+        value={query}
+        onChangeText={setQuery}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+      />
       <View style={styles.chips}>
         {CATEGORIES.map((c) => {
-          const active = c === category;
+          const active = c.key === category;
           return (
             <Pressable
-              key={c}
-              onPress={() => setCategory(c)}
+              key={c.key}
+              onPress={() => setCategory(c.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
               style={[styles.chip, { backgroundColor: active ? colors.accentPink : colors.bgSurface }]}>
               <Text variant="label" color={active ? 'textOnAccent' : 'textSecondary'}>
-                {c}
+                {c.label}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Card style={styles.empty}>
-        <View style={styles.emptyTop}>
-          <IconTile icon="trending-up" />
-          <SoonChip />
-        </View>
-        <Text variant="heading">Markets open in the next build</Text>
-        <Text color="textSecondary">
-          Tokenized stocks, memecoins and crypto, priced in your currency, bought from your one balance with one tap.
-        </Text>
-      </Card>
+      {assets && assets.length > 0 ? (
+        <Card style={styles.list}>
+          {assets.map((a, i) => (
+            <AssetRow key={a.assetId} asset={a} divider={i > 0} />
+          ))}
+        </Card>
+      ) : error && !assets ? (
+        <Card style={styles.state}>
+          <Icon name="cloud-offline-outline" size={28} color="textSecondary" />
+          <Text variant="heading">Markets aren&apos;t available right now</Text>
+          <Text variant="caption" color="textSecondary">
+            {error}
+          </Text>
+          <Pressable onPress={reload} hitSlop={8}>
+            <Text variant="label" color="accentPinkTint">
+              Try again
+            </Text>
+          </Pressable>
+        </Card>
+      ) : loading ? (
+        <Card style={styles.list}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={[styles.row, i > 0 && styles.divider]}>
+              <View style={styles.skeletonAvatar} />
+              <View style={styles.skeletonLine} />
+            </View>
+          ))}
+        </Card>
+      ) : (
+        <Card style={styles.state}>
+          <Text color="textSecondary">Nothing matches “{query}”.</Text>
+        </Card>
+      )}
     </Screen>
+  );
+}
+
+function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) {
+  const change = asset.change24hPct === null ? null : Number(asset.change24hPct);
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: '/trade/[assetId]',
+          params: {
+            assetId: asset.assetId,
+            symbol: asset.symbol,
+            name: asset.name,
+            price: asset.price.amount,
+            iconUrl: asset.iconUrl ?? '',
+            change: asset.change24hPct ?? '',
+          },
+        })
+      }
+      style={({ pressed }) => [styles.row, divider && styles.divider, pressed && styles.pressed]}>
+      <AssetAvatar symbol={asset.symbol} iconUrl={asset.iconUrl} />
+      <View style={styles.rowText}>
+        <Text variant="bodyStrong" numberOfLines={1}>
+          {asset.name}
+        </Text>
+        <Text variant="caption" color="textSecondary">
+          {asset.symbol}
+        </Text>
+      </View>
+      <View style={styles.rowPrice}>
+        <Text variant="bodyStrong">{formatPrice(asset.price)}</Text>
+        {change === null ? null : (
+          <Text variant="caption" color={change >= 0 ? 'success' : 'danger'}>
+            {change >= 0 ? '+' : ''}
+            {change.toFixed(2)}%
+          </Text>
+        )}
+      </View>
+    </Pressable>
   );
 }
 
@@ -61,12 +144,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radii.pill,
   },
-  empty: {
-    gap: spacing.md,
+  list: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
-  emptyTop: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  divider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  rowText: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  rowPrice: {
+    alignItems: 'flex-end',
+    gap: spacing.xxs,
+  },
+  state: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  skeletonAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bgSurfaceAlt,
+  },
+  skeletonLine: {
+    flex: 1,
+    height: 16,
+    borderRadius: radii.sm,
+    backgroundColor: colors.bgSurfaceAlt,
   },
 });

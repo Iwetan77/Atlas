@@ -78,6 +78,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deposit" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="trade/[assetId]" />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
           <Stack.Screen name="dev-home-preview" />
