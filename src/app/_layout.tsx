@@ -7,6 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { showDevTools } from '@/config';
+import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
 
@@ -29,11 +30,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={navTheme}>
       <StatusBar style="light" />
-      <AtlasAuthProvider>
-        <ConfirmProvider>
-          <RootStack />
-        </ConfirmProvider>
-      </AtlasAuthProvider>
+      <SettingsProvider>
+        <AtlasAuthProvider>
+          <ConfirmProvider>
+            <RootStack />
+          </ConfirmProvider>
+        </AtlasAuthProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }
@@ -59,6 +62,7 @@ function RootStack() {
         <Stack.Screen name="index" />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
+          <Stack.Screen name="dev-home-preview" />
         </Stack.Protected>
       </Stack.Protected>
       <Stack.Protected guard={!authenticated}>

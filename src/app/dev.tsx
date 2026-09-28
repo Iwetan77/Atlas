@@ -1,5 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import * as Clipboard from 'expo-clipboard';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { formatEther } from 'viem';
@@ -182,6 +183,7 @@ export default function DevScreen() {
       {auth.walletError ? <Text color="danger">Wallet setup failed: {auth.walletError}</Text> : null}
       {status ? <Text color="textSecondary">{status}</Text> : null}
 
+      <PillButton label="Preview Home with sample data" tone="secondary" onPress={() => router.push('/dev-home-preview')} />
       <PillButton label="Sign out" tone="secondary" onPress={auth.logout} />
     </Screen>
   );
