@@ -1,3 +1,6 @@
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { useFonts } from 'expo-font';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +30,16 @@ const navTheme = {
 };
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+  });
+  // The splash stays up until fonts are in; a font that fails to load falls back to the system face.
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <ThemeProvider value={navTheme}>
       <StatusBar style="light" />
@@ -61,6 +74,7 @@ function RootStack() {
       <Stack.Protected guard={authenticated}>
         <Stack.Screen name="index" />
         <Stack.Screen name="deposit" />
+        <Stack.Screen name="profile" />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
           <Stack.Screen name="dev-home-preview" />

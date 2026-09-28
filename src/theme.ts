@@ -19,7 +19,11 @@ export const colors = {
 
   // Semantic colors stay away from the brand pink so gains/losses never read as branding.
   success: '#3DDC84',
+  successDim: '#0F2A1C',
   danger: '#FF6A3D',
+
+  // QR codes stay dark-on-white: plenty of camera scanners can't read inverted codes.
+  qrBackground: '#FFFFFF',
 
   // Card outlines (~1.5:1 on black). Interactive outlines use accentPink.
   border: '#5C1F3B',
@@ -45,20 +49,36 @@ export const radii = {
   pill: 999,
 } as const;
 
-// System font for v1.
+// Space Grotesk for numbers and headings (gives the balance its character), Inter for reading text.
+// Custom fonts need one family per weight on Android, so styles name the exact face, not a fontWeight.
+export const fonts = {
+  display: 'SpaceGrotesk_700Bold',
+  displaySemi: 'SpaceGrotesk_600SemiBold',
+  body: 'Inter_400Regular',
+  bodyMedium: 'Inter_500Medium',
+  bodySemi: 'Inter_600SemiBold',
+} as const;
+
 export const type = {
-  display: { fontSize: 40, lineHeight: 46, fontWeight: '700' },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '700' },
-  heading: { fontSize: 18, lineHeight: 24, fontWeight: '600' },
-  body: { fontSize: 16, lineHeight: 22, fontWeight: '400' },
-  bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
-  caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  display: { fontFamily: fonts.display, fontSize: 44, lineHeight: 50, letterSpacing: -1.2 },
+  title: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
+  heading: { fontFamily: fonts.displaySemi, fontSize: 18, lineHeight: 24, letterSpacing: -0.2 },
+  body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 22 },
+  bodyStrong: { fontFamily: fonts.bodySemi, fontSize: 16, lineHeight: 22 },
+  caption: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
+  label: { fontFamily: fonts.bodySemi, fontSize: 13, lineHeight: 18 },
+  overline: { fontFamily: fonts.bodySemi, fontSize: 11, lineHeight: 14, letterSpacing: 1.2, textTransform: 'uppercase' },
 } as const;
 
 export type TypeVariant = keyof typeof type;
 
+export const gradients = {
+  // Balance card: a pink glow falling off into black.
+  balance: ['#4A1030', '#1A0B13', '#0F0A0E'],
+  brand: ['#FF2E7E', '#C4155C'],
+} as const;
+
 // Web renders the phone layout centered instead of stretching it across a desktop screen.
 export const maxContentWidth = 520;
 
-export const theme = { colors, spacing, radii, type, maxContentWidth } as const;
+export const theme = { colors, spacing, radii, fonts, type, gradients, maxContentWidth } as const;
