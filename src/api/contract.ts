@@ -73,3 +73,39 @@ export type ExecutionPlan = {
   transactions: UnsignedTx[];
   expiresAtUnixMs: number;
 };
+
+// ── Balance ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/balance?currency=NGN with `Authorization: Bearer <Privy access token>`.
+// The engine resolves the user's wallets from the token; the app never sends addresses.
+
+export type DisplayCurrency = 'NGN' | 'USD' | 'KES' | 'GHS' | 'ZAR';
+
+// Decimal strings throughout so money never passes through floating point on the way in.
+export type Money = { amount: string; currency: DisplayCurrency };
+
+export type AssetKind = 'cash' | 'crypto' | 'meme' | 'stock';
+
+export type Holding = {
+  assetId: string;
+  symbol: string;
+  name: string;
+  kind: AssetKind;
+  // Where the funds actually sit. Shown only in the breakdown, never on the main balance.
+  chain: Chain;
+  // Token units, e.g. "0.10".
+  amount: string;
+  value: Money;
+  valueUsd: string;
+  // Circle Gateway buckets (engine `UsdcBalanceBuckets`). Absent for plain wallet assets.
+  location?: 'wallet' | 'gateway' | 'gateway_pending';
+};
+
+export type BalanceResponse = {
+  // Everything the user owns in spendable form, including `pending`.
+  total: Money;
+  totalUsd: string;
+  // Counted in `total` but still settling (e.g. a Gateway deposit awaiting finality). Null when nothing is.
+  pending: Money | null;
+  holdings: Holding[];
+  asOfUnixMs: number;
+};
