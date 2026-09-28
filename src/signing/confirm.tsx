@@ -3,10 +3,10 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ExecutionPlan, IntentKind, SentTx } from '@/api/contract';
-import { errorMessage } from '@/auth/context';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { waitForTx } from '@/signing/chains';
+import { friendlyTxError } from '@/signing/errors';
 import { useSigner } from '@/signing/use-signer';
 import { watchWalletPrompts } from '@/signing/wallet-prompts';
 import { colors, maxContentWidth, radii, spacing } from '@/theme';
@@ -97,7 +97,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       close();
     } catch (e) {
       stopWatching();
-      setPhase({ kind: 'error', message: errorMessage(e) });
+      setPhase({ kind: 'error', message: friendlyTxError(e) });
     }
   };
 
