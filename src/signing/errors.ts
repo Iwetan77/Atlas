@@ -7,7 +7,7 @@ export function friendlyTxError(e: unknown): string {
   console.warn('[atlas] transaction failed', e);
 
   if (/insufficient funds|insufficient lamports|attempt to debit an account but found no record/i.test(raw)) {
-    return "You don't have enough to cover the network fee.";
+    return "You don't have enough for this.";
   }
   if (/user rejected|denied|cancel/i.test(raw)) return 'Cancelled.';
   if (/blockhash not found|expired|timed? ?out/i.test(raw)) return 'That took too long. Please try again.';
