@@ -1,24 +1,28 @@
 // Single source of truth for Atlas design tokens. Components never hard-code colors.
 
 export const colors = {
+  // Surfaces stay black. Separation comes from pink borders, not from lifting the fill:
+  // dark fills only get ~1.1:1 apart, which reads as one flat slab.
   bgBase: '#0A0A0D',
-  bgSurface: '#17141C',
-  bgSurfaceAlt: '#201B26',
+  bgSurface: '#141117',
+  bgSurfaceAlt: '#1D1822',
 
   accentPink: '#FF2E7E',
   accentPinkTint: '#FF6FA5',
-  accentPinkDim: '#4A1830',
+  accentPinkDim: '#2A0F1C',
 
   textPrimary: '#F5F3F6',
   textSecondary: '#9C96A3',
-  textDisabled: '#5A5560',
+  textDisabled: '#6E6875',
   // Text sitting on an accentPink fill.
   textOnAccent: '#0A0A0D',
 
+  // Semantic colors stay away from the brand pink so gains/losses never read as branding.
   success: '#3DDC84',
-  danger: '#FF4D4D',
+  danger: '#FF6A3D',
 
-  border: '#2A2530',
+  // Card outlines (~1.5:1 on black). Interactive outlines use accentPink.
+  border: '#5C1F3B',
 } as const;
 
 export type ColorToken = keyof typeof colors;

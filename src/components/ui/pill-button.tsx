@@ -22,8 +22,9 @@ export function PillButton({ label, tone = 'primary', disabled, style, ...rest }
               ? colors.accentPinkTint
               : colors.accentPink
             : state.pressed
-              ? colors.border
-              : colors.bgSurfaceAlt,
+              ? colors.accentPinkDim
+              : colors.bgBase,
+          borderColor: primary ? 'transparent' : colors.accentPink,
           opacity: disabled ? 0.4 : 1,
         },
         typeof style === 'function' ? style(state) : style,
@@ -40,6 +41,7 @@ const styles = StyleSheet.create({
   pill: {
     flex: 1,
     borderRadius: radii.pill,
+    borderWidth: 1.5,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',

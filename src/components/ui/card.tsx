@@ -19,6 +19,8 @@ export function Card({ level = 'surface', style, ...rest }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.xl,
   },
 });
