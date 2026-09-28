@@ -24,6 +24,8 @@ export type AtlasAuth = {
   wallets: AtlasWallets;
   // Both wallets exist and are usable. Screens that sign wait on this.
   walletsReady: boolean;
+  // Set when silent wallet creation fails, so it shows up instead of spinning forever.
+  walletError: string | null;
   // Google is the main way in. Email codes are the fallback for people without a Google account.
   // (Privy's SMS only reaches US/Canada, so phone numbers can't be a login here.)
   loginWithGoogle: () => Promise<void>;

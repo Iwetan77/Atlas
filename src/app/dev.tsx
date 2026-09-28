@@ -151,6 +151,7 @@ export default function DevScreen() {
         />
       </Card>
 
+      {auth.walletError ? <Text color="danger">Wallet setup failed: {auth.walletError}</Text> : null}
       {status ? <Text color="textSecondary">{status}</Text> : null}
 
       <PillButton label="Sign out" tone="secondary" onPress={auth.logout} />

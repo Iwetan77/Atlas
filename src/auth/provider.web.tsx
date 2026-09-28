@@ -9,7 +9,7 @@ import {
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { base, baseSepolia } from 'viem/chains';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
@@ -37,8 +37,10 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
         solana: { rpcs: solanaRpcs },
         appearance: { theme: 'dark', accentColor: colors.accentPink },
         embeddedWallets: {
-          ethereum: { createOnLogin: 'all-users' },
-          solana: { createOnLogin: 'all-users' },
+          // AuthBridge creates both wallets itself, one after the other. Letting Privy also do it
+          // on login races ours and one of the two calls fails with "already has a wallet".
+          ethereum: { createOnLogin: 'off' },
+          solana: { createOnLogin: 'off' },
           // Atlas shows its own single confirmation per action; Privy's per-signature modal stays off.
           showWalletUIs: false,
         },
@@ -75,8 +77,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const baseAddress = embeddedAddress(accounts, 'ethereum');
   const solanaAddress = embeddedAddress(accounts, 'solana');
 
-  // Same safety net as native: every signed-in user ends up with both wallets.
+  // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
   useEffect(() => {
     if (!ready || !authenticated || !user || creating.current) return;
     if (baseAddress && solanaAddress) return;
@@ -85,6 +88,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
       try {
         if (!baseAddress) await createEthWallet();
         if (!solanaAddress) await createSolWallet();
+        setWalletError(null);
+      } catch (e) {
+        setWalletError(errorMessage(e));
       } finally {
         creating.current = false;
       }
@@ -99,6 +105,8 @@ function AuthBridge({ children }: { children: ReactNode }) {
       email: user?.google?.email ?? user?.email?.address ?? null,
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
+      // A failed attempt doesn't matter once both wallets exist.
+      walletError: solanaAddress && baseAddress ? null : walletError,
       emailLogin,
       loginWithGoogle: () => oauth.initOAuth({ provider: 'google' }),
       googleLoading: oauth.loading,
@@ -106,7 +114,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken,
     }),
-    [ready, authenticated, user, solanaAddress, baseAddress, emailLogin, oauth, logout, getAccessToken],
+    [ready, authenticated, user, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout, getAccessToken],
   );
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;

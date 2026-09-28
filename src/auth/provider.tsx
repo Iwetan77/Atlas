@@ -8,7 +8,7 @@ import {
   useLoginWithOAuth,
   usePrivy,
 } from '@privy-io/expo';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { base, baseSepolia } from 'viem/chains';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
@@ -24,8 +24,9 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
       supportedChains={network === 'mainnet' ? [base] : [baseSepolia]}
       config={{
         embedded: {
-          ethereum: { createOnLogin: 'all-users' },
-          solana: { createOnLogin: 'all-users' },
+          // AuthBridge creates both wallets itself so the two creators can't race.
+          ethereum: { createOnLogin: 'off' },
+          solana: { createOnLogin: 'off' },
         },
       }}>
       <AuthBridge>{children}</AuthBridge>
@@ -49,9 +50,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const solanaAddress = sol.status === 'connected' ? (sol.wallets[0]?.address ?? null) : null;
   const baseAddress = eth.wallets[0]?.address ?? null;
 
-  // createOnLogin covers new users. This covers accounts that predate it, so every signed-in
-  // user ends up with both wallets without a separate "create wallet" step.
+  // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
   useEffect(() => {
     if (!isReady || !user || creating.current) return;
     const needsEth = eth.wallets.length === 0;
@@ -62,6 +63,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
       try {
         if (needsEth) await eth.create();
         if (needsSol) await sol.create?.();
+        setWalletError(null);
+      } catch (e) {
+        setWalletError(errorMessage(e));
       } finally {
         creating.current = false;
       }
@@ -80,6 +84,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
         null,
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
+      walletError: solanaAddress && baseAddress ? null : walletError,
       emailLogin,
       loginWithGoogle: async () => {
         await oauth.login({ provider: 'google' });
@@ -89,7 +94,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken: () => getAccessToken(),
     };
-  }, [user, isReady, solanaAddress, baseAddress, emailLogin, oauth, logout]);
+  }, [user, isReady, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
 }
