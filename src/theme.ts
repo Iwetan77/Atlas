@@ -1,32 +1,49 @@
 // Single source of truth for Atlas design tokens. Components never hard-code colors.
 
 export const colors = {
-  // Surfaces stay black. Separation comes from pink borders, not from lifting the fill:
-  // dark fills only get ~1.1:1 apart, which reads as one flat slab.
-  bgBase: '#0A0A0D',
-  bgSurface: '#141117',
-  bgSurfaceAlt: '#1D1822',
+  // MiniPay's slate greys, sampled from their app: grey carries the layout, pink carries the brand.
+  bgBase: '#292C33',
+  bgSurface: '#444557',
+  bgSurfaceAlt: '#4F5165',
+  bgTabBar: '#333544',
 
   accentPink: '#FF2E7E',
-  accentPinkTint: '#FF6FA5',
-  accentPinkDim: '#2A0F1C',
+  accentPinkTint: '#FF8AB5',
+  // Hero card shades (MiniPay's green relationships, in pink): deeper pink for the pills on the card,
+  // a lighter wash for the decorative circle.
+  accentPinkDeep: '#D81B64',
+  accentPinkWash: '#FF4A90',
+  // Muted dark pink for promos, chips and the chevron tab (MiniPay's dark green).
+  accentPinkDim: '#6A2F46',
+  accentPinkMuted: '#5A273B',
 
-  textPrimary: '#F5F3F6',
-  textSecondary: '#9C96A3',
-  textDisabled: '#6E6875',
-  // Text sitting on an accentPink fill.
-  textOnAccent: '#0A0A0D',
+  // Pastel icon tiles, with the dark ink that sits on them.
+  tilePink: '#F5B3CC',
+  tilePinkInk: '#8A1142',
+  tileBlue: '#B9C6F7',
+  tileBlueInk: '#23306B',
+
+  textPrimary: '#FFFFFF',
+  textSecondary: '#B4B6C4',
+  textDisabled: '#7C7E8E',
+  // Text on a pink fill.
+  textOnAccent: '#FFFFFF',
+  // Text on white surfaces (light buttons, asset cards on the hero).
+  textOnLight: '#1D1F26',
+  surfaceLight: '#FFFFFF',
+  // Translucent white for chips and dividers drawn on the pink hero card.
+  onAccentSoft: 'rgba(255,255,255,0.22)',
 
   // Semantic colors stay away from the brand pink so gains/losses never read as branding.
   success: '#3DDC84',
-  successDim: '#0F2A1C',
-  danger: '#FF6A3D',
+  successDim: '#23473A',
+  danger: '#FF7A52',
 
   // QR codes stay dark-on-white: plenty of camera scanners can't read inverted codes.
   qrBackground: '#FFFFFF',
 
-  // Card outlines (~1.5:1 on black). Interactive outlines use accentPink.
-  border: '#5C1F3B',
+  // Outlined cards (MiniPay's Next steps card) and dividers.
+  border: '#474A5C',
 } as const;
 
 export type ColorToken = keyof typeof colors;
@@ -72,13 +89,8 @@ export const type = {
 
 export type TypeVariant = keyof typeof type;
 
-export const gradients = {
-  // Balance card: a pink glow falling off into black.
-  balance: ['#4A1030', '#1A0B13', '#0F0A0E'],
-  brand: ['#FF2E7E', '#C4155C'],
-} as const;
 
 // Web renders the phone layout centered instead of stretching it across a desktop screen.
 export const maxContentWidth = 520;
 
-export const theme = { colors, spacing, radii, fonts, type, gradients, maxContentWidth } as const;
+export const theme = { colors, spacing, radii, fonts, type, maxContentWidth } as const;

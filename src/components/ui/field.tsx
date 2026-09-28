@@ -11,7 +11,7 @@ type Props = TextInputProps & {
 export function Field({ prefix, style, onFocus, onBlur, ...rest }: Props) {
   const [focused, setFocused] = useState(false);
   return (
-    <View style={[styles.wrap, { borderColor: focused ? colors.accentPink : colors.border }]}>
+    <View style={[styles.wrap, { borderColor: focused ? colors.accentPink : colors.bgSurface }]}>
       {typeof prefix === 'string' ? (
         <Text variant="bodyStrong" color="textSecondary">
           {prefix}
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1.5,
     borderRadius: radii.md,
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.bgSurface,
     paddingHorizontal: spacing.lg,
   },
   input: {

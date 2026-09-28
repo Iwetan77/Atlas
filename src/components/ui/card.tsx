@@ -3,24 +3,24 @@ import { StyleSheet, View, type ViewProps } from 'react-native';
 import { colors, radii, spacing } from '@/theme';
 
 type Props = ViewProps & {
-  // Nested cards (e.g. the asset breakdown) sit one step higher.
-  level?: 'surface' | 'alt';
+  // filled: grey card on the grey page (default). outlined: page-colored with a thin edge, for
+  // secondary blocks like Next steps. alt: one step lighter, for cards nested in cards.
+  variant?: 'filled' | 'outlined' | 'alt';
 };
 
-export function Card({ level = 'surface', style, ...rest }: Props) {
-  return (
-    <View
-      style={[styles.card, { backgroundColor: level === 'alt' ? colors.bgSurfaceAlt : colors.bgSurface }, style]}
-      {...rest}
-    />
-  );
+export function Card({ variant = 'filled', style, ...rest }: Props) {
+  return <View style={[styles.card, variantStyles[variant], style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.xl,
   },
+});
+
+const variantStyles = StyleSheet.create({
+  filled: { backgroundColor: colors.bgSurface },
+  outlined: { backgroundColor: colors.bgBase, borderWidth: 1.5, borderColor: colors.border },
+  alt: { backgroundColor: colors.bgSurfaceAlt },
 });

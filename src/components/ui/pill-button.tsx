@@ -2,19 +2,27 @@ import { ActivityIndicator, Pressable, StyleSheet, type PressableProps } from 'r
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, type ColorToken } from '@/theme';
+
+type Tone = 'primary' | 'secondary';
 
 type Props = Omit<PressableProps, 'children'> & {
   label: string;
-  tone?: 'primary' | 'secondary';
+  // primary: pink with white text. secondary: MiniPay's white pill with dark text.
+  tone?: Tone;
+  size?: 'md' | 'sm';
   icon?: IconName;
   loading?: boolean;
 };
 
-export function PillButton({ label, tone = 'primary', icon, disabled, loading, style, ...rest }: Props) {
-  const primary = tone === 'primary';
+const TONES: Record<Tone, { bg: string; pressed: string; fg: ColorToken }> = {
+  primary: { bg: colors.accentPink, pressed: colors.accentPinkDeep, fg: 'textOnAccent' },
+  secondary: { bg: colors.surfaceLight, pressed: colors.textSecondary, fg: 'textOnLight' },
+};
+
+export function PillButton({ label, tone = 'primary', size = 'md', icon, disabled, loading, style, ...rest }: Props) {
+  const t = TONES[tone];
   const inactive = disabled || loading;
-  const fg = primary ? 'textOnAccent' : 'textPrimary';
   return (
     <Pressable
       accessibilityRole="button"
@@ -22,15 +30,9 @@ export function PillButton({ label, tone = 'primary', icon, disabled, loading, s
       disabled={inactive}
       style={(state) => [
         styles.pill,
+        size === 'sm' && styles.small,
         {
-          backgroundColor: primary
-            ? state.pressed
-              ? colors.accentPinkTint
-              : colors.accentPink
-            : state.pressed
-              ? colors.accentPinkDim
-              : colors.bgBase,
-          borderColor: primary ? 'transparent' : colors.accentPink,
+          backgroundColor: state.pressed ? t.pressed : t.bg,
           opacity: disabled ? 0.4 : 1,
           transform: [{ scale: state.pressed ? 0.98 : 1 }],
         },
@@ -38,11 +40,11 @@ export function PillButton({ label, tone = 'primary', icon, disabled, loading, s
       ]}
       {...rest}>
       {loading ? (
-        <ActivityIndicator color={primary ? colors.textOnAccent : colors.accentPink} />
+        <ActivityIndicator color={colors[t.fg]} />
       ) : (
         <>
-          {icon ? <Icon name={icon} size={18} color={fg} /> : null}
-          <Text variant="bodyStrong" color={fg}>
+          {icon ? <Icon name={icon} size={size === 'sm' ? 16 : 18} color={t.fg} /> : null}
+          <Text variant={size === 'sm' ? 'label' : 'bodyStrong'} color={t.fg}>
             {label}
           </Text>
         </>
@@ -57,10 +59,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     borderRadius: radii.pill,
-    borderWidth: 1.5,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  small: {
+    minHeight: 40,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
 });
