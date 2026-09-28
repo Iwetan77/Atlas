@@ -33,6 +33,7 @@ export function useBalance(): BalanceState {
       setError(null);
     } catch (e) {
       // Keep the last good balance on screen; a failed poll shouldn't blank it.
+      console.warn('[atlas] balance refresh failed', e);
       setError(errorMessage(e));
     } finally {
       inFlight.current = false;

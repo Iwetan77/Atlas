@@ -78,6 +78,11 @@ export function HeroBalance(props: Props) {
             <Text variant="title" color="textOnAccent">
               Balance unavailable
             </Text>
+            {error ? (
+              <Text variant="caption" color="textOnAccent" style={styles.soft} numberOfLines={2}>
+                {error}
+              </Text>
+            ) : null}
             <Pressable onPress={props.onRetry} hitSlop={8} style={styles.retry}>
               <Icon name="refresh" size={14} color="textOnAccent" />
               <Text variant="label" color="textOnAccent">
