@@ -9,19 +9,19 @@ import {
   usePrivy,
 } from '@privy-io/expo';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { base, baseSepolia } from 'viem/chains';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
-import { network, privy } from '@/config';
+import { privy } from '@/config';
+import { evmChains } from '@/signing/chains';
 
 export function AtlasAuthProvider({ children }: { children: ReactNode }) {
   return (
     <PrivyProvider
       appId={privy.appId}
       clientId={privy.clientId}
-      supportedChains={network === 'mainnet' ? [base] : [baseSepolia]}
+      supportedChains={[evmChains.base, evmChains.ethereum]}
       config={{
         embedded: {
           // AuthBridge creates both wallets itself so the two creators can't race.

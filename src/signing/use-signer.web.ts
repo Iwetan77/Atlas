@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 import type { SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
-import { baseChain } from '@/signing/chains';
+import { evmChains } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
 const noWalletUi = { showWalletUIs: false } as const;
@@ -23,18 +23,19 @@ export function useSigner(): Signer {
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
-      if (tx.chain === 'base') {
-        if (!addresses.base) throw new Error('Base wallet is not ready');
+      if (tx.chain !== 'solana') {
+        // One EVM address serves every EVM chain; it's labelled "base" because Base is the default.
+        if (!addresses.base) throw new Error('EVM wallet is not ready');
         const { hash } = await sendTransaction(
           {
             to: tx.to,
             data: tx.data ?? '0x',
             value: BigInt(tx.value ?? '0'),
-            chainId: baseChain.id,
+            chainId: evmChains[tx.chain].id,
           },
           { address: addresses.base, uiOptions: noWalletUi },
         );
-        return { chain: 'base', id: hash };
+        return { chain: tx.chain, id: hash };
       }
 
       if (!solWallet) throw new Error('Solana wallet is not ready');

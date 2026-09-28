@@ -11,12 +11,12 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { network } from '@/config';
-import { basePublicClient, solanaConnection } from '@/signing/chains';
+import { evmClients, solanaConnection } from '@/signing/chains';
 import { ActionCancelled, type ActionReport, useConfirmAndExecute } from '@/signing/confirm';
-import { buildSigningTestPlan } from '@/signing/test-plan';
+import { buildBridgeToBasePlan, buildSigningTestPlan } from '@/signing/test-plan';
 import { spacing } from '@/theme';
 
-type Balances = { base: string; solana: string } | null;
+type Balances = { base: string; ethereum: string; solana: string } | null;
 
 // Testnet-only screen for the Phase 1 gate: who is signed in, their wallets, and the
 // one-confirmation signing test.
@@ -26,18 +26,23 @@ export default function DevScreen() {
   const [balances, setBalances] = useState<Balances>(null);
   const [report, setReport] = useState<ActionReport | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState<'test' | 'airdrop' | null>(null);
+  const [busy, setBusy] = useState<'test' | 'airdrop' | 'bridge' | null>(null);
 
   const { base, solana } = auth.wallets;
 
   const refresh = useCallback(async () => {
     if (!base || !solana) return;
     try {
-      const [wei, lamports] = await Promise.all([
-        basePublicClient.getBalance({ address: base as `0x${string}` }),
+      const [baseWei, l1Wei, lamports] = await Promise.all([
+        evmClients.base.getBalance({ address: base as `0x${string}` }),
+        evmClients.ethereum.getBalance({ address: base as `0x${string}` }),
         solanaConnection.getBalance(new PublicKey(solana)),
       ]);
-      setBalances({ base: `${formatEther(wei)} ETH`, solana: `${lamports / 1e9} SOL` });
+      setBalances({
+        base: `${formatEther(baseWei)} ETH`,
+        ethereum: `${formatEther(l1Wei)} ETH`,
+        solana: `${lamports / 1e9} SOL`,
+      });
     } catch (e) {
       setStatus(`Balance check failed: ${errorMessage(e)}`);
     }
@@ -59,6 +64,20 @@ export default function DevScreen() {
       await refresh();
     } catch (e) {
       setStatus(`Airdrop failed (devnet faucet is rate-limited): ${errorMessage(e)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const bridgeToBase = async () => {
+    setBusy('bridge');
+    setStatus(null);
+    try {
+      const r = await confirmAndExecute(buildBridgeToBasePlan('0.01'));
+      setStatus(`Bridge sent (${r.sent[0]?.id}). Base Sepolia balance updates in a few minutes.`);
+      await refresh();
+    } catch (e) {
+      if (!(e instanceof ActionCancelled)) setStatus(`Bridge failed: ${errorMessage(e)}`);
     } finally {
       setBusy(null);
     }
@@ -86,7 +105,9 @@ export default function DevScreen() {
     ['Email', auth.email],
     ['Solana wallet', solana],
     ['Base wallet', base],
-    ['Balances', balances ? `${balances.solana} · ${balances.base}` : null],
+    ['Solana devnet', balances?.solana ?? null],
+    ['Base Sepolia', balances?.base ?? null],
+    ['Ethereum Sepolia', balances?.ethereum ?? null],
   ];
 
   const passed = report && report.confirmations === 1 && report.walletPrompts === 0;
@@ -111,7 +132,7 @@ export default function DevScreen() {
         ))}
       </Card>
       <Text variant="caption" color="textSecondary">
-        Tap a row to copy it. Base Sepolia ETH for gas comes from a faucet; Solana devnet SOL from the button below.
+        Tap a row to copy it. Faucet Sepolia ETH goes to the Base wallet address; bridge it to Base below.
       </Text>
 
       <Card style={styles.card}>
@@ -141,6 +162,13 @@ export default function DevScreen() {
           loading={busy === 'test'}
           disabled={!auth.walletsReady || busy !== null}
           onPress={runSigningTest}
+        />
+        <PillButton
+          label="Bridge 0.01 Sepolia ETH to Base"
+          tone="secondary"
+          loading={busy === 'bridge'}
+          disabled={!auth.walletsReady || busy !== null}
+          onPress={bridgeToBase}
         />
         <PillButton
           label="Airdrop 1 devnet SOL"

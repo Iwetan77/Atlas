@@ -2,6 +2,7 @@
 // confirmation covers every signature. Stands in for the engine until its execute endpoint exists.
 import { PublicKey, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { Buffer } from 'buffer';
+import { encodeFunctionData, parseAbi, parseEther } from 'viem';
 
 import type { ExecutionPlan } from '@/api/contract';
 import { solanaConnection } from '@/signing/chains';
@@ -35,6 +36,33 @@ export async function buildSigningTestPlan(wallets: { base: string; solana: stri
     transactions: [
       { chain: 'base', to: wallets.base as `0x${string}`, value: '0' },
       { chain: 'solana', transaction: solanaTx },
+    ],
+    expiresAtUnixMs: Date.now() + 60_000,
+  };
+}
+
+// Base's official L1StandardBridge on Ethereum Sepolia (docs.base.org → Base contracts). depositETH
+// credits the same address on Base Sepolia a few minutes later. Faucets hand out Sepolia ETH far
+// more readily than Base Sepolia ETH, so this is how test wallets get Base gas.
+const BASE_SEPOLIA_L1_BRIDGE = '0xfd0Bf71F60660E2f608ed56e1659C450eB113120';
+const bridgeAbi = parseAbi(['function depositETH(uint32 _minGasLimit, bytes _extraData) payable']);
+
+export function buildBridgeToBasePlan(eth: string): ExecutionPlan {
+  return {
+    intentId: `bridge-test-${Date.now()}`,
+    kind: 'send',
+    summary: [
+      { label: 'Bridge', value: `${eth} Sepolia ETH` },
+      { label: 'To', value: 'Your Base Sepolia wallet' },
+      { label: 'Arrives in', value: 'A few minutes' },
+    ],
+    transactions: [
+      {
+        chain: 'ethereum',
+        to: BASE_SEPOLIA_L1_BRIDGE,
+        value: parseEther(eth).toString(),
+        data: encodeFunctionData({ abi: bridgeAbi, functionName: 'depositETH', args: [200_000, '0x'] }),
+      },
     ],
     expiresAtUnixMs: Date.now() + 60_000,
   };

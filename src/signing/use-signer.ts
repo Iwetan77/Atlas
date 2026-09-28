@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
 import type { SentTx, UnsignedTx } from '@/api/contract';
-import { baseChain, solanaConnection } from '@/signing/chains';
+import { evmChains, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
 export function useSigner(): Signer {
@@ -19,8 +19,8 @@ export function useSigner(): Signer {
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
-      if (tx.chain === 'base') {
-        if (!ethWallet) throw new Error('Base wallet is not ready');
+      if (tx.chain !== 'solana') {
+        if (!ethWallet) throw new Error('EVM wallet is not ready');
         const provider = await ethWallet.getProvider();
         const hash = await provider.request({
           method: 'eth_sendTransaction',
@@ -30,11 +30,11 @@ export function useSigner(): Signer {
               to: tx.to,
               data: tx.data ?? '0x',
               value: numberToHex(BigInt(tx.value ?? '0')),
-              chainId: numberToHex(baseChain.id),
+              chainId: numberToHex(evmChains[tx.chain].id),
             },
           ],
         });
-        return { chain: 'base', id: String(hash) };
+        return { chain: tx.chain, id: String(hash) };
       }
 
       if (!solWallet) throw new Error('Solana wallet is not ready');

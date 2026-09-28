@@ -42,7 +42,8 @@ export type IntentStage = 'discover' | 'validate' | 'execute' | 'settle';
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
 export type UnsignedTx =
   | {
-      chain: 'base';
+      // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g. bridging).
+      chain: 'base' | 'ethereum';
       to: `0x${string}`;
       data?: `0x${string}`;
       // Wei, decimal string (JSON has no bigint).
@@ -58,7 +59,7 @@ export type SignedChain = UnsignedTx['chain'];
 
 export type SentTx = {
   chain: SignedChain;
-  // 0x hash on Base, base58 signature on Solana.
+  // 0x hash on EVM chains, base58 signature on Solana.
   id: string;
 };
 
