@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
+import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, formatUsd, HIDDEN } from '@/format/money';
@@ -114,9 +115,7 @@ export function HeroBalance(props: Props) {
                 {holdings.map((h) => (
                   <View key={`${h.assetId}:${h.chain}:${h.location ?? 'wallet'}`} style={styles.asset}>
                     <View style={styles.assetAvatar}>
-                      <Text variant="label" color="tilePinkInk" style={styles.assetAvatarText} numberOfLines={1}>
-                        {h.symbol.slice(0, 4)}
-                      </Text>
+                      <AssetAvatar symbol={h.symbol} iconUrl={null} size={36} />
                     </View>
                     <Text variant="heading" color="textOnLight" numberOfLines={1}>
                       {stealth ? HIDDEN : formatTokenNumber(h.amount)}
@@ -277,16 +276,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceLight,
   },
   assetAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     marginBottom: spacing.sm,
-    backgroundColor: colors.tilePink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  assetAvatarText: {
-    fontSize: 10,
   },
   center: {
     textAlign: 'center',
