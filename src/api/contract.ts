@@ -185,4 +185,58 @@ export type IntentStatus = {
   // Final on-chain ids once landed.
   txIds: string[];
   error: string | null;
+  // Set on a filled cash-link send: the shareable link, secret included. Shown once.
+  cashLinkUrl?: string;
+};
+
+// ── Identity: @handles ──────────────────────────────────────────────────────────────────
+// Friends find each other by handle (Privy SMS can't verify Nigerian numbers).
+// GET  /v1/me → Me
+// POST /v1/me/handle { handle } → Me   (400 invalid: 3–20 of [a-z0-9_]; 409 taken)
+// GET  /v1/users/resolve?handle=ade → Recipient   (404 unknown)
+export type Me = { userId: string; handle: string | null; displayName: string | null };
+export type Recipient = { handle: string; displayName: string | null };
+
+// ── Send: Atlas Friends, Banks & Mobile Money, Cash Link ────────────────────────────────
+export type SendDestination =
+  | { type: 'atlas'; handle: string }
+  // Nigerian bank account paid out through Daya.
+  | { type: 'bank'; bankCode: string; accountNumber: string }
+  | { type: 'cashlink'; message?: string };
+
+// POST /v1/sends/quote → SendQuote. `amount` is what leaves the balance, in the display currency.
+export type SendQuoteRequest = { destination: SendDestination; amount: Money };
+
+export type SendQuote = {
+  quoteId: string;
+  // Human label for the review screen: "Ade (@ade)", "GTBank · 0123456789 · ADEBAYO JOHN", "Cash link".
+  destinationLabel: string;
+  send: Money;
+  // What the recipient gets (NGN for a bank payout).
+  receive: Money;
+  fee: Money;
+  // "Instant", "Within 5 minutes"…
+  eta: string;
+  expiresAtUnixMs: number;
+};
+
+// POST /v1/sends/quote/{quoteId}/execute → ExecutionPlan, then the same /v1/intents flow as trades.
+// A plan may carry zero transactions when the engine moves funds with the user's consented server
+// signer; the user still confirms it exactly once. A filled cash-link intent carries `cashLinkUrl`.
+
+// GET  /v1/offramp/banks?country=NG → { banks: Bank[] }
+// POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
+export type Bank = { code: string; name: string };
+
+// Cash links. The claim secret travels only in the URL fragment (#k=…), which browsers never send
+// to a server, so it can't leak into logs.
+// GET  /v1/cashlinks/{linkId}            (no auth: the web claim page shows it before sign-in) → CashLink
+// POST /v1/cashlinks/{linkId}/claim { secret }  (claimant's Privy token) → IntentStatus
+export type CashLink = {
+  linkId: string;
+  amount: Money;
+  sender: { displayName: string | null; handle: string | null };
+  message: string | null;
+  state: 'open' | 'claimed' | 'expired' | 'cancelled';
+  expiresAtUnixMs: number;
 };
