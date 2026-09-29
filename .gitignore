@@ -51,3 +51,6 @@ example
 .env
 .env.*
 !.env.example
+
+# Local test tooling (stand-in engine, browser flows); not shipped
+.dev/
