@@ -42,8 +42,8 @@ export default function PerpsScreen() {
           ))}
         </>
       ) : positionsError && markets ? (
-        <Text variant="caption" color="danger">
-          Couldn&apos;t load your positions: {positionsError}
+        <Text variant="caption" color="textSecondary">
+          {positionsError}
         </Text>
       ) : null}
 

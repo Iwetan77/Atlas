@@ -270,10 +270,12 @@ export type PerpPosition = {
   size: string; // base units, e.g. "0.0132"
   entryPrice: Money;
   markPrice: Money;
+  // Exactly the venue's value (Paradex `liquidation_price`).
   liquidationPrice: Money;
-  margin: Money;
+  // Null when the venue doesn't report per-position margin (Paradex doesn't); the app never derives it.
+  margin: Money | null;
   unrealizedPnl: Money;
-  unrealizedPnlPct: string;
+  unrealizedPnlPct: string | null;
   // When the position was opened (the share card shows "open · 56m").
   openedAtUnixMs: number;
 };
@@ -290,7 +292,9 @@ export type PerpQuote = {
   size: string;
   notional: Money;
   entryPrice: Money;
-  liquidationPrice: Money;
+  // Null before opening when the venue only reports liquidation for open positions (Paradex).
+  // The app then says "Available after opening"; it never estimates one.
+  liquidationPrice: Money | null;
   fee: Money;
   expiresAtUnixMs: number;
 };

@@ -14,25 +14,34 @@ export function LiquidationPrice({
   symbol,
   compact,
 }: {
-  price: Money;
+  // Null when the venue can't say yet (before opening): shown as such, never estimated.
+  price: Money | null;
   side: 'long' | 'short';
   symbol: string;
   compact?: boolean;
 }) {
   return (
-    <View style={[styles.band, compact && styles.compact]} accessibilityLabel={`Liquidation price ${formatExactMoney(price)}`}>
+    <View
+      style={[styles.band, compact && styles.compact]}
+      accessibilityLabel={price ? `Liquidation price ${formatExactMoney(price)}` : 'Liquidation price available after opening'}>
       <View style={styles.label}>
         <Icon name="warning-outline" size={16} color="danger" />
         <Text variant="label" color="danger">
           Liquidation price
         </Text>
       </View>
-      <Text variant={compact ? 'heading' : 'title'} selectable>
-        {formatExactMoney(price)}
-      </Text>
+      {price ? (
+        <Text variant={compact ? 'heading' : 'title'} selectable>
+          {formatExactMoney(price)}
+        </Text>
+      ) : (
+        <Text variant={compact ? 'bodyStrong' : 'heading'}>Available after opening</Text>
+      )}
       {compact ? null : (
         <Text variant="caption" color="textSecondary">
-          If {symbol} {side === 'long' ? 'falls to' : 'rises to'} this price, the position closes and the margin is lost.
+          {price
+            ? `If ${symbol} ${side === 'long' ? 'falls to' : 'rises to'} this price, the position closes and the margin is lost.`
+            : `The exchange sets it once the position is open. You'll see it on your position straight away.`}
         </Text>
       )}
     </View>

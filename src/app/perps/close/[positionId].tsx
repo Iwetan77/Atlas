@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import type { PerpCloseQuote } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
-import { executeCloseQuote, requestCloseQuote } from '@/api/perps';
+import { executeCloseQuote, perpsError, requestCloseQuote } from '@/api/perps';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { SideBadge } from '@/components/perps/side-badge';
@@ -26,7 +26,13 @@ export default function ClosePositionScreen() {
   const runIntent = useRunIntent();
   const [phase, setPhase] = useState<Phase>({ kind: 'review' });
 
-  const request = useCallback(() => requestCloseQuote(getAccessToken, params.positionId), [getAccessToken, params.positionId]);
+  const request = useCallback(
+    () =>
+      requestCloseQuote(getAccessToken, params.positionId).catch((e) => {
+        throw new Error(perpsError(e, "Closing positions isn't available yet."));
+      }),
+    [getAccessToken, params.positionId],
+  );
   const { quote, quoting, error, secondsLeft } = useLiveQuote(request, phase.kind === 'review');
 
   const close = async () => {
@@ -87,7 +93,7 @@ export default function ClosePositionScreen() {
           <Text color="textSecondary">Getting the closing price…</Text>
         </View>
       ) : error ? (
-        <Text color="danger">Couldn&apos;t price the close: {error}</Text>
+        <Text color="danger">{error}</Text>
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}

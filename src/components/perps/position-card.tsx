@@ -11,7 +11,7 @@ import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { formatMoney } from '@/format/money';
+import { formatMoney, formatPrice } from '@/format/money';
 import { colors, fonts, spacing } from '@/theme';
 
 // Drawn on a fixed 360×240 canvas and scaled to the card's width, so it looks (and exports) the same
@@ -46,6 +46,9 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
   const [shareError, setShareError] = useState<string | null>(null);
 
   const up = Number(p.unrealizedPnl.amount) >= 0;
+  // Venues don't always report PnL % or margin (Paradex doesn't); fall back to numbers they do report.
+  const pct = p.unrealizedPnlPct === null ? null : Number(p.unrealizedPnlPct);
+  const pnlText = `${up ? '+' : ''}${formatMoney(p.unrealizedPnl)}`;
   const gain = up ? 'success' : 'danger';
   const s = (n: number) => n * scale;
   const onLayout = (e: LayoutChangeEvent) => setScale(e.nativeEvent.layout.width / W);
@@ -128,8 +131,7 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
               {p.symbol}-PERP
             </Text>
             <Text color={gain} style={[styles.headline, t(44, 50)]} numberOfLines={1} adjustsFontSizeToFit>
-              {up ? '+' : '−'}
-              {Math.abs(Number(p.unrealizedPnlPct)).toFixed(2)}%
+              {pct === null ? pnlText : `${up ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`}
             </Text>
             <View style={[styles.meta, { gap: s(5) }]}>
               <Text color="textSecondary" style={[styles.caps, t(10.5)]}>
@@ -142,19 +144,18 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
           <View style={styles.columns}>
             <View>
               <Text color="textSecondary" style={[styles.caps, t(9.5)]}>
-                INVESTED
+                {p.margin ? 'INVESTED' : 'ENTRY'}
               </Text>
-              <Text style={[styles.headline, t(17, 21)]} numberOfLines={1}>
-                {formatMoney(p.margin)}
+              <Text style={[styles.headline, t(17, 21)]} numberOfLines={1} adjustsFontSizeToFit>
+                {p.margin ? formatMoney(p.margin) : formatPrice(p.entryPrice)}
               </Text>
             </View>
             <View style={styles.right}>
               <Text color="textSecondary" style={[styles.caps, t(9.5)]}>
-                GAIN/LOSS
+                {pct === null ? 'NOW' : 'GAIN/LOSS'}
               </Text>
-              <Text color={gain} style={[styles.headline, t(17, 21)]} numberOfLines={1}>
-                {up ? '+' : ''}
-                {formatMoney(p.unrealizedPnl)}
+              <Text color={pct === null ? 'textPrimary' : gain} style={[styles.headline, t(17, 21)]} numberOfLines={1} adjustsFontSizeToFit>
+                {pct === null ? formatPrice(p.markPrice) : pnlText}
               </Text>
             </View>
           </View>

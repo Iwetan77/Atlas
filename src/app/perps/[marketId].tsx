@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { PerpQuote } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
-import { executePerpQuote, requestPerpQuote } from '@/api/perps';
+import { executePerpQuote, perpsError, requestPerpQuote } from '@/api/perps';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
@@ -53,6 +53,8 @@ export default function PerpTicketScreen() {
         side,
         leverage,
         margin: { amount: value.toFixed(2), currency: displayCurrency },
+      }).catch((e) => {
+        throw new Error(perpsError(e, "Opening positions isn't available yet."));
       }),
     [getAccessToken, params.marketId, side, leverage, value, displayCurrency],
   );
@@ -76,7 +78,11 @@ export default function PerpTicketScreen() {
     return (
       <ResultView
         title={`You're ${q.side} ${params.symbol} ${q.leverage}×`}
-        subtitle={`${formatMoney(q.margin)} margin. Liquidation price ${formatExactMoney(q.liquidationPrice)}.`}>
+        subtitle={
+          q.liquidationPrice
+            ? `${formatMoney(q.margin)} margin. Liquidation price ${formatExactMoney(q.liquidationPrice)}.`
+            : `${formatMoney(q.margin)} margin. Your liquidation price is on the position now.`
+        }>
         <PillButton label="See position" onPress={() => router.navigate('/perps')} />
         <PillButton
           label="Open another"
@@ -100,7 +106,7 @@ export default function PerpTicketScreen() {
       <View style={styles.header}>
         <AssetAvatar symbol={params.symbol} iconUrl={null} size={52} />
         <View style={styles.headerText}>
-          <Text variant="heading">{params.name} perpetual</Text>
+          <Text variant="heading">{/perpetual/i.test(params.name) ? params.name : `${params.name} perpetual`}</Text>
           <Text color="textSecondary">
             Mark {formatPrice({ amount: params.markPrice, currency: displayCurrency })}
             {params.funding ? ` · funding ${params.funding}%/8h` : ''}
@@ -179,7 +185,7 @@ export default function PerpTicketScreen() {
           <Text color="textSecondary">Working out your liquidation price…</Text>
         </View>
       ) : error ? (
-        <Text color="danger">Couldn&apos;t price this position: {error}</Text>
+        <Text color="danger">{error}</Text>
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
