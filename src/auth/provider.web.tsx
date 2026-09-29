@@ -55,7 +55,6 @@ type WalletAccount = {
   address?: string;
   chainType?: string;
   walletClientType?: string;
-  delegated?: boolean;
 };
 
 // Privy marks embedded wallets 'privy' (and 'privy-v2' for newer ones).
@@ -84,7 +83,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const accounts = (user?.linkedAccounts ?? []) as WalletAccount[];
   const baseAddress = embeddedAddress(accounts, 'ethereum');
   const solanaAddress = embeddedAddress(accounts, 'solana');
-  const evmDelegated = !!accounts.find((a) => a.type === 'wallet' && isEmbedded(a) && a.chainType === 'ethereum')?.delegated;
 
   // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);
@@ -118,7 +116,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       walletsReady: !!solanaAddress && !!baseAddress,
       // A failed attempt doesn't matter once both wallets exist.
       walletError: solanaAddress && baseAddress ? null : walletError,
-      evmWalletDelegated: evmDelegated,
       authorizeServerSigner: async (signer) => {
         if (!baseAddress) throw new Error('Your wallet is still being set up');
         await withTimeout(addSigners({ address: baseAddress, signers: [signer] }), 30_000, 'Privy');
@@ -141,7 +138,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       solanaAddress,
       baseAddress,
       walletError,
-      evmDelegated,
       addSigners,
       removeSigners,
       emailLogin,

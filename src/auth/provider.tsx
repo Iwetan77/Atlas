@@ -76,9 +76,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const value = useMemo<AtlasAuth>(() => {
     const accounts = user?.linked_accounts ?? [];
-    const evmEmbedded = accounts.find(
-      (a) => a.type === 'wallet' && 'chain_type' in a && a.chain_type === 'ethereum' && 'delegated' in a,
-    ) as { delegated?: boolean } | undefined;
     return {
       ready: isReady,
       initError: privyError ? errorMessage(privyError) : null,
@@ -91,7 +88,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
       walletError: solanaAddress && baseAddress ? null : walletError,
-      evmWalletDelegated: !!evmEmbedded?.delegated,
       authorizeServerSigner: async (signer) => {
         if (!baseAddress) throw new Error('Your wallet is still being set up');
         await withTimeout(addSigners({ address: baseAddress, signers: [signer] }), 30_000, 'Privy');

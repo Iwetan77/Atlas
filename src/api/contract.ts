@@ -324,10 +324,15 @@ export type PerpsOnboarding = {
   onboarded: boolean;
   // The engine's Privy server signer for perps. This app's wallets run in Privy's TEE, where the
   // user grants access by adding a signer (Privy `addSigners`); Privy rejects `delegateWallet` for
-  // TEE apps. Null/absent until the engine has one configured.
-  signer?: ServerSigner | null;
+  // TEE apps. Null until the engine has one configured.
+  signer: ServerSigner | null;
   // Whether that signer is already on the user's wallet (the engine checks with Privy server-side).
-  signerAuthorized?: boolean;
+  signerAuthorized: boolean;
 };
+
+// POST /v1/perps/onboarding {} → the engine registers the wallet's Paradex account, signing only
+// Paradex's onboarding message with the granted signer. Idempotent: an onboarded wallet just gets
+// its status back. 409 = the signer isn't granted yet; 503 = the engine has onboarding switched off.
+export type PerpsOnboardResult = Pick<PerpsOnboarding, 'walletAddress' | 'accountAddress' | 'onboarded'>;
 
 export type ServerSigner = { signerId: string; policyIds: string[] };

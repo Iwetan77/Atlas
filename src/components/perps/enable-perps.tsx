@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import { usePerpsAccess } from '@/api/perps';
+import { EngineUnavailable } from '@/api/client';
+import { onboardPerps, usePerpsAccess } from '@/api/perps';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -11,26 +12,55 @@ import { colors, radii, spacing } from '@/theme';
 
 const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
+function onboardError(e: unknown): string {
+  if (e instanceof EngineUnavailable && e.status === 409) {
+    return "Atlas can't see your permission yet. Try again in a moment.";
+  }
+  if (e instanceof EngineUnavailable && e.status === 503) {
+    console.warn('[atlas] perps onboarding not available:', e.message);
+    return "Paradex sign-up isn't open on Atlas right now.";
+  }
+  // Venue failures come back as 5xx with Paradex's raw reason: keep that for debugging, not the user.
+  if (e instanceof EngineUnavailable && (e.status ?? 0) >= 500) {
+    console.warn('[atlas] perps onboarding failed:', e.message);
+    return "Paradex didn't accept the sign-up. Try again in a bit.";
+  }
+  return `Couldn't set up your Paradex account: ${errorMessage(e)}`;
+}
+
 // One-time perps setup, kept apart from trading so a trade is still a single confirmation.
 // Step 1 is the user's permission: the engine's Privy server signer is added to their wallet. Step 2
-// is Paradex's own onboarding, done by the engine and read back from it. Neither step alone means
-// trading is open, so this never says "ready to trade"; the order ticket reports that.
+// is Paradex's own onboarding, which the engine does with that permission and reports back. One tap
+// runs both. Neither step means trading is open, so this never says "ready to trade".
 export function EnablePerps() {
-  const { authorizeServerSigner, revokeServerSigners, walletsReady } = useAtlasAuth();
-  const { status, error: statusError, checking, reload, authorized, onboarded, signer } = usePerpsAccess();
-  const [busy, setBusy] = useState<'enable' | 'revoke' | null>(null);
+  const { authorizeServerSigner, revokeServerSigners, walletsReady, getAccessToken } = useAtlasAuth();
+  const { status, error: statusError, reload, authorized, onboarded, signer } = usePerpsAccess();
+  const [busy, setBusy] = useState<'grant' | 'onboard' | 'revoke' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const enable = async () => {
-    if (!signer) return;
-    setBusy('enable');
+  const setUp = async () => {
     setActionError(null);
     try {
-      await authorizeServerSigner(signer);
-      await reload();
-    } catch (e) {
-      setActionError(`Couldn't enable perps: ${errorMessage(e)}`);
+      if (!authorized) {
+        if (!signer) return;
+        setBusy('grant');
+        try {
+          await authorizeServerSigner(signer);
+        } catch (e) {
+          setActionError(`Couldn't enable perps: ${errorMessage(e)}`);
+          return;
+        }
+      }
+      if (!onboarded) {
+        setBusy('onboard');
+        try {
+          await onboardPerps(getAccessToken);
+        } catch (e) {
+          setActionError(onboardError(e));
+        }
+      }
     } finally {
+      await reload();
       setBusy(null);
     }
   };
@@ -78,7 +108,8 @@ export function EnablePerps() {
         n={1}
         done={authorized}
         title="Allow Atlas to place perps orders"
-        subtitle={authorized ? 'Allowed' : 'One tap, once'}
+        subtitle={authorized ? 'Allowed' : busy === 'grant' ? 'Waiting for Privy…' : 'One tap, once'}
+        pending={busy === 'grant'}
       />
       <Step
         n={2}
@@ -87,11 +118,13 @@ export function EnablePerps() {
         subtitle={
           onboarded
             ? `Set up${status?.accountAddress ? ` · ${short(status.accountAddress)}` : ''}`
-            : authorized
-              ? 'Atlas is setting this up. It can take a few minutes.'
-              : 'Set up by Atlas after step 1'
+            : busy === 'onboard'
+              ? 'Registering you with Paradex…'
+              : authorized
+                ? 'Not set up yet'
+                : 'Set up by Atlas right after step 1'
         }
-        pending={authorized && !onboarded}
+        pending={busy === 'onboard'}
       />
 
       {actionError ? <Text color="danger">{actionError}</Text> : null}
@@ -100,32 +133,26 @@ export function EnablePerps() {
           {statusError}
         </Text>
       ) : null}
+      {status && !authorized && !signer ? (
+        <Text variant="caption" color="textSecondary">
+          Atlas&apos;s trading service isn&apos;t accepting permissions yet. Check back soon.
+        </Text>
+      ) : null}
 
-      {!authorized ? (
-        <>
-          {status && !signer ? (
-            <Text variant="caption" color="textSecondary">
-              Atlas&apos;s trading service isn&apos;t accepting permissions yet. Check back soon.
-            </Text>
-          ) : null}
-          <PillButton
-            label="Enable perps"
-            icon="flash-outline"
-            loading={busy === 'enable'}
-            disabled={!walletsReady || !signer}
-            onPress={enable}
-          />
-        </>
-      ) : (
-        <View style={styles.row}>
-          <PillButton label="Check again" tone="secondary" size="sm" loading={checking} onPress={reload} style={styles.flex} />
-          <Pressable onPress={revoke} disabled={busy !== null} hitSlop={8}>
-            <Text variant="label" color="textSecondary">
-              {busy === 'revoke' ? 'Turning off…' : 'Turn off'}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+      <PillButton
+        label={authorized ? 'Set up Paradex account' : 'Enable perps'}
+        icon="flash-outline"
+        loading={busy === 'grant' || busy === 'onboard'}
+        disabled={!walletsReady || busy !== null || (!authorized && !signer)}
+        onPress={setUp}
+      />
+      {authorized ? (
+        <Pressable onPress={revoke} disabled={busy !== null} hitSlop={8} style={styles.turnOff}>
+          <Text variant="label" color="textSecondary">
+            {busy === 'revoke' ? 'Turning off…' : 'Turn off perps access'}
+          </Text>
+        </Pressable>
+      ) : null}
     </Card>
   );
 }
@@ -179,10 +206,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
+  turnOff: {
+    alignSelf: 'center',
   },
   enabledRow: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import type {
   PerpOpenRequest,
   PerpQuote,
   PerpsOnboarding,
+  PerpsOnboardResult,
 } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
@@ -108,17 +109,20 @@ export function usePerpsOnboarding() {
 }
 
 // Perps access = the engine's signer is authorised on the wallet (step 1) and Paradex onboarding is
-// done (step 2). The engine's answer wins; Privy's `delegated` flag only fills in if it's silent.
+// done (step 2). Both come from the engine, which checks Privy and Paradex itself.
 export function usePerpsAccess() {
-  const { evmWalletDelegated } = useAtlasAuth();
   const onboarding = usePerpsOnboarding();
   const status = onboarding.status;
   return {
     ...onboarding,
-    authorized: status?.signerAuthorized ?? evmWalletDelegated,
+    authorized: !!status?.signerAuthorized,
     onboarded: !!status?.onboarded,
     signer: status?.signer ?? null,
   };
+}
+
+export async function onboardPerps(token: Token): Promise<PerpsOnboardResult> {
+  return enginePost<PerpsOnboardResult>('/v1/perps/onboarding', await token(), {});
 }
 
 export async function requestPerpQuote(token: Token, req: PerpOpenRequest): Promise<PerpQuote> {
