@@ -1,7 +1,9 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { BalanceState } from '@/api/balance';
+import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
 import { NextSteps } from '@/components/next-steps';
@@ -16,6 +18,13 @@ import { colors, radii } from '@/theme';
 // preview passes labelled sample data.
 export function HomeContent({ balance, banner }: { balance: BalanceState; banner?: string }) {
   const { email } = useAtlasAuth();
+  const { me, reload: reloadMe } = useMe();
+  // Coming back from the handle screen should tick the step straight away.
+  useFocusEffect(
+    useCallback(() => {
+      reloadMe();
+    }, [reloadMe]),
+  );
   const { stealthMode, showEmptyPockets, displayCurrency, dismissedPromos, update } = useSettings();
   const { data } = balance;
   const hasFunds = !!data && Number(data.total.amount) > 0;
@@ -72,6 +81,13 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
       <NextSteps
         steps={[
           { key: 'account', title: 'Create your account', subtitle: 'Your wallet is ready', done: true },
+          {
+            key: 'handle',
+            title: 'Pick your @handle',
+            subtitle: 'Friends can send you money with it',
+            done: !!me?.handle,
+            action: { label: 'Pick', onPress: () => router.push('/handle') },
+          },
           {
             key: 'deposit',
             title: 'Make a deposit',

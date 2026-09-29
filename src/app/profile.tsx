@@ -1,7 +1,9 @@
-import { type ReactNode } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { type ReactNode, useCallback } from 'react';
 import { Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
 import type { DisplayCurrency } from '@/api/contract';
+import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
@@ -20,6 +22,12 @@ const CURRENCIES: { code: DisplayCurrency; label: string }[] = [
 
 export default function ProfileScreen() {
   const { email, logout } = useAtlasAuth();
+  const { me, reload } = useMe();
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
 
   return (
@@ -32,7 +40,19 @@ export default function ProfileScreen() {
             {(email?.[0] ?? 'A').toUpperCase()}
           </Text>
         </View>
-        <Text variant="heading">{email ?? 'Atlas user'}</Text>
+        <Text variant="heading">{me?.handle ? `@${me.handle}` : (email ?? 'Atlas user')}</Text>
+        {me?.handle && email ? (
+          <Text variant="caption" color="textSecondary">
+            {email}
+          </Text>
+        ) : null}
+        {me && !me.handle ? (
+          <Pressable onPress={() => router.push('/handle')} hitSlop={8}>
+            <Text variant="label" color="accentPinkTint">
+              Pick your @handle
+            </Text>
+          </Pressable>
+        ) : null}
         {/* Privy wallets come back with the login itself: no seed phrase to write down. */}
         <View style={styles.backedUp}>
           <Icon name="shield-checkmark" size={14} color="success" />
