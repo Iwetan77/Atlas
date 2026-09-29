@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 import { encodeFunctionData, parseAbi, parseEther } from 'viem';
 
 import type { ExecutionPlan } from '@/api/contract';
-import { solanaConnection } from '@/signing/chains';
+import { evmChains, solanaConnection } from '@/signing/chains';
 
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
@@ -34,7 +34,7 @@ export async function buildSigningTestPlan(wallets: { base: string; solana: stri
       { label: 'Solana devnet', value: 'Memo, no transfer' },
     ],
     transactions: [
-      { chain: 'base', to: wallets.base as `0x${string}`, value: '0' },
+      { chain: 'base', chainId: evmChains.base.id, to: wallets.base as `0x${string}`, value: '0' },
       { chain: 'solana', transaction: solanaTx },
     ],
     expiresAtUnixMs: Date.now() + 60_000,
@@ -59,6 +59,7 @@ export function buildBridgeToBasePlan(eth: string): ExecutionPlan {
     transactions: [
       {
         chain: 'ethereum',
+        chainId: evmChains.ethereum.id,
         to: BASE_SEPOLIA_L1_BRIDGE,
         value: parseEther(eth).toString(),
         data: encodeFunctionData({ abi: bridgeAbi, functionName: 'depositETH', args: [200_000, '0x'] }),

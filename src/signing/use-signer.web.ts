@@ -9,7 +9,7 @@ import { useCallback } from 'react';
 import type { SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
-import { evmChains } from '@/signing/chains';
+import { evmChainFor } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
 const noWalletUi = { showWalletUIs: false } as const;
@@ -33,7 +33,7 @@ export function useSigner(): Signer {
             to: tx.to,
             data: tx.data ?? '0x',
             value: BigInt(tx.value ?? '0'),
-            chainId: evmChains[tx.chain].id,
+            chainId: evmChainFor(tx).id,
           },
           { address: addresses.base, uiOptions: noWalletUi, sponsor: true },
         );

@@ -44,6 +44,9 @@ export type UnsignedTx =
   | {
       // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g. bridging).
       chain: 'base' | 'ethereum';
+      // The exact network: 8453 Base, 84532 Base Sepolia, 1 Ethereum, 11155111 Sepolia. Required: the
+      // app never guesses mainnet vs testnet, and refuses a plan for a network it doesn't sign on.
+      chainId: number;
       to: `0x${string}`;
       data?: `0x${string}`;
       // Wei, decimal string (JSON has no bigint).

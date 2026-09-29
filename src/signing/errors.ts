@@ -6,7 +6,7 @@ export function friendlyTxError(e: unknown): string {
   const raw = errorMessage(e);
   console.warn('[atlas] transaction failed', e);
 
-  if (/insufficient funds|insufficient lamports|attempt to debit an account but found no record/i.test(raw)) {
+  if (/insufficient (funds|lamports|.*balance)|attempt to debit an account but found no record/i.test(raw)) {
     return "You don't have enough for this.";
   }
   if (/user rejected|denied|cancel/i.test(raw)) return 'Cancelled.';

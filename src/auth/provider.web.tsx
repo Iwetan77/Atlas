@@ -15,7 +15,7 @@ import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
-import { evmChains } from '@/signing/chains';
+import { privyEvmChains } from '@/signing/chains';
 import { colors } from '@/theme';
 
 const solanaRpcs = {
@@ -31,8 +31,8 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
       appId={privy.appId}
       config={{
         loginMethods: ['google', 'email'],
-        defaultChain: evmChains.base,
-        supportedChains: [evmChains.base, evmChains.ethereum],
+        defaultChain: privyEvmChains[0],
+        supportedChains: privyEvmChains,
         solana: { rpcs: solanaRpcs },
         appearance: { theme: 'dark', accentColor: colors.accentPink },
         embeddedWallets: {

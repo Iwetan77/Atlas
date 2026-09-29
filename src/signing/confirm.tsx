@@ -92,7 +92,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           continue;
         }
         const result = await signer.send(tx);
-        await waitForTx(result);
+        await waitForTx(result, tx);
         sent.push(result);
       }
       pending.resolve({

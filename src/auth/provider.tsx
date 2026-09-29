@@ -14,14 +14,14 @@ import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy } from '@/config';
-import { evmChains } from '@/signing/chains';
+import { privyEvmChains } from '@/signing/chains';
 
 export function AtlasAuthProvider({ children }: { children: ReactNode }) {
   return (
     <PrivyProvider
       appId={privy.appId}
       clientId={privy.clientId}
-      supportedChains={[evmChains.base, evmChains.ethereum]}
+      supportedChains={privyEvmChains}
       config={{
         embedded: {
           // AuthBridge creates both wallets itself so the two creators can't race.

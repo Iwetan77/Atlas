@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
 import type { SentTx, UnsignedTx } from '@/api/contract';
-import { evmChains, solanaConnection } from '@/signing/chains';
+import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
 export function useSigner(): Signer {
@@ -30,7 +30,7 @@ export function useSigner(): Signer {
               to: tx.to,
               data: tx.data ?? '0x',
               value: numberToHex(BigInt(tx.value ?? '0')),
-              chainId: numberToHex(evmChains[tx.chain].id),
+              chainId: numberToHex(evmChainFor(tx).id),
             },
           ],
         });
