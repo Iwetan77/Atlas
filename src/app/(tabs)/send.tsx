@@ -1,27 +1,29 @@
-import { StyleSheet, View } from 'react-native';
+import { router, type Href } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { IconTile, SoonChip } from '@/components/ui/icon-tile';
+import { IconTile } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, spacing } from '@/theme';
 
-// Send hub with MiniPay's three ways out. The flows behind each card land in Phase 4.
+// Send hub: three ways out of the one balance.
 export default function SendScreen() {
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text variant="title">Send to</Text>
-        <Icon name="search" size={24} color="textPrimary" />
-      </View>
+      <Text variant="title" style={styles.header}>
+        Send to
+      </Text>
 
       <SendOption
+        href="/send/friend"
         tile={<IconTile icon="paper-plane-outline" />}
         title="Atlas Friends"
         subtitle="Instant & free"
       />
       <SendOption
+        href="/send/bank"
         tile={
           <View style={styles.cluster}>
             <ClusterIcon icon="business-outline" bg={colors.tileBlue} ink="tileBlueInk" />
@@ -32,23 +34,32 @@ export default function SendScreen() {
         title="Banks & Mobile Money"
         subtitle="Straight to your bank or wallet"
       />
-      <SendOption tile={<IconTile icon="logo-usd" tone="blue" />} title="Cash Link" subtitle="Just share a link with text" />
+      <SendOption
+        href="/send/link"
+        tile={<IconTile icon="logo-usd" tone="blue" />}
+        title="Cash Link"
+        subtitle="Just share a link with text"
+      />
     </Screen>
   );
 }
 
-function SendOption({ tile, title, subtitle }: { tile: React.ReactNode; title: string; subtitle: string }) {
+function SendOption({ href, tile, title, subtitle }: { href: Href; tile: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <Card style={styles.option}>
-      <View style={styles.optionTop}>
-        {tile}
-        <SoonChip />
-      </View>
-      <View style={styles.optionText}>
-        <Text variant="heading">{title}</Text>
-        <Text color="textSecondary">{subtitle}</Text>
-      </View>
-    </Card>
+    <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={title}>
+      {({ pressed }) => (
+        <Card style={[styles.option, pressed && { backgroundColor: colors.bgSurfaceAlt }]}>
+          <View style={styles.optionTop}>
+            {tile}
+            <Icon name="chevron-forward" size={20} color="textSecondary" />
+          </View>
+          <View style={styles.optionText}>
+            <Text variant="heading">{title}</Text>
+            <Text color="textSecondary">{subtitle}</Text>
+          </View>
+        </Card>
+      )}
+    </Pressable>
   );
 }
 
@@ -72,9 +83,6 @@ function ClusterIcon({
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: spacing.sm,
   },
   option: {

@@ -31,6 +31,8 @@ export const colors = {
   // Text on white surfaces (light buttons, asset cards on the hero).
   textOnLight: '#1D1F26',
   surfaceLight: '#FFFFFF',
+  // Dimmed backdrop behind bottom sheets.
+  scrim: 'rgba(0,0,0,0.6)',
   // Translucent white for chips and dividers drawn on the pink hero card.
   onAccentSoft: 'rgba(255,255,255,0.22)',
 

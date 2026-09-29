@@ -79,11 +79,17 @@ function RootStack() {
         <Stack.Screen name="deposit" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="trade/[assetId]" />
+        <Stack.Screen name="send/friend" />
+        <Stack.Screen name="send/bank" />
+        <Stack.Screen name="send/link" />
+        <Stack.Screen name="handle" />
         <Stack.Protected guard={showDevTools}>
           <Stack.Screen name="dev" />
           <Stack.Screen name="dev-home-preview" />
         </Stack.Protected>
       </Stack.Protected>
+      {/* Public: someone without Atlas opens a cash link here and signs in on the page. */}
+      <Stack.Screen name="claim/[linkId]" />
       <Stack.Protected guard={!authenticated}>
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="sign-in-email" />
