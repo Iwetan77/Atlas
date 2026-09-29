@@ -24,14 +24,17 @@ export function useMe() {
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
-    if (!authenticated) return;
-    try {
-      setMe(await engineGet<Me>('/v1/me', await getAccessToken()));
-      setError(null);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
+  const reload = useCallback(() => {
+    if (!authenticated) return Promise.resolve();
+    return getAccessToken()
+      .then((token) => engineGet<Me>('/v1/me', token))
+      .then(
+        (next) => {
+          setMe(next);
+          setError(null);
+        },
+        (e) => setError(errorMessage(e)),
+      );
   }, [authenticated, getAccessToken]);
 
   useEffect(() => {

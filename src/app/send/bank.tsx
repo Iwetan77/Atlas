@@ -38,7 +38,8 @@ export default function SendToBankScreen() {
   const [banksError, setBanksError] = useState<string | null>(null);
   const [bank, setBank] = useState<Bank | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
-  const [account, setAccount] = useState<Account>({ state: 'idle' });
+  // The last name check, tagged with the bank + number it's for. Anything newer is still being checked.
+  const [answer, setAnswer] = useState<{ key: string; account: Account } | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
@@ -49,23 +50,22 @@ export default function SendToBankScreen() {
   }, [getAccessToken]);
 
   // Show the account holder's name before any money moves.
+  const accountKey = bank && accountNumber.length === NUBAN_LENGTH ? `${bank.code}:${accountNumber}` : null;
+  const account: Account = !accountKey ? { state: 'idle' } : answer?.key === accountKey ? answer.account : { state: 'checking' };
+
   useEffect(() => {
-    if (!bank || accountNumber.length !== NUBAN_LENGTH) {
-      setAccount({ state: 'idle' });
-      return;
-    }
-    setAccount({ state: 'checking' });
+    if (!bank || !accountKey) return;
     let live = true;
     resolveAccount(getAccessToken, bank.code, accountNumber)
-      .then((name) => {
-        if (!live) return;
-        setAccount(name ? { state: 'ok', name } : { state: 'none', message: `No ${bank.name} account ${accountNumber}` });
-      })
-      .catch((e) => live && setAccount({ state: 'error', message: errorMessage(e) }));
+      .then(
+        (name): Account => (name ? { state: 'ok', name } : { state: 'none', message: `No ${bank.name} account ${accountNumber}` }),
+        (e): Account => ({ state: 'error', message: errorMessage(e) }),
+      )
+      .then((next) => live && setAnswer({ key: accountKey, account: next }));
     return () => {
       live = false;
     };
-  }, [bank, accountNumber, getAccessToken]);
+  }, [bank, accountNumber, accountKey, getAccessToken]);
 
   const value = Number(amount) || 0;
   const ready = !!bank && account.state === 'ok';

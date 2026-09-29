@@ -30,36 +30,36 @@ export default function SendToFriendScreen() {
   const runIntent = useRunIntent();
 
   const [raw, setRaw] = useState('');
-  const [lookup, setLookup] = useState<Lookup>({ state: 'idle' });
+  // The last lookup, tagged with the handle it's for. Anything newer is still being looked up.
+  const [answer, setAnswer] = useState<{ handle: string; lookup: Lookup } | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
   const handle = normaliseHandle(raw);
+  const valid = HANDLE_RE.test(handle);
+  const lookup: Lookup = !valid ? { state: 'idle' } : answer?.handle === handle ? answer.lookup : { state: 'looking' };
   const recipient = lookup.state === 'found' ? lookup.recipient : null;
   const value = Number(amount) || 0;
 
   // Look the handle up once typing pauses.
   useEffect(() => {
-    if (!HANDLE_RE.test(handle)) {
-      setLookup({ state: 'idle' });
-      return;
-    }
-    setLookup({ state: 'looking' });
+    if (!valid) return;
     let live = true;
     const id = setTimeout(async () => {
+      let next: Lookup;
       try {
         const found = await resolveHandle(getAccessToken, handle);
-        if (!live) return;
-        setLookup(found ? { state: 'found', recipient: found } : { state: 'none', message: `No one on Atlas is @${handle}` });
+        next = found ? { state: 'found', recipient: found } : { state: 'none', message: `No one on Atlas is @${handle}` };
       } catch (e) {
-        if (live) setLookup({ state: 'error', message: errorMessage(e) });
+        next = { state: 'error', message: errorMessage(e) };
       }
+      if (live) setAnswer({ handle, lookup: next });
     }, 400);
     return () => {
       live = false;
       clearTimeout(id);
     };
-  }, [handle, getAccessToken]);
+  }, [handle, valid, getAccessToken]);
 
   const request = useCallback(
     () =>

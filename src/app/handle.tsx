@@ -15,27 +15,27 @@ type Check = { state: 'idle' | 'checking' | 'free' } | { state: 'taken' | 'error
 export default function HandleScreen() {
   const { getAccessToken } = useAtlasAuth();
   const [raw, setRaw] = useState('');
-  const [check, setCheck] = useState<Check>({ state: 'idle' });
+  // The last answer, tagged with the handle it's for. Anything newer is still being checked.
+  const [answer, setAnswer] = useState<{ handle: string; check: Check } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const handle = normaliseHandle(raw);
   const valid = HANDLE_RE.test(handle);
+  const check: Check = !valid ? { state: 'idle' } : answer?.handle === handle ? answer.check : { state: 'checking' };
 
   useEffect(() => {
-    if (!valid) {
-      setCheck({ state: 'idle' });
-      return;
-    }
-    setCheck({ state: 'checking' });
+    if (!valid) return;
     let live = true;
     const id = setTimeout(async () => {
+      let next: Check;
       try {
         const existing = await resolveHandle(getAccessToken, handle);
-        if (live) setCheck(existing ? { state: 'taken', message: `@${handle} is taken` } : { state: 'free' });
+        next = existing ? { state: 'taken', message: `@${handle} is taken` } : { state: 'free' };
       } catch (e) {
-        if (live) setCheck({ state: 'error', message: errorMessage(e) });
+        next = { state: 'error', message: errorMessage(e) };
       }
+      if (live) setAnswer({ handle, check: next });
     }, 400);
     return () => {
       live = false;

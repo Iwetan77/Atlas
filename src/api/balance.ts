@@ -23,32 +23,37 @@ export function useBalance(): BalanceState {
   const [loading, setLoading] = useState(true);
   const inFlight = useRef(false);
 
-  const refresh = useCallback(async () => {
-    if (!authenticated || inFlight.current) return;
+  const refresh = useCallback(() => {
+    if (!authenticated || inFlight.current) return Promise.resolve();
     inFlight.current = true;
-    try {
-      const token = await getAccessToken();
-      const next = await engineGet<BalanceResponse>(`/v1/balance?currency=${displayCurrency}`, token);
-      setData(next);
-      setError(null);
-    } catch (e) {
-      // Keep the last good balance on screen; a failed poll shouldn't blank it.
-      console.warn('[atlas] balance refresh failed', e);
-      setError(errorMessage(e));
-    } finally {
-      inFlight.current = false;
-      setLoading(false);
-    }
+    return getAccessToken()
+      .then((token) => engineGet<BalanceResponse>(`/v1/balance?currency=${displayCurrency}`, token))
+      .then(
+        (next) => {
+          setData(next);
+          setError(null);
+        },
+        (e) => {
+          // Keep the last good balance on screen; a failed poll shouldn't blank it.
+          console.warn('[atlas] balance refresh failed', e);
+          setError(errorMessage(e));
+        },
+      )
+      .finally(() => {
+        inFlight.current = false;
+        setLoading(false);
+      });
   }, [authenticated, getAccessToken, displayCurrency]);
 
   useEffect(() => {
-    // A currency switch must never show the old currency's figures under the new label.
-    setData(null);
-    setLoading(true);
     refresh();
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [refresh]);
 
-  return { data, error, loading, refresh };
+  // A currency switch must never show the old currency's figures under the new label: until the
+  // new currency's answer lands, there's no balance to show, only a load in progress.
+  const current = data && data.total.currency === displayCurrency ? data : null;
+  const switching = data !== null && current === null;
+  return { data: current, error: switching ? null : error, loading: loading || switching, refresh };
 }

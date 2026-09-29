@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -116,7 +116,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   };
 
   const plan = pending?.plan;
-  const expired = !!plan && Date.now() > plan.expiresAtUnixMs;
+  // Flips when the plan's quote actually runs out, even if the sheet just sits open.
+  const [expiredPlan, setExpiredPlan] = useState<ExecutionPlan | null>(null);
+  useEffect(() => {
+    if (!plan) return;
+    const id = setTimeout(() => setExpiredPlan(plan), Math.max(0, plan.expiresAtUnixMs - Date.now()));
+    return () => clearTimeout(id);
+  }, [plan]);
+  const expired = !!plan && expiredPlan === plan;
 
   return (
     <ConfirmContext.Provider value={confirmAndExecute}>

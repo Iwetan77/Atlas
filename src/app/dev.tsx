@@ -31,22 +31,21 @@ export default function DevScreen() {
 
   const { base, solana } = auth.wallets;
 
-  const refresh = useCallback(async () => {
-    if (!base || !solana) return;
-    try {
-      const [baseWei, l1Wei, lamports] = await Promise.all([
-        evmClients.base.getBalance({ address: base as `0x${string}` }),
-        evmClients.ethereum.getBalance({ address: base as `0x${string}` }),
-        solanaConnection.getBalance(new PublicKey(solana)),
-      ]);
-      setBalances({
-        base: `${formatEther(baseWei)} ETH`,
-        ethereum: `${formatEther(l1Wei)} ETH`,
-        solana: `${lamports / 1e9} SOL`,
-      });
-    } catch (e) {
-      setStatus(`Balance check failed: ${errorMessage(e)}`);
-    }
+  const refresh = useCallback(() => {
+    if (!base || !solana) return Promise.resolve();
+    return Promise.all([
+      evmClients.base.getBalance({ address: base as `0x${string}` }),
+      evmClients.ethereum.getBalance({ address: base as `0x${string}` }),
+      solanaConnection.getBalance(new PublicKey(solana)),
+    ]).then(
+      ([baseWei, l1Wei, lamports]) =>
+        setBalances({
+          base: `${formatEther(baseWei)} ETH`,
+          ethereum: `${formatEther(l1Wei)} ETH`,
+          solana: `${lamports / 1e9} SOL`,
+        }),
+      (e) => setStatus(`Balance check failed: ${errorMessage(e)}`),
+    );
   }, [base, solana]);
 
   useEffect(() => {

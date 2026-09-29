@@ -9,7 +9,7 @@ export function useLiveQuote<Q extends { expiresAtUnixMs: number }>(request: (()
   const [quote, setQuote] = useState<Q | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [quoting, setQuoting] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const seq = useRef(0);
 
   const refresh = useCallback(async () => {

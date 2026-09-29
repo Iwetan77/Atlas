@@ -29,21 +29,25 @@ export function perpsError(e: unknown, notReady: string): string {
 // Mark prices and PnL move constantly; positions refresh on this cadence while visible.
 const POSITIONS_POLL_MS = 10_000;
 
+const getWith = async <T>(token: Token, path: string) => engineGet<T>(path, await token());
+
 export function usePerpMarkets() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const [markets, setMarkets] = useState<PerpMarket[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
-    try {
-      const res = await engineGet<{ markets: PerpMarket[] }>(`/v1/perps/markets?currency=${displayCurrency}`, await getAccessToken());
-      setMarkets(res.markets);
-      setError(null);
-    } catch (e) {
-      setError(perpsError(e, 'Perps markets are not available yet.'));
-    }
-  }, [getAccessToken, displayCurrency]);
+  const reload = useCallback(
+    () =>
+      getWith<{ markets: PerpMarket[] }>(getAccessToken, `/v1/perps/markets?currency=${displayCurrency}`).then(
+        (res) => {
+          setMarkets(res.markets);
+          setError(null);
+        },
+        (e) => setError(perpsError(e, 'Perps markets are not available yet.')),
+      ),
+    [getAccessToken, displayCurrency],
+  );
 
   useEffect(() => {
     reload();
@@ -59,17 +63,20 @@ export function usePerpPositions(active: boolean) {
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
 
-  const reload = useCallback(async () => {
-    if (inFlight.current) return;
+  const reload = useCallback(() => {
+    if (inFlight.current) return Promise.resolve();
     inFlight.current = true;
-    try {
-      setAccount(await engineGet<PerpAccount>(`/v1/perps/positions?currency=${displayCurrency}`, await getAccessToken()));
-      setError(null);
-    } catch (e) {
-      setError(perpsError(e, 'Your perps account is not set up yet.'));
-    } finally {
-      inFlight.current = false;
-    }
+    return getWith<PerpAccount>(getAccessToken, `/v1/perps/positions?currency=${displayCurrency}`)
+      .then(
+        (next) => {
+          setAccount(next);
+          setError(null);
+        },
+        (e) => setError(perpsError(e, 'Your perps account is not set up yet.')),
+      )
+      .finally(() => {
+        inFlight.current = false;
+      });
   }, [getAccessToken, displayCurrency]);
 
   useEffect(() => {
@@ -86,26 +93,23 @@ export function usePerpsOnboarding() {
   const { authenticated, getAccessToken } = useAtlasAuth();
   const [status, setStatus] = useState<PerpsOnboarding | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
 
-  const reload = useCallback(async () => {
-    if (!authenticated) return;
-    setChecking(true);
-    try {
-      setStatus(await engineGet<PerpsOnboarding>('/v1/perps/onboarding', await getAccessToken()));
-      setError(null);
-    } catch (e) {
-      setError(perpsError(e, "Couldn't check your Paradex account right now."));
-    } finally {
-      setChecking(false);
-    }
+  const reload = useCallback(() => {
+    if (!authenticated) return Promise.resolve();
+    return getWith<PerpsOnboarding>(getAccessToken, '/v1/perps/onboarding').then(
+      (next) => {
+        setStatus(next);
+        setError(null);
+      },
+      (e) => setError(perpsError(e, "Couldn't check your Paradex account right now.")),
+    );
   }, [authenticated, getAccessToken]);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  return { status, error, checking, reload };
+  return { status, error, reload };
 }
 
 // Perps access = the engine's signer is authorised on the wallet (step 1) and Paradex onboarding is
