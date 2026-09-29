@@ -1,51 +1,67 @@
 import * as Sharing from 'expo-sharing';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import Svg, { Circle, ClipPath, Defs, Line, LinearGradient, Pattern, Polygon, Rect, Stop } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 
 import type { PerpPosition } from '@/api/contract';
-import { SideBadge } from '@/components/perps/side-badge';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { formatExactMoney, formatMoney, formatPrice } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { formatCompactMoney, formatExactMoney, formatMoney } from '@/format/money';
+import { colors, fonts, spacing } from '@/theme';
 
-const ORBITS = [180, 280, 380];
+// Drawn on a fixed 360×240 canvas and scaled to the card's width, so it looks (and exports) the same
+// on every screen.
+const W = 360;
+const H = 240;
+// The art panel's diagonal edge: top x, bottom x.
+const SPLIT_TOP = 150;
+const SPLIT_BOTTOM = 114;
+// Centre and radius of the logo in the art panel.
+const LOGO_X = 66;
+const LOGO_R = 38;
+const ART = `0,0 ${SPLIT_TOP},0 ${SPLIT_BOTTOM},${H} 0,${H}`;
+// Shared image width in pixels: sharp enough to post.
+const EXPORT_W = 1080;
 
 function openFor(openedAtUnixMs: number): string {
   const mins = Math.max(0, Math.floor((Date.now() - openedAtUnixMs) / 60_000));
-  if (mins < 60) return `${mins}m`;
+  if (mins < 60) return `${mins}M`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ${mins % 60}m`;
-  return `${Math.floor(hours / 24)}d`;
+  if (hours < 24) return `${hours}H ${mins % 60}M`;
+  return `${Math.floor(hours / 24)}D`;
 }
 
-// An open position as a card worth sharing: big PnL, entry → now, the liquidation price (never
-// hidden), and the owner's invite code. The card itself is what gets captured and shared.
+// An open position as a card worth sharing: art on the left, the numbers on the right, with the
+// liquidation price always on it. The card itself is what gets captured and shared.
 export function PositionCard({ position: p, handle }: { position: PerpPosition; handle: string | null }) {
   const card = useRef<View>(null);
+  const [scale, setScale] = useState(1);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+
   const pnl = Number(p.unrealizedPnl.amount);
   const up = pnl >= 0;
-  const today = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
+  const gain = up ? 'success' : 'danger';
+  const s = (n: number) => n * scale;
+
+  const onLayout = (e: LayoutChangeEvent) => setScale(e.nativeEvent.layout.width / W);
 
   const share = async () => {
     setSharing(true);
     setShareError(null);
     try {
       if (Platform.OS === 'web') {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'data-uri' });
+        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'data-uri', width: EXPORT_W, height: EXPORT_W / (W / H) });
         const a = document.createElement('a');
         a.href = uri;
         a.download = `atlas-${p.symbol.toLowerCase()}-${p.side}.png`;
         a.click();
       } else {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile' });
+        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile', width: EXPORT_W, height: EXPORT_W / (W / H) });
         if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share position' });
       }
     } catch (e) {
@@ -58,102 +74,131 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
 
   return (
     <View style={styles.wrap}>
-      <View ref={card} collapsable={false} style={styles.card}>
-        <LinearGradient
-          colors={[colors.accentPinkMuted, colors.bgBase, colors.bgDeep]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        {ORBITS.map((size, i) => (
-          <View
-            key={size}
-            style={[styles.orbit, { width: size, height: size, borderRadius: size / 2, opacity: 0.45 - i * 0.12 }]}
-          />
-        ))}
-        <View style={styles.watermark}>
-          <AssetAvatar symbol={p.symbol} iconUrl={null} size={220} />
+      <View ref={card} collapsable={false} onLayout={onLayout} style={styles.card}>
+        <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={StyleSheet.absoluteFill}>
+          <Defs>
+            <LinearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={colors.bgDeep} />
+              <Stop offset="1" stopColor={colors.accentPinkMuted} />
+            </LinearGradient>
+            <LinearGradient id="art" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={colors.accentPinkWash} />
+              <Stop offset="0.55" stopColor={colors.accentPinkDeep} />
+              <Stop offset="1" stopColor={colors.accentPinkMuted} />
+            </LinearGradient>
+            <Pattern id="dots" width="7" height="7" patternUnits="userSpaceOnUse">
+              <Circle cx="2" cy="2" r="1.1" fill={colors.surfaceLight} fillOpacity={0.22} />
+            </Pattern>
+            <ClipPath id="artClip">
+              <Polygon points={ART} />
+            </ClipPath>
+          </Defs>
+          <Rect width={W} height={H} fill="url(#night)" />
+          <Polygon points={ART} fill="url(#art)" />
+          <Polygon points={ART} fill="url(#dots)" />
+          {[52, 80, 110].map((r, i) => (
+            <Circle
+              key={r}
+              cx={LOGO_X}
+              cy={H / 2}
+              r={r}
+              fill="none"
+              stroke={colors.surfaceLight}
+              strokeOpacity={0.35 - i * 0.09}
+              strokeWidth={1.2}
+              clipPath="url(#artClip)"
+            />
+          ))}
+          <Line x1={SPLIT_TOP} y1={0} x2={SPLIT_BOTTOM} y2={H} stroke={colors.surfaceLight} strokeWidth={2.5} />
+        </Svg>
+
+        <View style={[styles.logo, { left: s(LOGO_X - LOGO_R), top: s(H / 2 - LOGO_R) }]}>
+          <View style={[styles.logoRing, { width: s(LOGO_R * 2), height: s(LOGO_R * 2), borderRadius: s(LOGO_R), borderWidth: s(3) }]}>
+            <AssetAvatar symbol={p.symbol} iconUrl={null} size={s(LOGO_R * 2 - 6)} />
+          </View>
         </View>
 
-        <View style={styles.top}>
-          <View style={styles.owner}>
-            <View style={styles.ownerAvatar}>
-              <Text variant="label" color="accentPinkTint">
-                {(handle ?? 'A')[0].toUpperCase()}
+        <View style={[styles.data, { left: s(SPLIT_TOP - 6), paddingRight: s(16), paddingTop: s(12), paddingBottom: s(10) }]}>
+          <Text style={[styles.pair, { fontSize: s(18), lineHeight: s(22) }]} numberOfLines={1}>
+            {p.symbol}-PERP
+          </Text>
+          <Text
+            color={gain}
+            style={[styles.percent, { fontSize: s(38), lineHeight: s(44) }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit>
+            {up ? '+' : '−'}
+            {Math.abs(Number(p.unrealizedPnlPct)).toFixed(2)}%
+          </Text>
+          <View style={[styles.time, { gap: s(6) }]}>
+            <View
+              style={{
+                paddingHorizontal: s(6),
+                paddingVertical: s(1.5),
+                borderRadius: s(8),
+                backgroundColor: p.side === 'long' ? colors.successDim : colors.dangerDim,
+              }}>
+              <Text color={p.side === 'long' ? 'success' : 'danger'} style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>
+                {p.side === 'long' ? 'LONG' : 'SHORT'} {p.leverage}×
               </Text>
             </View>
+            <Text style={[styles.label, { fontSize: s(11), lineHeight: s(14.3) }]}>{openFor(p.openedAtUnixMs)}</Text>
+            <Icon name="time-outline" size={s(13)} color="textPrimary" />
+          </View>
+
+          <View style={[styles.columns, { marginTop: s(8) }]}>
             <View>
-              <Text variant="bodyStrong">{handle ? `@${handle}` : 'Atlas trader'}</Text>
-              <Text variant="caption" color="textSecondary">
-                open · {openFor(p.openedAtUnixMs)}
+              <Text style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>INVESTED</Text>
+              <Text style={[styles.value, { fontSize: s(14), lineHeight: s(18) }]} numberOfLines={1}>
+                {formatMoney(p.margin)}
+              </Text>
+              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }} numberOfLines={1}>
+                Entry {formatCompactMoney(p.entryPrice)}
+              </Text>
+            </View>
+            <View style={styles.right}>
+              <Text style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>GAIN/LOSS</Text>
+              <Text color={gain} style={[styles.value, { fontSize: s(14), lineHeight: s(18) }]} numberOfLines={1}>
+                {up ? '+' : ''}
+                {formatMoney(p.unrealizedPnl)}
+              </Text>
+              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }} numberOfLines={1}>
+                Now {formatCompactMoney(p.markPrice)}
               </Text>
             </View>
           </View>
-          <View style={styles.stamp}>
-            <Text variant="caption" color="textSecondary">
-              {today}
+
+          <View style={[styles.liq, { marginTop: s(6), gap: s(3) }]}>
+            <Icon name="warning-outline" size={s(10)} color="danger" />
+            <Text color="danger" style={[styles.label, { fontSize: s(8.5), lineHeight: s(11.1) }]}>
+              LIQ
             </Text>
-            <Text variant="label" color="accentPinkTint">
+            <Text style={{ fontSize: s(9.5), lineHeight: s(12.3), fontFamily: fonts.bodySemi }} numberOfLines={1}>
+              {formatExactMoney(p.liquidationPrice)}
+            </Text>
+          </View>
+
+          <View style={[styles.footer, { right: s(16), bottom: s(10), gap: s(10) }]}>
+            <View style={styles.right}>
+              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }}>
+                {handle ? 'Join Atlas with my code' : 'One balance, any trade'}
+              </Text>
+              {handle ? (
+                <Text style={[styles.value, { fontSize: s(13), lineHeight: s(16) }]}>{handle.toUpperCase()}</Text>
+              ) : null}
+            </View>
+            <Text color="accentPink" style={[styles.brand, { fontSize: s(22), lineHeight: s(24) }]}>
               atlas
             </Text>
           </View>
         </View>
-
-        <View style={styles.body}>
-          <View style={styles.assetRow}>
-            <AssetAvatar symbol={p.symbol} iconUrl={null} size={30} />
-            <Text variant="heading">{p.symbol}</Text>
-            <SideBadge side={p.side} leverage={p.leverage} />
-          </View>
-          <View style={styles.pnl}>
-            <Text variant="display" color={up ? 'success' : 'danger'} adjustsFontSizeToFit numberOfLines={1}>
-              {up ? '+' : ''}
-              {formatMoney(p.unrealizedPnl)}
-            </Text>
-            <Text variant="bodyStrong" color={up ? 'success' : 'danger'}>
-              {up ? '▲' : '▼'} {Math.abs(Number(p.unrealizedPnlPct)).toFixed(2)}%
-            </Text>
-          </View>
-          <View style={styles.prices}>
-            <Text variant="overline" color="textSecondary">
-              Entry
-            </Text>
-            <Text variant="label">{formatPrice(p.entryPrice)}</Text>
-            <Icon name="arrow-forward" size={12} color="textSecondary" />
-            <Text variant="overline" color="textSecondary">
-              Now
-            </Text>
-            <Text variant="label">{formatPrice(p.markPrice)}</Text>
-          </View>
-          <View style={styles.liq} accessibilityLabel={`Liquidation price ${formatExactMoney(p.liquidationPrice)}`}>
-            <Icon name="warning-outline" size={14} color="danger" />
-            <Text variant="overline" color="danger">
-              Liquidation
-            </Text>
-            <Text variant="bodyStrong" selectable>
-              {formatExactMoney(p.liquidationPrice)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          <Text variant="title" color="accentPink">
-            atlas
-          </Text>
-          <View style={styles.invite}>
-            <Text variant="caption" color="textDisabled">
-              {handle ? 'Join with code' : 'One balance, any trade'}
-            </Text>
-            {handle ? (
-              <Text variant="heading" color="textOnLight">
-                {handle.toUpperCase()}
-              </Text>
-            ) : null}
-          </View>
-        </View>
       </View>
 
-      {shareError ? <Text variant="caption" color="danger">{shareError}</Text> : null}
+      {shareError ? (
+        <Text variant="caption" color="danger">
+          {shareError}
+        </Text>
+      ) : null}
       <View style={styles.actions}>
         <PillButton label="Share" icon="share-outline" tone="secondary" size="sm" loading={sharing} onPress={share} style={styles.action} />
         <PillButton
@@ -178,94 +223,75 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   card: {
-    borderRadius: 28,
+    width: '100%',
+    aspectRatio: W / H,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: colors.bgBase,
-    minHeight: 380,
+    backgroundColor: colors.bgDeep,
   },
-  orbit: {
+  logo: {
     position: 'absolute',
-    right: -120,
-    top: -90,
-    borderWidth: 1,
-    borderColor: colors.accentPink,
   },
-  watermark: {
-    position: 'absolute',
-    right: -50,
-    top: 20,
-    opacity: 0.14,
-  },
-  top: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing.xl,
-  },
-  owner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  ownerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: colors.accentPink,
-    backgroundColor: colors.accentPinkDim,
+  logoRing: {
     alignItems: 'center',
     justifyContent: 'center',
+    borderColor: colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
+    overflow: 'hidden',
   },
-  stamp: {
+  data: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: 'flex-end',
   },
-  body: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
+  pair: {
+    fontFamily: fonts.display,
+    color: colors.textPrimary,
+    textAlign: 'right',
   },
-  assetRow: {
+  percent: {
+    fontFamily: fonts.display,
+    letterSpacing: -1,
+    textAlign: 'right',
+  },
+  time: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 4,
   },
-  pnl: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
+  label: {
+    fontFamily: fonts.bodySemi,
+    letterSpacing: 0.8,
+    color: colors.textPrimary,
   },
-  prices: {
+  columns: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+    paddingLeft: spacing.xl,
+  },
+  value: {
+    fontFamily: fonts.display,
+    color: colors.textPrimary,
+  },
+  right: {
+    alignItems: 'flex-end',
   },
   liq: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerDim,
   },
+  // Pinned to the card's corner so the web capture can't reflow it.
   footer: {
+    position: 'absolute',
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    backgroundColor: colors.surfaceLight,
-  },
-  invite: {
     alignItems: 'flex-end',
+  },
+  brand: {
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
   },
   actions: {
     flexDirection: 'row',

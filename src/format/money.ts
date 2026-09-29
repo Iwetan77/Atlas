@@ -69,3 +69,14 @@ export function formatExactMoney(money: Money): string {
   const digits = negative ? money.amount.slice(1) : money.amount;
   return `${negative ? '-' : ''}${currencySymbol(money.currency)}${groupDigits(digits)}`;
 }
+
+// Short form for tight spaces: ₦85,343,731.37 → ₦85.34M. Display only; never for values that must
+// match the engine exactly.
+export function formatCompactMoney(money: Money): string {
+  return new Intl.NumberFormat(LOCALES[money.currency], {
+    style: 'currency',
+    currency: money.currency,
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(Number(money.amount));
+}
