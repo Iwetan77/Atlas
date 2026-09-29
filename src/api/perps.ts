@@ -8,6 +8,7 @@ import type {
   PerpMarket,
   PerpOpenRequest,
   PerpQuote,
+  PerpsOnboarding,
 } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
@@ -78,6 +79,46 @@ export function usePerpPositions(active: boolean) {
   }, [reload, active]);
 
   return { account, error, reload };
+}
+
+export function usePerpsOnboarding() {
+  const { authenticated, getAccessToken } = useAtlasAuth();
+  const [status, setStatus] = useState<PerpsOnboarding | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!authenticated) return;
+    setChecking(true);
+    try {
+      setStatus(await engineGet<PerpsOnboarding>('/v1/perps/onboarding', await getAccessToken()));
+      setError(null);
+    } catch (e) {
+      setError(perpsError(e, "Couldn't check your Paradex account right now."));
+    } finally {
+      setChecking(false);
+    }
+  }, [authenticated, getAccessToken]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return { status, error, checking, reload };
+}
+
+// Perps access = the engine's signer is authorised on the wallet (step 1) and Paradex onboarding is
+// done (step 2). The engine's answer wins; Privy's `delegated` flag only fills in if it's silent.
+export function usePerpsAccess() {
+  const { evmWalletDelegated } = useAtlasAuth();
+  const onboarding = usePerpsOnboarding();
+  const status = onboarding.status;
+  return {
+    ...onboarding,
+    authorized: status?.signerAuthorized ?? evmWalletDelegated,
+    onboarded: !!status?.onboarded,
+    signer: status?.signer ?? null,
+  };
 }
 
 export async function requestPerpQuote(token: Token, req: PerpOpenRequest): Promise<PerpQuote> {

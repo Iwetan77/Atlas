@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { PerpMarket } from '@/api/contract';
 import { usePerpMarkets, usePerpPositions } from '@/api/perps';
 import { useMe } from '@/api/send';
+import { EnablePerps } from '@/components/perps/enable-perps';
 import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
@@ -31,6 +32,7 @@ export default function PerpsScreen() {
     <Screen>
       <Text variant="title">Perps</Text>
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
+      <EnablePerps />
 
       {account && account.positions.length > 0 ? (
         <>

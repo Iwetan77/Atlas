@@ -314,3 +314,20 @@ export type PerpCloseQuote = {
 };
 // POST /v1/perps/close-quotes/{quoteId}/execute → ExecutionPlan (kind "perp_close"),
 // then the usual POST /v1/intents/{id}/signed + GET /v1/intents/{id}.
+
+// GET /v1/perps/onboarding → the verified user's EVM wallet checked against Paradex.
+// `onboarded` is Paradex's own answer; it does NOT mean trading is open (the engine still has to
+// place and verify a real order), so the app never shows "ready to trade" from this alone.
+export type PerpsOnboarding = {
+  walletAddress: string;
+  accountAddress: string | null;
+  onboarded: boolean;
+  // The engine's Privy server signer for perps. This app's wallets run in Privy's TEE, where the
+  // user grants access by adding a signer (Privy `addSigners`); Privy rejects `delegateWallet` for
+  // TEE apps. Null/absent until the engine has one configured.
+  signer?: ServerSigner | null;
+  // Whether that signer is already on the user's wallet (the engine checks with Privy server-side).
+  signerAuthorized?: boolean;
+};
+
+export type ServerSigner = { signerId: string; policyIds: string[] };

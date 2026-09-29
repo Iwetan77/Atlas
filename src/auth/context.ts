@@ -15,3 +15,20 @@ export function errorMessage(e: unknown): string {
   if (typeof e === 'string') return e;
   return 'Something went wrong';
 }
+
+// Privy calls that fail by throwing outside their promise would otherwise leave a spinner forever.
+export function withTimeout<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error(`${what} didn't respond. Please try again.`)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(id);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(id);
+        reject(e);
+      },
+    );
+  });
+}

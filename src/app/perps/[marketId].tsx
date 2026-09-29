@@ -5,10 +5,11 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { PerpQuote } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
-import { executePerpQuote, perpsError, requestPerpQuote } from '@/api/perps';
+import { executePerpQuote, perpsError, requestPerpQuote, usePerpsAccess } from '@/api/perps';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { EnablePerps } from '@/components/perps/enable-perps';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
@@ -36,6 +37,7 @@ export default function PerpTicketScreen() {
     funding: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
+  const { authorized } = usePerpsAccess();
   const { displayCurrency } = useSettings();
   const runIntent = useRunIntent();
 
@@ -189,9 +191,11 @@ export default function PerpTicketScreen() {
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+      {/* Setup is its own one-time step; it never rides along with a trade confirmation. */}
+      {authorized ? null : <EnablePerps />}
       <PillButton
-        label={`Open ${long ? 'long' : 'short'} ${leverage}×`}
-        disabled={!quote || quoting}
+        label={authorized ? `Open ${long ? 'long' : 'short'} ${leverage}×` : 'Enable perps first'}
+        disabled={!authorized || !quote || quoting}
         loading={phase.kind === 'opening'}
         onPress={open}
       />

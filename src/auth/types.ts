@@ -28,6 +28,13 @@ export type AtlasAuth = {
   walletsReady: boolean;
   // Set when silent wallet creation fails, so it shows up instead of spinning forever.
   walletError: string | null;
+  // Privy's own flag that the EVM wallet has delegated/server-side access. A hint only; the engine's
+  // onboarding status is the authority on whether its perps signer is authorised.
+  evmWalletDelegated: boolean;
+  // Adds the engine's server signer to the user's EVM wallet (Privy `addSigners`). No key leaves Privy.
+  authorizeServerSigner: (signer: { signerId: string; policyIds: string[] }) => Promise<void>;
+  // Removes every signer from the EVM wallet (Privy `removeSigners`).
+  revokeServerSigners: () => Promise<void>;
   // Google is the main way in. Email codes are the fallback for people without a Google account.
   // (Privy's SMS only reaches US/Canada, so phone numbers can't be a login here.)
   loginWithGoogle: () => Promise<void>;

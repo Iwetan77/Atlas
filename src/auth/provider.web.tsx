@@ -6,12 +6,13 @@ import {
   useLoginWithEmail,
   useLoginWithOAuth,
   usePrivy,
+  useSigners,
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { AtlasAuthContext, errorMessage } from '@/auth/context';
+import { AtlasAuthContext, errorMessage, withTimeout } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
@@ -49,13 +50,20 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-type WalletAccount = { type: string; address?: string; chainType?: string; walletClientType?: string };
+type WalletAccount = {
+  type: string;
+  address?: string;
+  chainType?: string;
+  walletClientType?: string;
+  delegated?: boolean;
+};
+
+// Privy marks embedded wallets 'privy' (and 'privy-v2' for newer ones).
+const isEmbedded = (a: WalletAccount) => a.walletClientType === 'privy' || a.walletClientType === 'privy-v2';
 
 function embeddedAddress(accounts: WalletAccount[], chainType: 'ethereum' | 'solana') {
   return (
-    accounts.find(
-      (a) => a.type === 'wallet' && a.walletClientType === 'privy' && a.chainType === chainType,
-    )?.address ?? null
+    accounts.find((a) => a.type === 'wallet' && isEmbedded(a) && a.chainType === chainType)?.address ?? null
   );
 }
 
@@ -66,6 +74,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const oauth = useLoginWithOAuth();
   const email = useLoginWithEmail();
+  const { addSigners, removeSigners } = useSigners();
 
   const emailLogin = useOtpFlow(
     useCallback((to) => email.sendCode({ email: to }), [email]),
@@ -75,6 +84,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const accounts = (user?.linkedAccounts ?? []) as WalletAccount[];
   const baseAddress = embeddedAddress(accounts, 'ethereum');
   const solanaAddress = embeddedAddress(accounts, 'solana');
+  const evmDelegated = !!accounts.find((a) => a.type === 'wallet' && isEmbedded(a) && a.chainType === 'ethereum')?.delegated;
 
   // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);
@@ -108,6 +118,15 @@ function AuthBridge({ children }: { children: ReactNode }) {
       walletsReady: !!solanaAddress && !!baseAddress,
       // A failed attempt doesn't matter once both wallets exist.
       walletError: solanaAddress && baseAddress ? null : walletError,
+      evmWalletDelegated: evmDelegated,
+      authorizeServerSigner: async (signer) => {
+        if (!baseAddress) throw new Error('Your wallet is still being set up');
+        await withTimeout(addSigners({ address: baseAddress, signers: [signer] }), 30_000, 'Privy');
+      },
+      revokeServerSigners: async () => {
+        if (!baseAddress) return;
+        await withTimeout(removeSigners({ address: baseAddress }), 30_000, 'Privy');
+      },
       emailLogin,
       loginWithGoogle: () => oauth.initOAuth({ provider: 'google' }),
       googleLoading: oauth.loading,
@@ -115,7 +134,21 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken,
     }),
-    [ready, authenticated, user, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout, getAccessToken],
+    [
+      ready,
+      authenticated,
+      user,
+      solanaAddress,
+      baseAddress,
+      walletError,
+      evmDelegated,
+      addSigners,
+      removeSigners,
+      emailLogin,
+      oauth,
+      logout,
+      getAccessToken,
+    ],
   );
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
