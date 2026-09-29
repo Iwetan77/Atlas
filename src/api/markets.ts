@@ -1,16 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { engineGet, enginePost } from '@/api/client';
-import type {
-  AssetCategory,
-  AssetsResponse,
-  ExecutionPlan,
-  IntentStatus,
-  IntentSubmission,
-  MarketAsset,
-  Quote,
-  QuoteRequest,
-} from '@/api/contract';
+import type { AssetCategory, AssetsResponse, ExecutionPlan, MarketAsset, Quote, QuoteRequest } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
 
@@ -53,23 +44,4 @@ export async function requestQuote(token: Token, req: QuoteRequest): Promise<Quo
 
 export async function executeQuote(token: Token, quoteId: string): Promise<ExecutionPlan> {
   return enginePost<ExecutionPlan>(`/v1/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {});
-}
-
-export async function submitIntent(token: Token, intentId: string, body: IntentSubmission): Promise<IntentStatus> {
-  return enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(intentId)}/signed`, await token(), body);
-}
-
-const SETTLE_POLL_MS = 2_000;
-const SETTLE_TIMEOUT_MS = 120_000;
-
-// Polls until the engine reports the intent filled or failed.
-export async function waitForIntent(token: Token, first: IntentStatus): Promise<IntentStatus> {
-  let status = first;
-  const deadline = Date.now() + SETTLE_TIMEOUT_MS;
-  while (status.state === 'pending') {
-    if (Date.now() > deadline) throw new Error('Still processing. Check your balance in a minute.');
-    await new Promise((r) => setTimeout(r, SETTLE_POLL_MS));
-    status = await engineGet<IntentStatus>(`/v1/intents/${encodeURIComponent(status.intentId)}`, await token());
-  }
-  return status;
 }
