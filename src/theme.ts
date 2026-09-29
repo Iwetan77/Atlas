@@ -6,6 +6,8 @@ export const colors = {
   bgSurface: '#444557',
   bgSurfaceAlt: '#4F5165',
   bgTabBar: '#333544',
+  // Darkest point of art gradients (share cards).
+  bgDeep: '#120C10',
 
   accentPink: '#FF2E7E',
   accentPinkTint: '#FF8AB5',

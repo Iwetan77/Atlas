@@ -274,6 +274,8 @@ export type PerpPosition = {
   margin: Money;
   unrealizedPnl: Money;
   unrealizedPnlPct: string;
+  // When the position was opened (the share card shows "open · 56m").
+  openedAtUnixMs: number;
 };
 export type PerpAccount = { positions: PerpPosition[] };
 

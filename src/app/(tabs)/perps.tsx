@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { PerpMarket } from '@/api/contract';
 import { usePerpMarkets, usePerpPositions } from '@/api/perps';
+import { useMe } from '@/api/send';
 import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
@@ -24,6 +25,7 @@ export default function PerpsScreen() {
   );
   const { markets, error: marketsError, reload: reloadMarkets } = usePerpMarkets();
   const { account, error: positionsError } = usePerpPositions(focused);
+  const { me } = useMe();
 
   return (
     <Screen>
@@ -36,7 +38,7 @@ export default function PerpsScreen() {
             Your positions
           </Text>
           {account.positions.map((p) => (
-            <PositionCard key={p.positionId} position={p} />
+            <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />
           ))}
         </>
       ) : positionsError && markets ? (
