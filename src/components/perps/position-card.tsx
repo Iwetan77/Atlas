@@ -6,11 +6,12 @@ import Svg, { Circle, ClipPath, Defs, Line, LinearGradient, Pattern, Polygon, Re
 import { captureRef } from 'react-native-view-shot';
 
 import type { PerpPosition } from '@/api/contract';
+import { LiquidationPrice } from '@/components/perps/liquidation-price';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { formatCompactMoney, formatExactMoney, formatMoney } from '@/format/money';
+import { formatMoney } from '@/format/money';
 import { colors, fonts, spacing } from '@/theme';
 
 // Drawn on a fixed 360×240 canvas and scaled to the card's width, so it looks (and exports) the same
@@ -20,10 +21,10 @@ const H = 240;
 // The art panel's diagonal edge: top x, bottom x.
 const SPLIT_TOP = 150;
 const SPLIT_BOTTOM = 114;
+const ART = `0,0 ${SPLIT_TOP},0 ${SPLIT_BOTTOM},${H} 0,${H}`;
 // Centre and radius of the logo in the art panel.
 const LOGO_X = 66;
 const LOGO_R = 38;
-const ART = `0,0 ${SPLIT_TOP},0 ${SPLIT_BOTTOM},${H} 0,${H}`;
 // Shared image width in pixels: sharp enough to post.
 const EXPORT_W = 1080;
 
@@ -35,33 +36,33 @@ function openFor(openedAtUnixMs: number): string {
   return `${Math.floor(hours / 24)}D`;
 }
 
-// An open position as a card worth sharing: art on the left, the numbers on the right, with the
-// liquidation price always on it. The card itself is what gets captured and shared.
+// An open position: a share card kept to the few numbers worth bragging about, with the
+// liquidation price right under it in the app (it's not something people post, but it must
+// never be hidden from the owner).
 export function PositionCard({ position: p, handle }: { position: PerpPosition; handle: string | null }) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const pnl = Number(p.unrealizedPnl.amount);
-  const up = pnl >= 0;
+  const up = Number(p.unrealizedPnl.amount) >= 0;
   const gain = up ? 'success' : 'danger';
   const s = (n: number) => n * scale;
-
   const onLayout = (e: LayoutChangeEvent) => setScale(e.nativeEvent.layout.width / W);
 
   const share = async () => {
     setSharing(true);
     setShareError(null);
+    const size = { width: EXPORT_W, height: EXPORT_W / (W / H) };
     try {
       if (Platform.OS === 'web') {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'data-uri', width: EXPORT_W, height: EXPORT_W / (W / H) });
+        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'data-uri', ...size });
         const a = document.createElement('a');
         a.href = uri;
         a.download = `atlas-${p.symbol.toLowerCase()}-${p.side}.png`;
         a.click();
       } else {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile', width: EXPORT_W, height: EXPORT_W / (W / H) });
+        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile', ...size });
         if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share position' });
       }
     } catch (e) {
@@ -71,6 +72,8 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
       setSharing(false);
     }
   };
+
+  const t = (size: number, lineHeight = size * 1.25) => ({ fontSize: s(size), lineHeight: s(lineHeight) });
 
   return (
     <View style={styles.wrap}>
@@ -118,81 +121,61 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
           </View>
         </View>
 
-        <View style={[styles.data, { left: s(SPLIT_TOP - 6), paddingRight: s(16), paddingTop: s(12), paddingBottom: s(10) }]}>
-          <Text style={[styles.pair, { fontSize: s(18), lineHeight: s(22) }]} numberOfLines={1}>
-            {p.symbol}-PERP
-          </Text>
-          <Text
-            color={gain}
-            style={[styles.percent, { fontSize: s(38), lineHeight: s(44) }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit>
-            {up ? '+' : '−'}
-            {Math.abs(Number(p.unrealizedPnlPct)).toFixed(2)}%
-          </Text>
-          <View style={[styles.time, { gap: s(6) }]}>
-            <View
-              style={{
-                paddingHorizontal: s(6),
-                paddingVertical: s(1.5),
-                borderRadius: s(8),
-                backgroundColor: p.side === 'long' ? colors.successDim : colors.dangerDim,
-              }}>
-              <Text color={p.side === 'long' ? 'success' : 'danger'} style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>
-                {p.side === 'long' ? 'LONG' : 'SHORT'} {p.leverage}×
+        {/* Right panel: headline up top, two numbers in the middle, invite and brand at the bottom. */}
+        <View style={[styles.data, { left: s(SPLIT_TOP + 8), paddingRight: s(18), paddingVertical: s(16) }]}>
+          <View style={styles.right}>
+            <Text style={[styles.headline, t(18)]} numberOfLines={1}>
+              {p.symbol}-PERP
+            </Text>
+            <Text color={gain} style={[styles.headline, t(44, 50)]} numberOfLines={1} adjustsFontSizeToFit>
+              {up ? '+' : '−'}
+              {Math.abs(Number(p.unrealizedPnlPct)).toFixed(2)}%
+            </Text>
+            <View style={[styles.meta, { gap: s(5) }]}>
+              <Text color="textSecondary" style={[styles.caps, t(10.5)]}>
+                {p.leverage}× {p.side === 'long' ? 'LONG' : 'SHORT'} · {openFor(p.openedAtUnixMs)}
               </Text>
+              <Icon name="time-outline" size={s(12)} color="textSecondary" />
             </View>
-            <Text style={[styles.label, { fontSize: s(11), lineHeight: s(14.3) }]}>{openFor(p.openedAtUnixMs)}</Text>
-            <Icon name="time-outline" size={s(13)} color="textPrimary" />
           </View>
 
-          <View style={[styles.columns, { marginTop: s(8) }]}>
+          <View style={styles.columns}>
             <View>
-              <Text style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>INVESTED</Text>
-              <Text style={[styles.value, { fontSize: s(14), lineHeight: s(18) }]} numberOfLines={1}>
-                {formatMoney(p.margin)}
+              <Text color="textSecondary" style={[styles.caps, t(9.5)]}>
+                INVESTED
               </Text>
-              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }} numberOfLines={1}>
-                Entry {formatCompactMoney(p.entryPrice)}
+              <Text style={[styles.headline, t(17, 21)]} numberOfLines={1}>
+                {formatMoney(p.margin)}
               </Text>
             </View>
             <View style={styles.right}>
-              <Text style={[styles.label, { fontSize: s(9.5), lineHeight: s(12.3) }]}>GAIN/LOSS</Text>
-              <Text color={gain} style={[styles.value, { fontSize: s(14), lineHeight: s(18) }]} numberOfLines={1}>
+              <Text color="textSecondary" style={[styles.caps, t(9.5)]}>
+                GAIN/LOSS
+              </Text>
+              <Text color={gain} style={[styles.headline, t(17, 21)]} numberOfLines={1}>
                 {up ? '+' : ''}
                 {formatMoney(p.unrealizedPnl)}
               </Text>
-              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }} numberOfLines={1}>
-                Now {formatCompactMoney(p.markPrice)}
-              </Text>
             </View>
           </View>
 
-          <View style={[styles.liq, { marginTop: s(6), gap: s(3) }]}>
-            <Icon name="warning-outline" size={s(10)} color="danger" />
-            <Text color="danger" style={[styles.label, { fontSize: s(8.5), lineHeight: s(11.1) }]}>
-              LIQ
-            </Text>
-            <Text style={{ fontSize: s(9.5), lineHeight: s(12.3), fontFamily: fonts.bodySemi }} numberOfLines={1}>
-              {formatExactMoney(p.liquidationPrice)}
-            </Text>
-          </View>
-
-          <View style={[styles.footer, { right: s(16), bottom: s(10), gap: s(10) }]}>
-            <View style={styles.right}>
-              <Text color="textSecondary" style={{ fontSize: s(8.5), lineHeight: s(11.1) }}>
-                {handle ? 'Join Atlas with my code' : 'One balance, any trade'}
-              </Text>
-              {handle ? (
-                <Text style={[styles.value, { fontSize: s(13), lineHeight: s(16) }]}>{handle.toUpperCase()}</Text>
-              ) : null}
-            </View>
-            <Text color="accentPink" style={[styles.brand, { fontSize: s(22), lineHeight: s(24) }]}>
+          <View style={[styles.footer, { gap: s(12) }]}>
+            {handle ? (
+              <View>
+                <Text color="textSecondary" style={[styles.caps, t(8.5)]}>
+                  INVITE CODE
+                </Text>
+                <Text style={[styles.headline, t(12, 15)]}>{handle.toUpperCase()}</Text>
+              </View>
+            ) : null}
+            <Text color="accentPink" style={[styles.headline, t(24, 26)]}>
               atlas
             </Text>
           </View>
         </View>
       </View>
+
+      <LiquidationPrice price={p.liquidationPrice} side={p.side} symbol={p.symbol} compact />
 
       {shareError ? (
         <Text variant="caption" color="danger">
@@ -244,54 +227,32 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    alignItems: 'flex-end',
-  },
-  pair: {
-    fontFamily: fonts.display,
-    color: colors.textPrimary,
-    textAlign: 'right',
-  },
-  percent: {
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-    textAlign: 'right',
-  },
-  time: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  label: {
-    fontFamily: fonts.bodySemi,
-    letterSpacing: 0.8,
-    color: colors.textPrimary,
-  },
-  columns: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignSelf: 'stretch',
-    paddingLeft: spacing.xl,
-  },
-  value: {
-    fontFamily: fonts.display,
-    color: colors.textPrimary,
   },
   right: {
     alignItems: 'flex-end',
   },
-  liq: {
+  // No colour here: the Text `color` prop decides (a style colour would override green/red).
+  headline: {
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+  },
+  caps: {
+    fontFamily: fonts.bodySemi,
+    letterSpacing: 0.8,
+  },
+  meta: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  // Pinned to the card's corner so the web capture can't reflow it.
+  columns: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   footer: {
-    position: 'absolute',
     flexDirection: 'row',
     alignItems: 'flex-end',
-  },
-  brand: {
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
+    justifyContent: 'flex-end',
   },
   actions: {
     flexDirection: 'row',
