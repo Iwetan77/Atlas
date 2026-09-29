@@ -35,12 +35,18 @@ export function formatTokenAmount(amount: string, symbol: string): string {
 
 export const HIDDEN = '••••••';
 
+// Spelled out rather than read from Intl: Hermes on iOS has no NumberFormat.formatToParts.
+const SYMBOLS: Record<DisplayCurrency, string> = {
+  NGN: '₦',
+  USD: '$',
+  KES: 'KSh',
+  GHS: 'GH₵',
+  ZAR: 'R',
+};
+
 // "₦", "$", "KSh"… for amount inputs that show the symbol beside a bare number.
 export function currencySymbol(currency: DisplayCurrency): string {
-  const part = new Intl.NumberFormat(LOCALES[currency], { style: 'currency', currency })
-    .formatToParts(0)
-    .find((p) => p.type === 'currency');
-  return part?.value ?? currency;
+  return SYMBOLS[currency] ?? currency;
 }
 
 // Unit prices: memecoins trade far below 1, so small prices keep significant digits
