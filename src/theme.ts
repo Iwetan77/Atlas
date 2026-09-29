@@ -40,6 +40,7 @@ export const colors = {
   success: '#3DDC84',
   successDim: '#23473A',
   danger: '#FF7A52',
+  dangerDim: '#4A2E2A',
 
   // QR codes stay dark-on-white: plenty of camera scanners can't read inverted codes.
   qrBackground: '#FFFFFF',

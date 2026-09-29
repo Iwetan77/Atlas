@@ -12,7 +12,6 @@ type Item = { title: string; subtitle: string; icon: IconName; tone: 'pink' | 'b
 
 const ITEMS: Item[] = [
   { title: 'Earn', subtitle: 'Grow your money', icon: 'leaf-outline', tone: 'pink' },
-  { title: 'Perps', subtitle: 'Long or short', icon: 'pulse-outline', tone: 'blue' },
   { title: 'Deposit', subtitle: 'Naira or crypto', icon: 'arrow-down', tone: 'blue', href: '/deposit' },
   { title: 'Profile', subtitle: 'Settings & currency', icon: 'person-outline', tone: 'pink', href: '/profile' },
   ...(showDevTools

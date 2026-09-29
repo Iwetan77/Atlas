@@ -79,6 +79,8 @@ function RootStack() {
         <Stack.Screen name="deposit" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="trade/[assetId]" />
+        <Stack.Screen name="perps/[marketId]" />
+        <Stack.Screen name="perps/close/[positionId]" />
         <Stack.Screen name="send/friend" />
         <Stack.Screen name="send/bank" />
         <Stack.Screen name="send/link" />

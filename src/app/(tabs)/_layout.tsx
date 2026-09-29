@@ -7,6 +7,8 @@ import { colors } from '@/theme';
 const TABS: { name: string; title: string; icon: IconName; iconActive: IconName }[] = [
   { name: 'index', title: 'Home', icon: 'home-outline', iconActive: 'home' },
   { name: 'trade', title: 'Trade', icon: 'trending-up-outline', iconActive: 'trending-up' },
+  // Perps is a core screen (spec 4.6), not a mini-app tucked under More.
+  { name: 'perps', title: 'Perps', icon: 'pulse-outline', iconActive: 'pulse' },
   { name: 'send', title: 'Send', icon: 'paper-plane-outline', iconActive: 'paper-plane' },
   { name: 'more', title: 'More', icon: 'grid-outline', iconActive: 'grid' },
 ];

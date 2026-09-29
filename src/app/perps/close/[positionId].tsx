@@ -1,0 +1,127 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+
+import type { PerpCloseQuote } from '@/api/contract';
+import { useRunIntent } from '@/api/intents';
+import { executeCloseQuote, requestCloseQuote } from '@/api/perps';
+import { useLiveQuote } from '@/api/use-live-quote';
+import { useAtlasAuth } from '@/auth/context';
+import { SideBadge } from '@/components/perps/side-badge';
+import { ResultView } from '@/components/result-view';
+import { BackHeader } from '@/components/ui/back-header';
+import { Card } from '@/components/ui/card';
+import { PillButton } from '@/components/ui/pill-button';
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
+import { formatMoney, formatPrice } from '@/format/money';
+import { friendlyTxError } from '@/signing/errors';
+import { colors, spacing } from '@/theme';
+
+type Phase = { kind: 'review' } | { kind: 'closing' } | { kind: 'done'; quote: PerpCloseQuote } | { kind: 'failed'; message: string };
+
+export default function ClosePositionScreen() {
+  const params = useLocalSearchParams<{ positionId: string; symbol: string; side: 'long' | 'short'; leverage: string }>();
+  const { getAccessToken } = useAtlasAuth();
+  const runIntent = useRunIntent();
+  const [phase, setPhase] = useState<Phase>({ kind: 'review' });
+
+  const request = useCallback(() => requestCloseQuote(getAccessToken, params.positionId), [getAccessToken, params.positionId]);
+  const { quote, quoting, error, secondsLeft } = useLiveQuote(request, phase.kind === 'review');
+
+  const close = async () => {
+    if (!quote) return;
+    setPhase({ kind: 'closing' });
+    try {
+      const final = await runIntent(() => executeCloseQuote(getAccessToken, quote.quoteId));
+      if (!final) setPhase({ kind: 'review' });
+      else if (final.state === 'filled') setPhase({ kind: 'done', quote });
+      else setPhase({ kind: 'failed', message: final.error ?? 'The position was not closed.' });
+    } catch (e) {
+      setPhase({ kind: 'failed', message: friendlyTxError(e) });
+    }
+  };
+
+  if (phase.kind === 'done') {
+    const pnl = Number(phase.quote.realizedPnl.amount);
+    return (
+      <ResultView
+        title={`${formatMoney(phase.quote.receive)} back in your balance`}
+        subtitle={`${params.symbol} closed with ${pnl >= 0 ? 'a profit' : 'a loss'} of ${formatMoney({
+          ...phase.quote.realizedPnl,
+          amount: String(Math.abs(pnl)),
+        })}.`}>
+        <PillButton label="Done" onPress={() => router.navigate('/perps')} />
+      </ResultView>
+    );
+  }
+
+  const pnl = quote ? Number(quote.realizedPnl.amount) : 0;
+  return (
+    <Screen>
+      <BackHeader title="Close position" />
+      <View style={styles.header}>
+        <Text variant="heading">{params.symbol}</Text>
+        <SideBadge side={params.side} leverage={Number(params.leverage)} />
+      </View>
+
+      {quote ? (
+        <Card variant="outlined" style={styles.quote}>
+          <Row label="You get back" value={formatMoney(quote.receive)} strong />
+          <View style={styles.row}>
+            <Text color="textSecondary">Profit / loss</Text>
+            <Text variant="bodyStrong" color={pnl >= 0 ? 'success' : 'danger'}>
+              {pnl >= 0 ? '+' : ''}
+              {formatMoney(quote.realizedPnl)}
+            </Text>
+          </View>
+          <Row label="Exit price" value={formatPrice(quote.exitPrice)} />
+          <Row label="Fee" value={formatMoney(quote.fee)} />
+          <Text variant="caption" color="textSecondary">
+            {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
+          </Text>
+        </Card>
+      ) : quoting ? (
+        <View style={styles.busy}>
+          <ActivityIndicator color={colors.accentPink} />
+          <Text color="textSecondary">Getting the closing price…</Text>
+        </View>
+      ) : error ? (
+        <Text color="danger">Couldn&apos;t price the close: {error}</Text>
+      ) : null}
+
+      {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+      <PillButton label="Close position" disabled={!quote || quoting} loading={phase.kind === 'closing'} onPress={close} />
+    </Screen>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <View style={styles.row}>
+      <Text color="textSecondary">{label}</Text>
+      <Text variant={strong ? 'heading' : 'bodyStrong'}>{value}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  quote: {
+    gap: spacing.md,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  busy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+});
