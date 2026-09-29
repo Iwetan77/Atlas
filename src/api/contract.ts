@@ -243,3 +243,68 @@ export type CashLink = {
   state: 'open' | 'claimed' | 'expired' | 'cancelled';
   expiresAtUnixMs: number;
 };
+
+// ── Perps (Paradex) ─────────────────────────────────────────────────────────────────────
+// The app does no perps maths. Every number shown for a position, above all the liquidation
+// price, is a field the engine returns from Paradex; the app displays it without recomputing it.
+
+// GET /v1/perps/markets?currency=NGN → { markets: PerpMarket[] }
+export type PerpMarket = {
+  marketId: string; // Paradex market, e.g. "BTC-USD-PERP"
+  symbol: string;
+  name: string;
+  markPrice: Money;
+  change24hPct: string | null;
+  maxLeverage: number;
+  // Funding per 8h as a percent decimal string ("0.0100"), null if unknown.
+  fundingRate8hPct: string | null;
+};
+
+// GET /v1/perps/positions?currency=NGN → PerpAccount
+export type PerpPosition = {
+  positionId: string;
+  marketId: string;
+  symbol: string;
+  side: 'long' | 'short';
+  leverage: number;
+  size: string; // base units, e.g. "0.0132"
+  entryPrice: Money;
+  markPrice: Money;
+  liquidationPrice: Money;
+  margin: Money;
+  unrealizedPnl: Money;
+  unrealizedPnlPct: string;
+};
+export type PerpAccount = { positions: PerpPosition[] };
+
+// POST /v1/perps/quotes { marketId, side, margin: Money, leverage } → PerpQuote
+export type PerpOpenRequest = { marketId: string; side: 'long' | 'short'; margin: Money; leverage: number };
+export type PerpQuote = {
+  quoteId: string;
+  marketId: string;
+  side: 'long' | 'short';
+  leverage: number;
+  margin: Money;
+  size: string;
+  notional: Money;
+  entryPrice: Money;
+  liquidationPrice: Money;
+  fee: Money;
+  expiresAtUnixMs: number;
+};
+// POST /v1/perps/quotes/{quoteId}/execute → ExecutionPlan (kind "perp_open"). May carry zero
+// transactions when the engine places the Paradex order with the user's consented server signer.
+
+// POST /v1/perps/positions/{positionId}/close-quote {} → PerpCloseQuote
+export type PerpCloseQuote = {
+  quoteId: string;
+  positionId: string;
+  // What comes back to the balance: margin ± realised PnL − fees.
+  receive: Money;
+  realizedPnl: Money;
+  exitPrice: Money;
+  fee: Money;
+  expiresAtUnixMs: number;
+};
+// POST /v1/perps/close-quotes/{quoteId}/execute → ExecutionPlan (kind "perp_close"),
+// then the usual POST /v1/intents/{id}/signed + GET /v1/intents/{id}.

@@ -61,3 +61,11 @@ export function groupDigits(raw: string): string {
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return frac === undefined ? grouped : `${grouped}.${frac}`;
 }
+
+// Shows the engine's amount digit for digit (grouped, never rounded). Used where the value must
+// match the engine exactly, e.g. a perp's liquidation price.
+export function formatExactMoney(money: Money): string {
+  const negative = money.amount.startsWith('-');
+  const digits = negative ? money.amount.slice(1) : money.amount;
+  return `${negative ? '-' : ''}${currencySymbol(money.currency)}${groupDigits(digits)}`;
+}
