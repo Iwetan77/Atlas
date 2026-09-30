@@ -12,6 +12,7 @@ import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PriceChart } from '@/components/trade/price-chart';
 import { BackHeader } from '@/components/ui/back-header';
+import { Icon } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
@@ -36,6 +37,7 @@ export default function AssetTradeScreen() {
     price: string;
     iconUrl: string;
     change: string;
+    verified: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
@@ -124,6 +126,16 @@ export default function AssetTradeScreen() {
         </View>
       </View>
 
+      {params.verified === 'no' ? (
+        <View style={styles.warning}>
+          <Icon name="warning-outline" size={18} color="danger" />
+          <Text variant="caption" color="danger" style={styles.flex}>
+            Unverified token. Anyone can create a token with any name or logo, so make sure this address is the
+            one you meant: {params.assetId.slice(0, 6)}…{params.assetId.slice(-6)}
+          </Text>
+        </View>
+      ) : null}
+
       <PriceChart assetId={params.assetId} />
 
       <View style={styles.segment}>
@@ -205,6 +217,16 @@ function Busy({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  warning: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: colors.dangerDim,
+  },
+  flex: {
+    flex: 1,
+  },
   assetHeader: {
     flexDirection: 'row',
     alignItems: 'center',

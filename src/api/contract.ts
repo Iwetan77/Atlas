@@ -90,7 +90,7 @@ export type ExecutionPlan = {
 // GET /v1/balance?currency=NGN with `Authorization: Bearer <Privy access token>`.
 // The engine resolves the user's wallets from the token; the app never sends addresses.
 
-export type DisplayCurrency = 'NGN' | 'USD' | 'KES' | 'GHS' | 'ZAR';
+export type DisplayCurrency = 'NGN' | 'USD' | 'EUR' | 'GBP' | 'ZAR' | 'KES' | 'GHS';
 
 // Decimal strings throughout so money never passes through floating point on the way in.
 export type Money = { amount: string; currency: DisplayCurrency };
@@ -167,6 +167,9 @@ export type MarketAsset = {
   // Percent over 24h as a decimal string ("-3.21"), null when the venue has no history.
   change24hPct: string | null;
   iconUrl: string | null;
+  // False for a token found by pasting its address that Jupiter hasn't verified: anyone can make a
+  // token with any name, so the app warns before trading it.
+  verified?: boolean;
 };
 
 export type AssetsResponse = { assets: MarketAsset[] };
@@ -212,7 +215,13 @@ export type IntentStatus = {
 // GET  /v1/me → Me
 // POST /v1/me/handle { handle } → Me   (400 invalid: 3–20 of [a-z0-9_]; 409 taken)
 // GET  /v1/users/resolve?handle=ade → Recipient   (404 unknown)
-export type Me = { userId: string; handle: string | null; displayName: string | null };
+export type Me = {
+  userId: string;
+  handle: string | null;
+  displayName: string | null;
+  // Profile photo as a small JPEG data URL, set with POST /v1/me/avatar.
+  avatar?: string | null;
+};
 export type Recipient = { handle: string; displayName: string | null };
 
 // ── Send: Atlas Friends, Banks & Mobile Money, Cash Link ────────────────────────────────

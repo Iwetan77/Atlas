@@ -10,6 +10,8 @@ import { colors, radii, spacing, type as typeScale } from '@/theme';
 const QUICK: Record<DisplayCurrency, number[]> = {
   NGN: [5_000, 10_000, 50_000],
   USD: [5, 10, 50],
+  EUR: [5, 10, 50],
+  GBP: [5, 10, 50],
   KES: [500, 1_000, 5_000],
   GHS: [50, 100, 500],
   ZAR: [100, 200, 1_000],

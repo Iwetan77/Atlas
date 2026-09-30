@@ -8,6 +8,7 @@ import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
 import { YourAssets } from '@/components/home/your-assets';
 import { NextSteps } from '@/components/next-steps';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { PromoBanner, type Promo } from '@/components/promo-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
@@ -46,11 +47,7 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
           accessibilityRole="button"
           accessibilityLabel="Profile and settings"
           style={styles.avatarRing}>
-          <View style={styles.avatar}>
-            <Text variant="heading" color="accentPinkTint">
-              {(email?.[0] ?? 'A').toUpperCase()}
-            </Text>
-          </View>
+          <ProfileAvatar photo={me?.avatar} initial={(email?.[0] ?? 'A').toUpperCase()} size={40} />
         </Pressable>
         <Pressable
           onPress={() => router.push('/deposit')}
@@ -120,14 +117,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: 2,
     borderColor: colors.accentPink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentPinkDim,
     alignItems: 'center',
     justifyContent: 'center',
   },

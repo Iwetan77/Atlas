@@ -3,6 +3,8 @@ import type { DisplayCurrency, Money } from '@/api/contract';
 const LOCALES: Record<DisplayCurrency, string> = {
   NGN: 'en-NG',
   USD: 'en-US',
+  EUR: 'en-IE',
+  GBP: 'en-GB',
   KES: 'en-KE',
   GHS: 'en-GH',
   ZAR: 'en-ZA',
@@ -39,6 +41,8 @@ export const HIDDEN = '••••••';
 const SYMBOLS: Record<DisplayCurrency, string> = {
   NGN: '₦',
   USD: '$',
+  EUR: '€',
+  GBP: '£',
   KES: 'KSh',
   GHS: 'GH₵',
   ZAR: 'R',

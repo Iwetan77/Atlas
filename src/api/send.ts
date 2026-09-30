@@ -91,6 +91,11 @@ export async function getCashLink(linkId: string): Promise<CashLink> {
   return engineGet<CashLink>(`/v1/cashlinks/${encodeURIComponent(linkId)}`, null, { auth: false });
 }
 
+// Sets (or with null, removes) the profile photo: a small JPEG data URL.
+export async function setAvatar(token: Token, image: string | null): Promise<string | null> {
+  return (await enginePost<{ avatar: string | null }>('/v1/me/avatar', await token(), { image })).avatar;
+}
+
 export async function claimCashLink(token: Token, linkId: string, secret: string): Promise<IntentStatus> {
   return enginePost<IntentStatus>(`/v1/cashlinks/${encodeURIComponent(linkId)}/claim`, await token(), { secret });
 }

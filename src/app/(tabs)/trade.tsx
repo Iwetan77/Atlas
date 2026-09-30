@@ -31,7 +31,7 @@ export default function TradeScreen() {
       <Text variant="title">Trade</Text>
       <Field
         prefix={<Icon name="search" size={20} color="textSecondary" />}
-        placeholder="Search stocks, memes, crypto"
+        placeholder="Search by name, or paste a token address"
         value={query}
         onChangeText={setQuery}
         autoCapitalize="none"
@@ -107,6 +107,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
             price: asset.price.amount,
             iconUrl: asset.iconUrl ?? '',
             change: asset.change24hPct ?? '',
+            verified: asset.verified === false ? 'no' : 'yes',
           },
         })
       }
@@ -116,9 +117,18 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
         <Text variant="bodyStrong" numberOfLines={1}>
           {asset.name}
         </Text>
-        <Text variant="caption" color="textSecondary">
-          {asset.symbol}
-        </Text>
+        <View style={styles.symbolRow}>
+          <Text variant="caption" color="textSecondary">
+            {asset.symbol}
+          </Text>
+          {asset.verified === false ? (
+            <View style={styles.unverified}>
+              <Text variant="label" color="danger">
+                Unverified
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
       <View style={styles.rowPrice}>
         <Text variant="bodyStrong">{formatPrice(asset.price)}</Text>
@@ -134,6 +144,16 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
 }
 
 const styles = StyleSheet.create({
+  symbolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  unverified: {
+    paddingHorizontal: spacing.xs + 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.dangerDim,
+  },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',

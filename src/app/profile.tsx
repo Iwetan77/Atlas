@@ -1,12 +1,15 @@
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback } from 'react';
-import { Pressable, Share, StyleSheet, Switch, View } from 'react-native';
+import { type ReactNode, useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
 import type { DisplayCurrency } from '@/api/contract';
 import { usePerpsAccess } from '@/api/perps';
-import { useMe } from '@/api/send';
-import { useAtlasAuth } from '@/auth/context';
+import { setAvatar, useMe } from '@/api/send';
+import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { PerpsAccessSettings } from '@/components/perps/enable-perps';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -16,15 +19,50 @@ import { Text } from '@/components/ui/text';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
-// NGN and USD at launch; KES/GHS/ZAR join once these two are solid.
 const CURRENCIES: { code: DisplayCurrency; label: string }[] = [
   { code: 'NGN', label: 'Naira' },
   { code: 'USD', label: 'US Dollar' },
+  { code: 'EUR', label: 'Euro' },
+  { code: 'GBP', label: 'British Pound' },
+  { code: 'ZAR', label: 'Rand' },
+  { code: 'KES', label: 'Kenyan Shilling' },
+  { code: 'GHS', label: 'Ghana Cedi' },
 ];
 
+// Square-cropped by the picker, then shrunk to 256px so it stays a few dozen KB.
+async function choosePhoto(): Promise<string | null> {
+  const picked = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 1,
+  });
+  if (picked.canceled || !picked.assets[0]) return null;
+  const image = await ImageManipulator.manipulate(picked.assets[0].uri).resize({ width: 256 }).renderAsync();
+  const saved = await image.saveAsync({ compress: 0.7, format: SaveFormat.JPEG, base64: true });
+  return saved.base64 ? `data:image/jpeg;base64,${saved.base64}` : null;
+}
+
 export default function ProfileScreen() {
-  const { email, logout } = useAtlasAuth();
-  const { me, reload } = useMe();
+  const { email, logout, getAccessToken } = useAtlasAuth();
+  const { me, reload, setMe } = useMe();
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const updatePhoto = async (remove: boolean) => {
+    setPhotoError(null);
+    try {
+      const image = remove ? null : await choosePhoto();
+      if (!remove && !image) return;
+      setPhotoBusy(true);
+      const saved = await setAvatar(getAccessToken, image);
+      if (me) setMe({ ...me, avatar: saved });
+    } catch (e) {
+      setPhotoError(`Couldn't update your photo: ${errorMessage(e)}`);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
   useFocusEffect(
     useCallback(() => {
       reload();
@@ -38,11 +76,29 @@ export default function ProfileScreen() {
       <BackHeader title="Profile" />
 
       <Card style={styles.identity}>
-        <View style={styles.bigAvatar}>
-          <Text variant="title" color="accentPinkTint">
-            {(email?.[0] ?? 'A').toUpperCase()}
-          </Text>
-        </View>
+        <Pressable
+          onPress={() => updatePhoto(false)}
+          disabled={photoBusy}
+          accessibilityRole="button"
+          accessibilityLabel={me?.avatar ? 'Change profile photo' : 'Add a profile photo'}
+          style={styles.photo}>
+          <ProfileAvatar photo={me?.avatar} initial={(email?.[0] ?? 'A').toUpperCase()} size={72} />
+          <View style={styles.photoBadge}>
+            {photoBusy ? (
+              <ActivityIndicator size="small" color={colors.textOnAccent} />
+            ) : (
+              <Icon name="camera" size={14} color="textOnAccent" />
+            )}
+          </View>
+        </Pressable>
+        {me?.avatar ? (
+          <Pressable onPress={() => updatePhoto(true)} disabled={photoBusy} hitSlop={8}>
+            <Text variant="label" color="textSecondary">
+              Remove photo
+            </Text>
+          </Pressable>
+        ) : null}
+        {photoError ? <Text color="danger">{photoError}</Text> : null}
         <Text variant="heading">{me?.handle ? `@${me.handle}` : (email ?? 'Atlas user')}</Text>
         {me?.handle && email ? (
           <Text variant="caption" color="textSecondary">
@@ -184,16 +240,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  bigAvatar: {
+  photo: {
     width: 72,
     height: 72,
+  },
+  photoBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
     borderRadius: radii.pill,
-    borderWidth: 1.5,
-    borderColor: colors.accentPink,
-    backgroundColor: colors.accentPinkDim,
+    backgroundColor: colors.accentPink,
+    borderWidth: 2,
+    borderColor: colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
   },
   backedUp: {
     flexDirection: 'row',
