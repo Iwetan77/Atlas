@@ -14,7 +14,9 @@ export type Chain =
   | 'aptos'
   | 'near'
   | 'monad'
-  | 'sui';
+  | 'sui'
+  // Perps margin held in the user's Paradex account.
+  | 'paradex';
 
 export type Venue =
   | 'daya'
@@ -37,7 +39,8 @@ export type IntentKind =
   | 'perp_close'
   | 'yield_deposit';
 
-export type IntentStage = 'discover' | 'validate' | 'execute' | 'settle';
+// 'fund': money is moving to the venue first (perps margin from Base to Paradex, about a minute).
+export type IntentStage = 'discover' | 'validate' | 'fund' | 'execute' | 'settle';
 
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
 export type UnsignedTx =
@@ -106,7 +109,7 @@ export type Holding = {
   value: Money;
   valueUsd: string;
   // Circle Gateway buckets (engine `UsdcBalanceBuckets`). Absent for plain wallet assets.
-  location?: 'wallet' | 'gateway' | 'gateway_pending';
+  location?: 'wallet' | 'gateway' | 'gateway_pending' | 'perps';
 };
 
 export type BalanceResponse = {
@@ -303,6 +306,9 @@ export type PerpQuote = {
   // The app then says "Available after opening"; it never estimates one.
   liquidationPrice: Money | null;
   fee: Money;
+  // Set when the Paradex account is short: this much moves from the Atlas balance to Paradex in the
+  // same confirmation (plus Layerswap's fee), then the order is placed.
+  funding?: { amount: Money } | null;
   expiresAtUnixMs: number;
 };
 // POST /v1/perps/quotes/{quoteId}/execute → ExecutionPlan (kind "perp_open"). May carry zero

@@ -11,6 +11,8 @@ const SUBMIT_TIMEOUT_MS = 30_000;
 const SETTLE_POLL_MS = 2_000;
 const POLL_REQUEST_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 120_000;
+// Moving perps margin to Paradex takes about a minute; the engine gives it up to ten.
+const FUND_TIMEOUT_MS = 11 * 60_000;
 
 // Hands the confirmation to the engine. The engine treats a repeat as a no-op that returns the current
 // status, so a dropped connection is resent. If it still gets no answer, stop waiting on this call and
@@ -35,10 +37,22 @@ export class StillSettling extends Error {
 }
 
 // Polls until the engine reports the intent filled or failed. A slow or dropped poll is skipped, not fatal.
-export async function waitForIntent(token: Token, first: IntentStatus): Promise<IntentStatus> {
+// Each stage gets its own wait, so a long funding step doesn't eat into the order's.
+export async function waitForIntent(
+  token: Token,
+  first: IntentStatus,
+  onStatus?: (status: IntentStatus) => void,
+): Promise<IntentStatus> {
   let status = first;
-  const deadline = Date.now() + SETTLE_TIMEOUT_MS;
+  let stage = status.stage;
+  let deadline = Date.now() + (stage === 'fund' ? FUND_TIMEOUT_MS : SETTLE_TIMEOUT_MS);
+  onStatus?.(status);
   while (status.state === 'pending') {
+    if (status.stage !== stage) {
+      stage = status.stage;
+      deadline = Date.now() + (stage === 'fund' ? FUND_TIMEOUT_MS : SETTLE_TIMEOUT_MS);
+      onStatus?.(status);
+    }
     if (Date.now() > deadline) throw new StillSettling();
     await new Promise((r) => setTimeout(r, SETTLE_POLL_MS));
     try {
@@ -59,7 +73,11 @@ export function useRunIntent() {
   const confirmAndExecute = useConfirmAndExecute();
 
   return useCallback(
-    async (getPlan: () => Promise<ExecutionPlan>, onSettling?: () => void): Promise<IntentStatus | null> => {
+    async (
+      getPlan: () => Promise<ExecutionPlan>,
+      onSettling?: () => void,
+      onStatus?: (status: IntentStatus) => void,
+    ): Promise<IntentStatus | null> => {
       const plan = await getPlan();
       let report;
       try {
@@ -70,7 +88,7 @@ export function useRunIntent() {
       }
       onSettling?.();
       const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed });
-      return waitForIntent(getAccessToken, first);
+      return waitForIntent(getAccessToken, first, onStatus);
     },
     [getAccessToken, confirmAndExecute],
   );

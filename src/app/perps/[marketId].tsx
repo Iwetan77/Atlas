@@ -27,7 +27,7 @@ type Side = 'long' | 'short';
 type Phase =
   | { kind: 'edit' }
   | { kind: 'opening' }
-  | { kind: 'settling' }
+  | { kind: 'settling'; funding: boolean }
   | { kind: 'done'; quote: PerpQuote }
   | { kind: 'failed'; message: string };
 
@@ -74,7 +74,8 @@ export default function PerpTicketScreen() {
     try {
       const final = await runIntent(
         () => executePerpQuote(getAccessToken, quote.quoteId),
-        () => setPhase({ kind: 'settling' }),
+        () => setPhase({ kind: 'settling', funding: !!quote.funding }),
+        (status) => setPhase({ kind: 'settling', funding: status.stage === 'fund' }),
       );
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
@@ -192,9 +193,20 @@ export default function PerpTicketScreen() {
             <Row label="Position value" value={formatMoney(quote.notional)} />
             <Row label="Entry price" value={formatPrice(quote.entryPrice)} />
             <Row label="Fee" value={formatMoney(quote.fee)} />
+            {quote.funding ? (
+              <>
+                <Row label="From your balance to Paradex" value={formatMoney(quote.funding.amount)} />
+                <Text variant="caption" color="textSecondary">
+                  Your Paradex account is short of this margin, so it moves over first, in the same confirmation. It takes
+                  about a minute, then your order goes in.
+                </Text>
+              </>
+            ) : null}
             <Text variant="caption" color="textSecondary">
               {phase.kind === 'settling'
-              ? 'Confirming with Paradex…'
+              ? phase.funding
+                ? 'Moving your margin to Paradex…'
+                : 'Confirming with Paradex…'
               : phase.kind === 'opening'
                 ? 'Getting your order ready…'
                 : quoting
