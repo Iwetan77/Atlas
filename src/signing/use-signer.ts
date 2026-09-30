@@ -45,7 +45,7 @@ export function useSigner(): Signer {
           return { chain: tx.chain, id: String(hash) };
         }
         // The engine sends the planned transaction for us (only ever one it planned for this intent,
-        // and only once): gas from the wallet's own ETH tank, Privy sponsorship when the tank is empty.
+        // and only once), paid from the wallet's own ETH: plans top the tank up first when it's empty.
         return enginePost<SentTx>(
           '/v1/relay/evm',
           await getAccessToken(),

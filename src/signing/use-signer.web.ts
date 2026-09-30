@@ -1,6 +1,6 @@
 // Web signer: Privy React SDK with wallet UIs forced off, so the confirm sheet stays the only prompt.
-// Base mainnet transactions go through the engine's relay, like on the phone: it pays gas from the
-// wallet's own ETH tank when there is some and asks Privy to sponsor only when there isn't.
+// Base mainnet transactions go through the engine's relay, like on the phone. The wallet always pays
+// its own gas: Privy sponsorship is never requested.
 import { useSendTransaction } from '@privy-io/react-auth';
 import { useSignAndSendTransaction, useSignTransaction, useWallets } from '@privy-io/react-auth/solana';
 import { getBase58Decoder } from '@solana/kit';
@@ -46,7 +46,7 @@ export function useSigner(): Signer {
             value: BigInt(tx.value ?? '0'),
             chainId,
           },
-          { address: addresses.base, uiOptions: noWalletUi, sponsor: true },
+          { address: addresses.base, uiOptions: noWalletUi },
         );
         return { chain: tx.chain, id: hash };
       }
@@ -56,7 +56,7 @@ export function useSigner(): Signer {
         transaction: new Uint8Array(Buffer.from(tx.transaction, 'base64')),
         wallet: solWallet,
         chain: solana.chainId,
-        options: { uiOptions: noWalletUi, sponsor: true },
+        options: { uiOptions: noWalletUi },
       });
       return { chain: 'solana', id: getBase58Decoder().decode(signature) };
     },
