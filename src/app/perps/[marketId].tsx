@@ -13,6 +13,7 @@ import { EnablePerps } from '@/components/perps/enable-perps';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
+import { PriceChart } from '@/components/trade/price-chart';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
@@ -134,6 +135,8 @@ export default function PerpTicketScreen() {
           </Text>
         </View>
       </View>
+
+      <PriceChart assetId={params.marketId} />
 
       <View style={styles.segment}>
         {(['long', 'short'] as Side[]).map((s) => (
