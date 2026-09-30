@@ -7,18 +7,14 @@ import { type IconName } from '@/components/ui/icon';
 import { IconTile, SoonChip } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { showDevTools } from '@/config';
 import { colors, radii, spacing } from '@/theme';
 
 type Item = { title: string; subtitle: string; icon: IconName; tone: 'pink' | 'blue'; href?: Href };
 
 const ITEMS: Item[] = [
   { title: 'Earn', subtitle: 'Savings that pay', icon: 'leaf-outline', tone: 'pink', href: '/earn' },
-  { title: 'Deposit', subtitle: 'Naira or crypto', icon: 'arrow-down', tone: 'blue', href: '/deposit' },
+  { title: 'Deposit', subtitle: 'From a wallet or exchange', icon: 'arrow-down', tone: 'blue', href: '/deposit' },
   { title: 'Profile', subtitle: 'Settings & currency', icon: 'person-outline', tone: 'pink', href: '/profile' },
-  ...(showDevTools
-    ? [{ title: 'Developer', subtitle: 'Testnet tools', icon: 'construct-outline', tone: 'blue', href: '/dev' } as Item]
-    : []),
 ];
 
 export default function MoreScreen() {

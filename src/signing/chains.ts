@@ -1,23 +1,21 @@
 import { Connection } from '@solana/web3.js';
 import { type Chain, createPublicClient, http, type PublicClient } from 'viem';
-import { base, baseSepolia, mainnet, sepolia } from 'viem/chains';
+import { base, mainnet } from 'viem/chains';
 
 import type { SentTx, UnsignedTx } from '@/api/contract';
-import { network, solana } from '@/config';
+import { solana } from '@/config';
 
-// This build's default networks (dev reads, faucets, the signing test).
+// Mainnet only: Base, and Ethereum for the occasional L1 leg.
 export const evmChains = {
-  base: network === 'mainnet' ? base : baseSepolia,
-  ethereum: network === 'mainnet' ? mainnet : sepolia,
+  base,
+  ethereum: mainnet,
 } as const;
 
 // Every EVM network the app will sign on, and which `chain` family each belongs to. A plan names
 // its network by chainId; anything else is refused rather than guessed.
 const KNOWN_EVM: Record<number, { chain: Chain; family: 'base' | 'ethereum' }> = {
   [base.id]: { chain: base, family: 'base' },
-  [baseSepolia.id]: { chain: baseSepolia, family: 'base' },
   [mainnet.id]: { chain: mainnet, family: 'ethereum' },
-  [sepolia.id]: { chain: sepolia, family: 'ethereum' },
 };
 
 // Privy must know every chain it may send on; the build's default Base goes first.

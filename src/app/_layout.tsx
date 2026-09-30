@@ -10,7 +10,6 @@ import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { StartupError, StartupStatus } from '@/components/startup-status';
 import { AddMoneyProvider } from '@/funding/add-money';
-import { showDevTools } from '@/config';
 import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
@@ -90,10 +89,6 @@ function RootStack() {
         <Stack.Screen name="send/bank" />
         <Stack.Screen name="send/link" />
         <Stack.Screen name="handle" />
-        <Stack.Protected guard={showDevTools}>
-          <Stack.Screen name="dev" />
-          <Stack.Screen name="dev-home-preview" />
-        </Stack.Protected>
       </Stack.Protected>
       <Stack.Protected guard={!authenticated}>
         <Stack.Screen name="sign-in" />

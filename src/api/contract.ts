@@ -50,8 +50,8 @@ export type UnsignedTx =
   | {
       // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g. bridging).
       chain: 'base' | 'ethereum';
-      // The exact network: 8453 Base, 84532 Base Sepolia, 1 Ethereum, 11155111 Sepolia. Required: the
-      // app never guesses mainnet vs testnet, and refuses a plan for a network it doesn't sign on.
+      // The exact network: 8453 Base, 1 Ethereum. Required: the app refuses a plan for a network it
+      // doesn't sign on rather than guessing.
       chainId: number;
       to: `0x${string}`;
       data?: `0x${string}`;
@@ -140,7 +140,15 @@ export type BankDepositAccount = {
 // by 1Click. GET /v1/deposit/networks → { networks: DepositNetwork[] };
 // POST /v1/deposit/quote { networkId, amount: Money } → DepositAddress;
 // GET /v1/deposit/status?address=&memo= → { state: DepositState }.
-export type DepositNetwork = { id: string; label: string; network: string; asset: string };
+export type DepositNetwork = {
+  id: string;
+  label: string;
+  network: string;
+  asset: string;
+  assetIcon: string | null;
+  // The chain's logo, shown as a badge on the coin's (absent for a coin on its own chain, e.g. BTC).
+  chainIcon: string | null;
+};
 export type DepositAddress = {
   address: string;
   memo: string | null;

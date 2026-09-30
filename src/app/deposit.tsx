@@ -12,19 +12,19 @@ import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
+import { TokenChainLogo } from '@/components/token-chain-logo';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
-import { network } from '@/config';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
 // Base and Solana USDC go straight to the user's own wallets; every other network gets a one-off
 // deposit address that turns what arrives into USDC in the balance.
-// Solana first: cash there never needs Atlas to pay gas.
-const OWN: { id: 'base' | 'solana'; label: string; network: string }[] = [
-  { id: 'solana', label: network === 'mainnet' ? 'USDC on Solana' : 'USDC on Solana devnet (testnet)', network: 'Solana' },
-  { id: 'base', label: network === 'mainnet' ? 'USDC on Base' : 'USDC on Base Sepolia (testnet)', network: 'Base' },
+const LOGOS = 'https://cdn.layerswap.io/layerswap';
+const OWN: { id: 'base' | 'solana'; label: string; network: string; chainIcon: string }[] = [
+  { id: 'solana', label: 'USDC on Solana', network: 'Solana', chainIcon: `${LOGOS}/networks/solana_mainnet.png` },
+  { id: 'base', label: 'USDC on Base', network: 'Base', chainIcon: `${LOGOS}/networks/base_mainnet.png` },
 ];
 
 const STATE_TEXT: Record<DepositState, string> = {
@@ -117,14 +117,24 @@ export default function DepositScreen() {
         value={picked}
         onChange={choose}
         items={[
-          ...OWN.map((o) => ({ key: o.id, label: o.label, detail: 'Straight to your Atlas wallet' })),
-          ...networks.map((n) => ({ key: n.id, label: n.label, detail: 'Arrives as dollars in your balance' })),
+          ...OWN.map((o) => ({
+            key: o.id,
+            label: o.label,
+            detail: 'Straight to your Atlas wallet',
+            leadingNode: <TokenChainLogo symbol="USDC" iconUrl={null} chainIconUrl={o.chainIcon} />,
+          })),
+          ...networks.map((n) => ({
+            key: n.id,
+            label: n.label,
+            detail: n.asset === 'USDC' || n.asset === 'USDT' ? 'Arrives as dollars in your balance' : 'Turned into dollars in your balance',
+            leadingNode: <TokenChainLogo symbol={n.asset} iconUrl={n.assetIcon} chainIconUrl={n.chainIcon} />,
+          })),
         ]}
       />
 
       {other && !deposit ? (
         <Card style={styles.card}>
-          <AmountInput label={`How much ${other.asset} will you send?`} value={amount} onChange={setAmount} currency={displayCurrency} />
+          <AmountInput label="How much are you depositing?" value={amount} onChange={setAmount} currency={displayCurrency} />
           {problem ? <MoneyError message={problem} /> : null}
           <PillButton label="Get deposit address" loading={busy} disabled={!(Number(amount) > 0)} onPress={getAddress} />
         </Card>

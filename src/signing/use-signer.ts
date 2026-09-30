@@ -27,7 +27,7 @@ export function useSigner(): Signer {
       if (tx.chain !== 'solana') {
         if (!ethWallet) throw new Error('EVM wallet is not ready');
         const chainId = evmChainFor(tx).id;
-        // Testnet dev tools send transactions the engine never planned: those go out directly.
+        // Ethereum L1 legs go out directly from the wallet; Base goes through the engine's relay.
         if (chainId !== BASE_MAINNET) {
           const provider = await ethWallet.getProvider();
           const hash = await provider.request({
