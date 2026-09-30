@@ -1,11 +1,13 @@
 // Web signer: Privy React SDK with wallet UIs forced off, so the confirm sheet stays the only prompt.
-// Every transaction asks for Privy gas sponsorship (configured engine-side); users never hold gas.
+// Base mainnet transactions go through the engine's relay, like on the phone: it pays gas from the
+// wallet's own ETH tank when there is some and asks Privy to sponsor only when there isn't.
 import { useSendTransaction } from '@privy-io/react-auth';
 import { useSignAndSendTransaction, useSignTransaction, useWallets } from '@privy-io/react-auth/solana';
 import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 
+import { enginePost, SAFE_TO_REPLAY } from '@/api/client';
 import type { SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
@@ -15,7 +17,7 @@ import type { Signer } from '@/signing/types';
 const noWalletUi = { showWalletUIs: false } as const;
 
 export function useSigner(): Signer {
-  const { wallets: addresses } = useAtlasAuth();
+  const { wallets: addresses, getAccessToken } = useAtlasAuth();
   const { sendTransaction } = useSendTransaction();
   const { signAndSendTransaction } = useSignAndSendTransaction();
   const { signTransaction } = useSignTransaction();
@@ -24,16 +26,25 @@ export function useSigner(): Signer {
   const solWallet = solanaWallets.find((w) => w.address === addresses.solana);
 
   const send = useCallback(
-    async (tx: UnsignedTx): Promise<SentTx> => {
+    async (tx: UnsignedTx, intentId: string): Promise<SentTx> => {
       if (tx.chain !== 'solana') {
         // One EVM address serves every EVM chain; it's labelled "base" because Base is the default.
         if (!addresses.base) throw new Error('EVM wallet is not ready');
+        const chainId = evmChainFor(tx).id;
+        if (chainId === 8453) {
+          return enginePost<SentTx>(
+            '/v1/relay/evm',
+            await getAccessToken(),
+            { intentId, chainId, to: tx.to, data: tx.data ?? '0x', value: tx.value ?? '0' },
+            SAFE_TO_REPLAY,
+          );
+        }
         const { hash } = await sendTransaction(
           {
             to: tx.to,
             data: tx.data ?? '0x',
             value: BigInt(tx.value ?? '0'),
-            chainId: evmChainFor(tx).id,
+            chainId,
           },
           { address: addresses.base, uiOptions: noWalletUi, sponsor: true },
         );
@@ -49,7 +60,7 @@ export function useSigner(): Signer {
       });
       return { chain: 'solana', id: getBase58Decoder().decode(signature) };
     },
-    [addresses.base, solWallet, sendTransaction, signAndSendTransaction],
+    [addresses.base, solWallet, sendTransaction, signAndSendTransaction, getAccessToken],
   );
 
   const sign = useCallback(

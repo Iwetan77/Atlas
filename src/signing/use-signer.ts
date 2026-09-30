@@ -44,8 +44,8 @@ export function useSigner(): Signer {
           });
           return { chain: tx.chain, id: String(hash) };
         }
-        // The Expo SDK can't ask Privy to sponsor gas, so the engine sends the planned transaction
-        // for us with sponsorship on (only ever one it planned for this intent, and only once).
+        // The engine sends the planned transaction for us (only ever one it planned for this intent,
+        // and only once): gas from the wallet's own ETH tank, Privy sponsorship when the tank is empty.
         return enginePost<SentTx>(
           '/v1/relay/evm',
           await getAccessToken(),
