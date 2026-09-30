@@ -17,6 +17,8 @@ export type SelectItem<K extends string> = {
   // Shown at the end of the row, e.g. a rate.
   trailing?: string;
   trailingColor?: ColorToken;
+  // Kept under a "See more" row at the end of the sheet, so a long list starts short.
+  more?: boolean;
 };
 
 // A dropdown that suits a phone: one field showing the current choice; tapping it opens a sheet of
@@ -27,6 +29,7 @@ export function SelectSheet<K extends string>({
   value,
   onChange,
   compact,
+  moreLabel = 'See more',
 }: {
   title: string;
   items: SelectItem<K>[];
@@ -34,9 +37,18 @@ export function SelectSheet<K extends string>({
   onChange: (key: K) => void;
   // A small pill (flag + label) instead of a full-width field, e.g. in a sheet's header.
   compact?: boolean;
+  moreLabel?: string;
 }) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  // The current choice always shows, even when it's one of the "more".
+  const shown = showMore ? items : items.filter((i) => !i.more || i.key === value);
+  const hidden = items.length - shown.length;
+  const close = () => {
+    setOpen(false);
+    setShowMore(false);
+  };
   const current = items.find((i) => i.key === value) ?? items[0];
   if (!current) return null;
   // One choice isn't a choice: show it, without the dropdown.
@@ -66,21 +78,21 @@ export function SelectSheet<K extends string>({
         <Icon name="chevron-down" size={compact ? 14 : 18} color="textSecondary" />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel="Close">
+      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+        <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
           {/* Taps inside the sheet stay in the sheet. */}
           <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]} onPress={() => {}}>
             <View style={styles.grabber} />
             <Text variant="heading">{title}</Text>
             <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-              {items.map((item) => {
+              {shown.map((item) => {
                 const selected = item.key === value;
                 return (
                   <Pressable
                     key={item.key}
                     onPress={() => {
                       onChange(item.key);
-                      setOpen(false);
+                      close();
                     }}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
@@ -90,6 +102,17 @@ export function SelectSheet<K extends string>({
                   </Pressable>
                 );
               })}
+              {hidden > 0 ? (
+                <Pressable
+                  onPress={() => setShowMore(true)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.more, pressed && styles.pressed]}>
+                  <Text variant="bodyStrong" color="accentPink">
+                    {moreLabel} ({hidden})
+                  </Text>
+                  <Icon name="chevron-down" size={18} color="accentPink" />
+                </Pressable>
+              ) : null}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -194,6 +217,13 @@ const styles = StyleSheet.create({
   },
   checkSpace: {
     width: 20,
+  },
+  more: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
   },
   row: {
     flex: 1,

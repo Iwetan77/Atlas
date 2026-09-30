@@ -148,6 +148,8 @@ export type DepositNetwork = {
   assetIcon: string | null;
   // The chain's logo, shown as a badge on the coin's (absent for a coin on its own chain, e.g. BTC).
   chainIcon: string | null;
+  // In the first list; the rest sit under "See more".
+  featured?: boolean;
 };
 export type DepositAddress = {
   address: string;

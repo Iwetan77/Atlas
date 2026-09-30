@@ -116,6 +116,7 @@ export default function DepositScreen() {
         title="Which network are you sending on?"
         value={picked}
         onChange={choose}
+        moreLabel="More networks and coins"
         items={[
           ...OWN.map((o) => ({
             key: o.id,
@@ -128,6 +129,7 @@ export default function DepositScreen() {
             label: n.label,
             detail: n.asset === 'USDC' || n.asset === 'USDT' ? 'Arrives as dollars in your balance' : 'Turned into dollars in your balance',
             leadingNode: <TokenChainLogo symbol={n.asset} iconUrl={n.assetIcon} chainIconUrl={n.chainIcon} />,
+            more: n.featured === false,
           })),
         ]}
       />
