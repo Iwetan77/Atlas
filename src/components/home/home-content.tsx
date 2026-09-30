@@ -6,6 +6,7 @@ import type { BalanceState } from '@/api/balance';
 import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
+import { EarnCard } from '@/components/home/earn-card';
 import { YourAssets } from '@/components/home/your-assets';
 import { NextSteps } from '@/components/next-steps';
 import { ProfileAvatar } from '@/components/profile-avatar';
@@ -77,6 +78,8 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
       />
 
       <YourAssets balance={data} stealth={stealthMode} />
+
+      <EarnCard stealth={stealthMode} />
 
       <NextSteps
         steps={[

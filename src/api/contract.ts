@@ -37,7 +37,8 @@ export type IntentKind =
   | 'off_ramp'
   | 'perp_open'
   | 'perp_close'
-  | 'yield_deposit';
+  | 'earn_deposit'
+  | 'earn_withdraw';
 
 // 'fund': money is moving to the venue first (perps margin from Base to Paradex, about a minute).
 export type IntentStage = 'discover' | 'validate' | 'fund' | 'execute' | 'settle';
@@ -109,7 +110,7 @@ export type Holding = {
   value: Money;
   valueUsd: string;
   // Circle Gateway buckets (engine `UsdcBalanceBuckets`). Absent for plain wallet assets.
-  location?: 'wallet' | 'gateway' | 'gateway_pending' | 'perps';
+  location?: 'wallet' | 'gateway' | 'gateway_pending' | 'perps' | 'earn';
   // Logo for listed assets (engine catalog); absent for cash.
   iconUrl?: string | null;
 };
@@ -144,6 +145,40 @@ export type OnrampSession = {
 // Spot, memes and tokenized stocks are one kind of thing: an asset with a price. One buy flow.
 
 export type AssetCategory = 'popular' | 'stocks' | 'memes' | 'crypto';
+
+// ── Earn: the balance's cash put to work (Aave savings on Base first) ─────────────────────
+// GET /v1/earn/options?currency=NGN → { options: EarnOption[] }. The rate is variable.
+export type EarnOption = {
+  optionId: string;
+  name: string;
+  venue: string;
+  chain: Chain;
+  asset: string;
+  apyPct: string;
+  about: string;
+};
+// GET /v1/earn/positions?currency=NGN → { positions: EarnPosition[] }. Amount includes interest.
+export type EarnPosition = {
+  optionId: string;
+  name: string;
+  venue: string;
+  amount: string;
+  value: Money;
+  apyPct: string;
+};
+// POST /v1/earn/quotes → EarnQuote; POST /v1/earn/quotes/{id}/execute → ExecutionPlan.
+export type EarnAction = 'deposit' | 'withdraw';
+export type EarnQuote = {
+  quoteId: string;
+  optionId: string;
+  action: EarnAction;
+  amount: Money;
+  usdc: string;
+  // Withdrawing everything, interest included.
+  all: boolean;
+  apyPct: string;
+  expiresAtUnixMs: number;
+};
 
 // GET /v1/assets/{assetId}/chart?range=1W&currency=NGN → AssetChart. Display only: points are
 // [unix ms, price in the display currency], oldest first, from on-chain trades.
