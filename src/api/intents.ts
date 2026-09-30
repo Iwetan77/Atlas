@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
-import type { ExecutionPlan, IntentStatus, IntentSubmission, SignedTx, UnsignedTx } from '@/api/contract';
+import type { ExecutionPlan, IntentStatus, IntentSubmission, SentTx, SignedTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
+import { waitForTx } from '@/signing/chains';
 import { ActionCancelled, useConfirmAndExecute } from '@/signing/confirm';
 import { useSigner } from '@/signing/use-signer';
 
@@ -108,11 +109,20 @@ export function useRunIntent() {
           await getAccessToken(),
           { timeoutMs: POLL_REQUEST_TIMEOUT_MS },
         );
+        // Same rules as the confirm sheet: Solana transactions the engine lands are signed; the rest
+        // (Base, after cash arrived from Solana) are sent, each mined before the next.
         const signed: SignedTx[] = [];
+        const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
-          signed.push({ index, transaction: await signer.sign(tx) });
+          if (tx.chain === 'solana' && tx.submit === 'engine') {
+            signed.push({ index, transaction: await signer.sign(tx) });
+            continue;
+          }
+          const result = await signer.send(tx, status.intentId);
+          await waitForTx(result, tx);
+          sent.push(result);
         }
-        return submitIntent(getAccessToken, status.intentId, { sent: [], signed });
+        return submitIntent(getAccessToken, status.intentId, { sent, signed });
       };
       return waitForIntent(getAccessToken, first, onStatus, signNext);
     },
