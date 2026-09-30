@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { MoneyError } from '@/components/money-error';
 import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
@@ -222,7 +223,7 @@ export default function PerpTicketScreen() {
           <Text color="textSecondary">Working out your liquidation price…</Text>
         </View>
       ) : error ? (
-        <Text color="danger">{error}</Text>
+        <MoneyError message={error} />
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}

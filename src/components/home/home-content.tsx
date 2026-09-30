@@ -15,6 +15,7 @@ import { PromoBanner, type Promo } from '@/components/promo-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
 import { colors, radii } from '@/theme';
 
@@ -30,6 +31,7 @@ export function HomeContent({
   banner?: string;
 }) {
   const { email } = useAtlasAuth();
+  const addMoney = useAddMoney();
   const { me, reload: reloadMe } = useMe();
   const { reload: reloadPositions } = positions;
   // Coming back from the handle screen should tick the step straight away; back from a trade, the
@@ -91,7 +93,7 @@ export function HomeContent({
         showEmptyPockets={showEmptyPockets}
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
-        onDeposit={() => router.push('/deposit')}
+        onDeposit={addMoney}
       />
 
       <YourAssets balance={data} positions={positions.data} handle={me?.handle ?? null} stealth={stealthMode} />
@@ -113,7 +115,7 @@ export function HomeContent({
             title: 'Make a deposit',
             subtitle: "Then you're ready",
             done: hasFunds,
-            action: { label: 'Deposit', onPress: () => router.push('/deposit') },
+            action: { label: 'Deposit', onPress: addMoney },
           },
         ]}
       />

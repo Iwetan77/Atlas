@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { SendQuote } from '@/api/contract';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
+import { MoneyError } from '@/components/money-error';
 import { formatMoney } from '@/format/money';
 import { colors, spacing } from '@/theme';
 
@@ -39,7 +40,7 @@ export function SendReview({
       </View>
     );
   }
-  if (error) return <Text color="danger">Couldn&apos;t prepare this: {error}</Text>;
+  if (error) return <MoneyError message={error} />;
   return null;
 }
 

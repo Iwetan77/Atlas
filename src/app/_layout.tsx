@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { StartupError, StartupStatus } from '@/components/startup-status';
+import { AddMoneyProvider } from '@/funding/add-money';
 import { showDevTools } from '@/config';
 import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
@@ -59,7 +60,9 @@ export default function RootLayout() {
       <SettingsProvider>
         <AtlasAuthProvider>
           <ConfirmProvider>
-            <RootStack />
+            <AddMoneyProvider>
+              <RootStack />
+            </AddMoneyProvider>
           </ConfirmProvider>
         </AtlasAuthProvider>
       </SettingsProvider>

@@ -16,6 +16,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
+import { MoneyError } from '@/components/money-error';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
@@ -212,7 +213,7 @@ export default function EarnScreen() {
           <Text color="textSecondary">Checking…</Text>
         </View>
       ) : error ? (
-        <Text color="danger">{error}</Text>
+        <MoneyError message={error} />
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}

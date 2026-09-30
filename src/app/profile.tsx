@@ -4,7 +4,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
-import type { DisplayCurrency } from '@/api/contract';
 import { usePerpsAccess } from '@/api/perps';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
@@ -17,19 +16,10 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
+import { CURRENCIES } from '@/format/currencies';
 import { currencySymbol } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
-
-const CURRENCIES: { code: DisplayCurrency; label: string; flag: string }[] = [
-  { code: 'NGN', label: 'Nigerian naira', flag: '🇳🇬' },
-  { code: 'USD', label: 'US dollar', flag: '🇺🇸' },
-  { code: 'EUR', label: 'Euro', flag: '🇪🇺' },
-  { code: 'GBP', label: 'British pound', flag: '🇬🇧' },
-  { code: 'ZAR', label: 'South African rand', flag: '🇿🇦' },
-  { code: 'KES', label: 'Kenyan shilling', flag: '🇰🇪' },
-  { code: 'GHS', label: 'Ghanaian cedi', flag: '🇬🇭' },
-];
 
 // Square-cropped by the picker, then shrunk to 256px so it stays a few dozen KB.
 async function choosePhoto(): Promise<string | null> {

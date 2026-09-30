@@ -8,6 +8,7 @@ import { executeQuote, requestQuote } from '@/api/markets';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { MoneyError } from '@/components/money-error';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PriceChart } from '@/components/trade/price-chart';
@@ -38,6 +39,7 @@ export default function AssetTradeScreen() {
     iconUrl: string;
     change: string;
     verified: string;
+    tradeable: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
@@ -139,6 +141,15 @@ export default function AssetTradeScreen() {
 
       <PriceChart assetId={params.assetId} />
 
+      {params.tradeable === 'no' ? (
+        <View style={styles.soon}>
+          <Icon name="time-outline" size={18} color="accentPinkTint" />
+          <Text color="textSecondary" style={styles.flex}>
+            Buying {params.symbol} from your balance is coming soon. You can follow its price here meanwhile.
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.segment}>
         {(['buy', 'sell'] as TradeSide[]).map((s) => (
           <Pressable
@@ -176,10 +187,9 @@ export default function AssetTradeScreen() {
           <QuoteRow label="Fee" value={formatMoney(quote.fee)} />
           {quote.funding ? (
             <View style={styles.funding}>
-              <Icon name="swap-horizontal" size={16} color="accentPinkTint" />
-              <Text variant="caption" color="accentPinkTint" style={styles.fundingText}>
-                {formatMoney(quote.funding.amount)} of your cash moves from {quote.funding.from} to {quote.funding.to} first (
-                {formatMoney(quote.funding.fee)} to move it, about 30 seconds).
+              <Icon name="information-circle-outline" size={16} color="textSecondary" />
+              <Text variant="caption" color="textSecondary" style={styles.fundingText}>
+                Includes a {formatMoney(quote.funding.fee)} network fee. Takes about 30 seconds.
               </Text>
             </View>
           ) : null}
@@ -190,7 +200,7 @@ export default function AssetTradeScreen() {
       ) : quoting ? (
         <Busy text="Getting the best price…" />
       ) : quoteError ? (
-        <Text color="danger">{quoteError}</Text>
+        <MoneyError message={quoteError} />
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
@@ -198,7 +208,7 @@ export default function AssetTradeScreen() {
         <Busy
           text={
             phase.stage === 'fund'
-              ? `Moving your cash to ${quote?.funding?.to ?? 'the right chain'}… about 30 seconds`
+              ? 'Getting your money ready… about 30 seconds'
               : `${side === 'buy' ? 'Buying' : 'Selling'} ${params.symbol}… this usually takes a few seconds`
           }
         />
@@ -206,7 +216,7 @@ export default function AssetTradeScreen() {
 
       <PillButton
         label={`${side === 'buy' ? 'Buy' : 'Sell'} ${params.symbol}`}
-        disabled={!quote || quoting || phase.kind === 'settling'}
+        disabled={params.tradeable === 'no' || !quote || quoting || phase.kind === 'settling'}
         loading={phase.kind === 'preparing' || phase.kind === 'settling'}
         onPress={trade}
       />
@@ -233,6 +243,14 @@ function Busy({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  soon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgSurface,
+  },
   funding: {
     flexDirection: 'row',
     alignItems: 'flex-start',

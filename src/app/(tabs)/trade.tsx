@@ -109,6 +109,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
             iconUrl: asset.iconUrl ?? '',
             change: asset.change24hPct ?? '',
             verified: asset.verified === false ? 'no' : 'yes',
+            tradeable: asset.tradeable === false ? 'no' : 'yes',
           },
         })
       }

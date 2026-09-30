@@ -26,11 +26,14 @@ export function SelectSheet<K extends string>({
   items,
   value,
   onChange,
+  compact,
 }: {
   title: string;
   items: SelectItem<K>[];
   value: K;
   onChange: (key: K) => void;
+  // A small pill (flag + label) instead of a full-width field, e.g. in a sheet's header.
+  compact?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
@@ -51,9 +54,16 @@ export function SelectSheet<K extends string>({
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={`${title}: ${current.label}`}
-        style={({ pressed }) => [styles.field, pressed && styles.pressed]}>
-        <Row item={current} />
-        <Icon name="chevron-down" size={18} color="textSecondary" />
+        style={({ pressed }) => [compact ? styles.pill : styles.field, pressed && styles.pressed]}>
+        {compact ? (
+          <>
+            {current.leading ? <Text style={styles.pillLeading}>{current.leading}</Text> : null}
+            <Text variant="label">{current.label}</Text>
+          </>
+        ) : (
+          <Row item={current} />
+        )}
+        <Icon name="chevron-down" size={compact ? 14 : 18} color="textSecondary" />
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -122,6 +132,21 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.bgSurface,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  pillLeading: {
+    fontSize: 16,
+    lineHeight: 20,
   },
   pressed: {
     opacity: 0.8,
