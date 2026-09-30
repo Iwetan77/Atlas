@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { PerpQuote } from '@/api/contract';
-import { useRunIntent } from '@/api/intents';
+import { StillSettling, useRunIntent } from '@/api/intents';
 import { executePerpQuote, perpsError, requestPerpQuote, usePerpsAccess } from '@/api/perps';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
@@ -24,7 +24,12 @@ import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
 
 type Side = 'long' | 'short';
-type Phase = { kind: 'edit' } | { kind: 'opening' } | { kind: 'done'; quote: PerpQuote } | { kind: 'failed'; message: string };
+type Phase =
+  | { kind: 'edit' }
+  | { kind: 'opening' }
+  | { kind: 'settling' }
+  | { kind: 'done'; quote: PerpQuote }
+  | { kind: 'failed'; message: string };
 
 export default function PerpTicketScreen() {
   const params = useLocalSearchParams<{
@@ -66,12 +71,22 @@ export default function PerpTicketScreen() {
     if (!quote) return;
     setPhase({ kind: 'opening' });
     try {
-      const final = await runIntent(() => executePerpQuote(getAccessToken, quote.quoteId));
+      const final = await runIntent(
+        () => executePerpQuote(getAccessToken, quote.quoteId),
+        () => setPhase({ kind: 'settling' }),
+      );
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
       else setPhase({ kind: 'failed', message: final.error ?? 'The position was not opened.' });
     } catch (e) {
-      setPhase({ kind: 'failed', message: friendlyTxError(e) });
+      // The order may still land: never invite a second one before the positions say otherwise.
+      setPhase({
+        kind: 'failed',
+        message:
+          e instanceof StillSettling
+            ? "Paradex hasn't confirmed this order yet. Check your positions before opening another."
+            : friendlyTxError(e),
+      });
     }
   };
 
@@ -177,7 +192,13 @@ export default function PerpTicketScreen() {
             <Row label="Entry price" value={formatPrice(quote.entryPrice)} />
             <Row label="Fee" value={formatMoney(quote.fee)} />
             <Text variant="caption" color="textSecondary">
-              {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
+              {phase.kind === 'settling'
+              ? 'Confirming with Paradex…'
+              : phase.kind === 'opening'
+                ? 'Getting your order ready…'
+                : quoting
+                  ? 'Updating…'
+                  : `Held for ${secondsLeft}s`}
             </Text>
           </Card>
         </>
@@ -196,7 +217,7 @@ export default function PerpTicketScreen() {
       <PillButton
         label={authorized ? `Open ${long ? 'long' : 'short'} ${leverage}×` : 'Enable perps first'}
         disabled={!authorized || !quote || quoting}
-        loading={phase.kind === 'opening'}
+        loading={phase.kind === 'opening' || phase.kind === 'settling'}
         onPress={open}
       />
     </Screen>

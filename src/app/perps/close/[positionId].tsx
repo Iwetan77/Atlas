@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import type { PerpCloseQuote } from '@/api/contract';
-import { useRunIntent } from '@/api/intents';
+import { StillSettling, useRunIntent } from '@/api/intents';
 import { executeCloseQuote, perpsError, requestCloseQuote } from '@/api/perps';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
@@ -18,7 +18,12 @@ import { formatMoney, formatPrice } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, spacing } from '@/theme';
 
-type Phase = { kind: 'review' } | { kind: 'closing' } | { kind: 'done'; quote: PerpCloseQuote } | { kind: 'failed'; message: string };
+type Phase =
+  | { kind: 'review' }
+  | { kind: 'closing' }
+  | { kind: 'settling' }
+  | { kind: 'done'; quote: PerpCloseQuote }
+  | { kind: 'failed'; message: string };
 
 export default function ClosePositionScreen() {
   const params = useLocalSearchParams<{ positionId: string; symbol: string; side: 'long' | 'short'; leverage: string }>();
@@ -39,12 +44,21 @@ export default function ClosePositionScreen() {
     if (!quote) return;
     setPhase({ kind: 'closing' });
     try {
-      const final = await runIntent(() => executeCloseQuote(getAccessToken, quote.quoteId));
+      const final = await runIntent(
+        () => executeCloseQuote(getAccessToken, quote.quoteId),
+        () => setPhase({ kind: 'settling' }),
+      );
       if (!final) setPhase({ kind: 'review' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
       else setPhase({ kind: 'failed', message: final.error ?? 'The position was not closed.' });
     } catch (e) {
-      setPhase({ kind: 'failed', message: friendlyTxError(e) });
+      setPhase({
+        kind: 'failed',
+        message:
+          e instanceof StillSettling
+            ? "Paradex hasn't confirmed the close yet. Check your positions before trying again."
+            : friendlyTxError(e),
+      });
     }
   };
 
@@ -84,7 +98,7 @@ export default function ClosePositionScreen() {
           <Row label="Exit price" value={formatPrice(quote.exitPrice)} />
           <Row label="Fee" value={formatMoney(quote.fee)} />
           <Text variant="caption" color="textSecondary">
-            {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
+            {phase.kind === 'settling' ? 'Confirming with Paradex…' : quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
           </Text>
         </Card>
       ) : quoting ? (
@@ -97,7 +111,7 @@ export default function ClosePositionScreen() {
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
-      <PillButton label="Close position" disabled={!quote || quoting} loading={phase.kind === 'closing'} onPress={close} />
+      <PillButton label="Close position" disabled={!quote || quoting} loading={phase.kind === 'closing' || phase.kind === 'settling'} onPress={close} />
     </Screen>
   );
 }
