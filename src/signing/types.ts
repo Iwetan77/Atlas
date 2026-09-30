@@ -4,7 +4,8 @@ import type { SentTx, UnsignedTx } from '@/api/contract';
 // The single user-facing confirmation happens before this, in the confirm sheet.
 export type Signer = {
   ready: boolean;
-  send: (tx: UnsignedTx) => Promise<SentTx>;
+  // `intentId` names the plan the transaction belongs to (the iPhone relays Base transactions by it).
+  send: (tx: UnsignedTx, intentId: string) => Promise<SentTx>;
   // Sign without broadcasting, for transactions the engine lands (submit: 'engine'). Base64 out.
   sign: (tx: UnsignedTx) => Promise<string>;
 };

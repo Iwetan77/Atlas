@@ -6,35 +6,58 @@ import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
+import { enginePost, SAFE_TO_REPLAY } from '@/api/client';
 import type { SentTx, UnsignedTx } from '@/api/contract';
+import { useAtlasAuth } from '@/auth/context';
 import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
+
+const BASE_MAINNET = 8453;
 
 export function useSigner(): Signer {
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
+  const { getAccessToken } = useAtlasAuth();
 
   const ethWallet = eth.wallets[0];
   const solWallet = sol.status === 'connected' ? sol.wallets[0] : undefined;
 
   const send = useCallback(
-    async (tx: UnsignedTx): Promise<SentTx> => {
+    async (tx: UnsignedTx, intentId: string): Promise<SentTx> => {
       if (tx.chain !== 'solana') {
         if (!ethWallet) throw new Error('EVM wallet is not ready');
-        const provider = await ethWallet.getProvider();
-        const hash = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [
-            {
-              from: ethWallet.address,
-              to: tx.to,
-              data: tx.data ?? '0x',
-              value: numberToHex(BigInt(tx.value ?? '0')),
-              chainId: numberToHex(evmChainFor(tx).id),
-            },
-          ],
-        });
-        return { chain: tx.chain, id: String(hash) };
+        const chainId = evmChainFor(tx).id;
+        // Testnet dev tools send transactions the engine never planned: those go out directly.
+        if (chainId !== BASE_MAINNET) {
+          const provider = await ethWallet.getProvider();
+          const hash = await provider.request({
+            method: 'eth_sendTransaction',
+            params: [
+              {
+                from: ethWallet.address,
+                to: tx.to,
+                data: tx.data ?? '0x',
+                value: numberToHex(BigInt(tx.value ?? '0')),
+                chainId: numberToHex(chainId),
+              },
+            ],
+          });
+          return { chain: tx.chain, id: String(hash) };
+        }
+        // The Expo SDK can't ask Privy to sponsor gas, so the engine sends the planned transaction
+        // for us with sponsorship on (only ever one it planned for this intent, and only once).
+        return enginePost<SentTx>(
+          '/v1/relay/evm',
+          await getAccessToken(),
+          {
+            intentId,
+            chainId,
+            to: tx.to,
+            data: tx.data ?? '0x',
+            value: tx.value ?? '0',
+          },
+          SAFE_TO_REPLAY,
+        );
       }
 
       if (!solWallet) throw new Error('Solana wallet is not ready');
@@ -46,7 +69,7 @@ export function useSigner(): Signer {
       });
       return { chain: 'solana', id: signature };
     },
-    [ethWallet, solWallet],
+    [ethWallet, solWallet, getAccessToken],
   );
 
   const sign = useCallback(

@@ -91,7 +91,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           signed.push({ index, transaction: await signer.sign(tx) });
           continue;
         }
-        const result = await signer.send(tx);
+        const result = await signer.send(tx, plan.intentId);
         await waitForTx(result, tx);
         sent.push(result);
       }
