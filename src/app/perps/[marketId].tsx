@@ -103,7 +103,7 @@ export default function PerpTicketScreen() {
             ? `${formatMoney(q.margin)} margin. Liquidation price ${formatExactMoney(q.liquidationPrice)}.`
             : `${formatMoney(q.margin)} margin. Your liquidation price is on the position now.`
         }>
-        <PillButton label="See position" onPress={() => router.navigate('/perps')} />
+        <PillButton label="See position" onPress={() => router.navigate({ pathname: '/perps', params: { view: 'positions', at: String(Date.now()) } })} />
         <PillButton
           label="Open another"
           tone="secondary"

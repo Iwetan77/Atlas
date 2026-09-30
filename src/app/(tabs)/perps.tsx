@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -10,6 +10,7 @@ import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { PillButton } from '@/components/ui/pill-button';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -43,6 +44,13 @@ export default function PerpsScreen() {
   const { me } = useMe();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  // Markets and Positions are two views of the same tab. Opening a trade lands on Positions: each
+  // "See position" carries a fresh `at`, which wins over whatever was tapped before it.
+  const { view: viewParam, at } = useLocalSearchParams<{ view?: string; at?: string }>();
+  const [choice, setChoice] = useState<{ view: 'markets' | 'positions'; at?: string }>({ view: 'markets' });
+  const view = viewParam === 'positions' && at && choice.at !== at ? 'positions' : choice.view;
+  const setView = (v: 'markets' | 'positions') => setChoice({ view: v, at });
+  const positionCount = account?.positions.length ?? 0;
 
   const q = query.trim().toLowerCase();
   const shown = markets?.filter(
@@ -69,31 +77,40 @@ export default function PerpsScreen() {
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
       <EnablePerps access={access} />
 
-      {/* Positions live here, never on Home: each one as its share card. */}
-      {on || (account && account.positions.length > 0) ? (
-        <>
-          <Text variant="overline" color="textSecondary">
-            Your positions{account && account.positions.length > 0 ? ` · ${account.positions.length}` : ''}
-          </Text>
-          {account && account.positions.length > 0 ? (
-            account.positions.map((p) => <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />)
-          ) : positionsError ? (
-            <Text variant="caption" color="textSecondary">
-              {positionsError}
+      <View style={styles.segment}>
+        {(['markets', 'positions'] as const).map((v) => (
+          <Pressable
+            key={v}
+            onPress={() => setView(v)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: view === v }}
+            style={[styles.segmentItem, view === v && styles.segmentActive]}>
+            <Text variant="bodyStrong" color={view === v ? 'textOnAccent' : 'textSecondary'}>
+              {v === 'markets' ? 'Markets' : `Positions${positionCount ? ` · ${positionCount}` : ''}`}
             </Text>
-          ) : (
-            <Card style={styles.emptyPositions}>
-              <Icon name="pulse-outline" size={22} color="textSecondary" />
-              <Text color="textSecondary">No open positions. Pick a market below to open one.</Text>
-            </Card>
-          )}
-        </>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Positions live here, never on Home: each one as its share card. */}
+      {view === 'positions' ? (
+        account && positionCount > 0 ? (
+          account.positions.map((p) => <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />)
+        ) : positionsError && on ? (
+          <Text variant="caption" color="textSecondary">
+            {positionsError}
+          </Text>
+        ) : (
+          <Card style={styles.emptyPositions}>
+            <Icon name="pulse-outline" size={28} color="textSecondary" />
+            <Text variant="heading">No open positions</Text>
+            <Text color="textSecondary">Positions you open show here, with their liquidation price.</Text>
+            <PillButton label="Browse markets" tone="secondary" size="sm" onPress={() => setView('markets')} />
+          </Card>
+        )
       ) : null}
 
-      <Text variant="overline" color="textSecondary">
-        Markets{markets ? ` · ${markets.length}` : ''}
-      </Text>
-      {markets ? (
+      {view !== 'markets' ? null : markets ? (
         <>
           <Field
             prefix={<Icon name="search" size={20} color="textSecondary" />}
@@ -219,9 +236,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   emptyPositions: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+  },
+  segment: {
+    flexDirection: 'row',
+    padding: spacing.xs,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSurface,
+  },
+  segmentItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+  },
+  segmentActive: {
+    backgroundColor: colors.accentPink,
   },
   // A horizontal row never grows vertically, however few chips it holds.
   chipsScroll: {
