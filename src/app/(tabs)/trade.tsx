@@ -15,7 +15,8 @@ import { colors, radii, spacing } from '@/theme';
 
 // Stocks, memes and crypto share one list and one buy flow; chips only filter.
 const CATEGORIES: { key: AssetCategory; label: string }[] = [
-  { key: 'popular', label: 'Popular' },
+  // Who's rising most, each kind against its own (the engine still calls it "popular").
+  { key: 'popular', label: 'Trending' },
   { key: 'crypto', label: 'Crypto' },
   { key: 'stocks', label: 'Stocks' },
   { key: 'memes', label: 'Memes' },

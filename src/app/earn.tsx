@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import type { EarnAction, EarnOption, EarnPosition, EarnQuote } from '@/api/contract';
+import type { EarnAction, EarnQuote } from '@/api/contract';
 import { executeEarnQuote, requestEarnQuote, useEarn } from '@/api/earn';
 import { StillSettling, useRunIntent } from '@/api/intents';
 import { useLiveQuote } from '@/api/use-live-quote';
@@ -13,6 +13,7 @@ import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
+import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
@@ -96,22 +97,26 @@ export default function EarnScreen() {
   return (
     <Screen>
       <BackHeader title="Savings" />
-      {options && options.length > 1 ? (
-        <View style={styles.options}>
-          {options.map((o) => (
-            <OptionRow
-              key={o.optionId}
-              option={o}
-              position={positions?.find((p) => p.optionId === o.optionId)}
-              selected={o.optionId === option?.optionId}
-              onPress={() => {
-                setPicked(o.optionId);
-                // Nothing to take out of an option you haven't used.
-                if (!positions?.some((p) => p.optionId === o.optionId)) setAction('deposit');
-              }}
-            />
-          ))}
-        </View>
+      {options && options.length > 1 && option ? (
+        <SelectSheet
+          title="Where your cash earns"
+          value={option.optionId}
+          onChange={(id) => {
+            setPicked(id);
+            // Nothing to take out of an option you haven't used.
+            if (!positions?.some((p) => p.optionId === id)) setAction('deposit');
+          }}
+          items={options.map((o) => {
+            const held = positions?.find((p) => p.optionId === o.optionId);
+            return {
+              key: o.optionId,
+              label: `${o.asset} · ${o.venue}`,
+              detail: held ? `${formatMoney(held.value)} earning` : `Uses your cash on ${CHAIN_NAMES[o.chain] ?? o.chain}`,
+              trailing: `${o.apyPct}%`,
+              trailingColor: 'success' as const,
+            };
+          })}
+        />
       ) : null}
 
       {option ? (
@@ -185,36 +190,6 @@ export default function EarnScreen() {
   );
 }
 
-function OptionRow({
-  option,
-  position,
-  selected,
-  onPress,
-}: {
-  option: EarnOption;
-  position: EarnPosition | undefined;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={[styles.option, selected && styles.optionSelected]}>
-      <View style={styles.optionText}>
-        <Text variant="bodyStrong">{option.venue}</Text>
-        <Text variant="caption" color="textSecondary">
-          {position ? `${formatMoney(position.value)} earning` : `Uses your cash on ${CHAIN_NAMES[option.chain] ?? option.chain}`}
-        </Text>
-      </View>
-      <Text variant="bodyStrong" color="success">
-        {option.apyPct}%
-      </Text>
-    </Pressable>
-  );
-}
-
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
@@ -225,26 +200,6 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  options: {
-    gap: spacing.sm,
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  optionSelected: {
-    borderColor: colors.accentPink,
-    backgroundColor: colors.bgSurface,
-  },
-  optionText: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
   rateCard: {
     gap: spacing.xs,
   },

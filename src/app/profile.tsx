@@ -15,18 +15,20 @@ import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
+import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
+import { currencySymbol } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
-const CURRENCIES: { code: DisplayCurrency; label: string }[] = [
-  { code: 'NGN', label: 'Naira' },
-  { code: 'USD', label: 'US Dollar' },
-  { code: 'EUR', label: 'Euro' },
-  { code: 'GBP', label: 'British Pound' },
-  { code: 'ZAR', label: 'Rand' },
-  { code: 'KES', label: 'Kenyan Shilling' },
-  { code: 'GHS', label: 'Ghana Cedi' },
+const CURRENCIES: { code: DisplayCurrency; label: string; flag: string }[] = [
+  { code: 'NGN', label: 'Nigerian naira', flag: '🇳🇬' },
+  { code: 'USD', label: 'US dollar', flag: '🇺🇸' },
+  { code: 'EUR', label: 'Euro', flag: '🇪🇺' },
+  { code: 'GBP', label: 'British pound', flag: '🇬🇧' },
+  { code: 'ZAR', label: 'South African rand', flag: '🇿🇦' },
+  { code: 'KES', label: 'Kenyan shilling', flag: '🇰🇪' },
+  { code: 'GHS', label: 'Ghanaian cedi', flag: '🇬🇭' },
 ];
 
 // Square-cropped by the picker, then shrunk to 256px so it stays a few dozen KB.
@@ -127,28 +129,17 @@ export default function ProfileScreen() {
       <Card style={styles.group}>
         <View style={styles.rowStack}>
           <RowLabel icon="cash-outline" title="Currency" subtitle="Balances and prices show in this currency" />
-          <View style={styles.chips}>
-            {CURRENCIES.map((c) => {
-              const active = c.code === displayCurrency;
-              return (
-                <Pressable
-                  key={c.code}
-                  onPress={() => update({ displayCurrency: c.code })}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
-                  style={[
-                    styles.chip,
-                    active
-                      ? { backgroundColor: colors.accentPinkDim, borderColor: colors.accentPink }
-                      : { borderColor: colors.border },
-                  ]}>
-                  <Text variant="label" color={active ? 'accentPinkTint' : 'textSecondary'}>
-                    {c.code} · {c.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <SelectSheet
+            title="Currency"
+            value={displayCurrency}
+            onChange={(code) => update({ displayCurrency: code })}
+            items={CURRENCIES.map((c) => ({
+              key: c.code,
+              label: c.label,
+              detail: `${c.code} · ${currencySymbol(c.code).trim()}`,
+              leading: c.flag,
+            }))}
+          />
         </View>
         <Divider />
         <ToggleRow
@@ -298,16 +289,6 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: spacing.xxs,
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
   },
   divider: {
     height: 1,
