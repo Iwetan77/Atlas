@@ -78,6 +78,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deposit" />
         <Stack.Screen name="earn" />
+        <Stack.Screen name="mini/[appId]" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="trade/[assetId]" />
         <Stack.Screen name="perps/[marketId]" />
