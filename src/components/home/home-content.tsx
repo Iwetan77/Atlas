@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { BalanceState } from '@/api/balance';
+import type { SpotPositionsState } from '@/api/positions';
 import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
@@ -19,15 +20,31 @@ import { colors, radii } from '@/theme';
 
 // Home layout, fed by a balance source. The real screen passes the engine balance; the testnet
 // preview passes labelled sample data.
-export function HomeContent({ balance, banner }: { balance: BalanceState; banner?: string }) {
+export function HomeContent({
+  balance,
+  positions,
+  banner,
+}: {
+  balance: BalanceState;
+  positions: SpotPositionsState;
+  banner?: string;
+}) {
   const { email } = useAtlasAuth();
   const { me, reload: reloadMe } = useMe();
-  // Coming back from the handle screen should tick the step straight away.
+  const { reload: reloadPositions } = positions;
+  // Coming back from the handle screen should tick the step straight away; back from a trade, the
+  // cards should show it.
   useFocusEffect(
     useCallback(() => {
       reloadMe();
-    }, [reloadMe]),
+      reloadPositions();
+    }, [reloadMe, reloadPositions]),
   );
+  // Each balance refresh (it polls) brings the cards' live values along.
+  const asOf = balance.data?.asOfUnixMs;
+  useEffect(() => {
+    if (asOf) reloadPositions();
+  }, [asOf, reloadPositions]);
   const { stealthMode, showEmptyPockets, displayCurrency, dismissedPromos, update } = useSettings();
   const { data } = balance;
   const hasFunds = !!data && Number(data.total.amount) > 0;
@@ -77,7 +94,7 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
         onDeposit={() => router.push('/deposit')}
       />
 
-      <YourAssets balance={data} stealth={stealthMode} />
+      <YourAssets balance={data} positions={positions.data} handle={me?.handle ?? null} stealth={stealthMode} />
 
       <EarnCard stealth={stealthMode} />
 

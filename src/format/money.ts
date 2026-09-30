@@ -20,6 +20,13 @@ export function formatMoney(money: Money): string {
   }).format(Number(money.amount));
 }
 
+// Gains and losses: always signed, "+₦1,500.00" / "−₦1,500.00".
+export function formatSignedMoney(money: Money): string {
+  const n = Number(money.amount);
+  const sign = n > 0 ? '+' : n < 0 ? '−' : '';
+  return `${sign}${formatMoney({ ...money, amount: String(Math.abs(n)) })}`;
+}
+
 export function formatUsd(amount: string): string {
   return formatMoney({ amount, currency: 'USD' });
 }

@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import type { BalanceResponse, Holding } from '@/api/contract';
+import type { BalanceResponse, Holding, SpotPosition } from '@/api/contract';
+import { MemeCard } from '@/components/home/meme-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -10,20 +12,58 @@ import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, HIDDEN } from '@/format/money';
 import { colors, spacing } from '@/theme';
 
-// The stocks, memes and crypto the user owns, most valuable first. Cash is the balance above;
-// perps margin and positions live in Perps, not here.
-export function YourAssets({ balance, stealth }: { balance: BalanceResponse | null; stealth: boolean }) {
+// Room left for the next card to peek in, so it's clear the row scrolls.
+const PEEK = 28;
+
+// The stocks, memes and crypto the user owns, most valuable first. Memes bought through Atlas get
+// their own share cards up top; everything else is a row with its gain or loss. Cash is the balance
+// above; perps margin and positions live in Perps, not here.
+export function YourAssets({
+  balance,
+  positions,
+  handle,
+  stealth,
+}: {
+  balance: BalanceResponse | null;
+  positions: SpotPosition[] | null;
+  handle: string | null;
+  stealth: boolean;
+}) {
+  const [width, setWidth] = useState(0);
   if (!balance) return null;
   const owned = balance.holdings
     .filter((h) => h.kind !== 'cash' && h.location !== 'perps' && Number(h.amount) > 0)
     .sort((a, b) => Number(b.value.amount) - Number(a.value.amount));
+  const byAsset = new Map((positions ?? []).map((p) => [p.assetId, p]));
+  const memes = (positions ?? []).filter((p) => p.kind === 'meme');
+  const rows = owned.filter((h) => !(h.kind === 'meme' && byAsset.has(h.assetId)));
+  const cardWidth = memes.length > 1 ? width - PEEK : width;
+  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
   return (
     <View style={styles.section}>
       <Text variant="overline" color="textSecondary">
         Your assets
       </Text>
-      {owned.length === 0 ? (
+      {memes.length > 0 ? (
+        <View onLayout={onLayout}>
+          {width > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={cardWidth + spacing.md}
+              decelerationRate="fast"
+              contentContainerStyle={styles.cards}>
+              {memes.map((p) => (
+                <View key={p.assetId} style={{ width: cardWidth }}>
+                  <MemeCard position={p} handle={handle} stealth={stealth} />
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+        </View>
+      ) : null}
+      {owned.length === 0 && memes.length === 0 ? (
         <Card style={styles.empty}>
           <Icon name="trending-up" size={26} color="textSecondary" />
           <Text color="textSecondary" style={styles.center}>
@@ -31,18 +71,29 @@ export function YourAssets({ balance, stealth }: { balance: BalanceResponse | nu
           </Text>
           <PillButton label="Explore markets" tone="secondary" size="sm" onPress={() => router.push('/trade')} />
         </Card>
-      ) : (
+      ) : rows.length > 0 ? (
         <Card style={styles.list}>
-          {owned.map((h, i) => (
-            <AssetRow key={`${h.assetId}:${h.chain}`} holding={h} stealth={stealth} divider={i > 0} />
+          {rows.map((h, i) => (
+            <AssetRow key={`${h.assetId}:${h.chain}`} holding={h} position={byAsset.get(h.assetId)} stealth={stealth} divider={i > 0} />
           ))}
         </Card>
-      )}
+      ) : null}
     </View>
   );
 }
 
-function AssetRow({ holding: h, stealth, divider }: { holding: Holding; stealth: boolean; divider: boolean }) {
+function AssetRow({
+  holding: h,
+  position,
+  stealth,
+  divider,
+}: {
+  holding: Holding;
+  position: SpotPosition | undefined;
+  stealth: boolean;
+  divider: boolean;
+}) {
+  const pct = position?.pnlPct == null ? null : Number(position.pnlPct);
   // The asset screen shows a unit price; for a holding that's its value per token.
   const unit = Number(h.amount) > 0 ? Number(h.value.amount) / Number(h.amount) : 0;
   return (
@@ -70,7 +121,14 @@ function AssetRow({ holding: h, stealth, divider }: { holding: Holding; stealth:
           {stealth ? HIDDEN : `${formatTokenNumber(h.amount)} ${h.symbol}`}
         </Text>
       </View>
-      <Text variant="bodyStrong">{stealth ? HIDDEN : formatMoney(h.value)}</Text>
+      <View style={styles.rowValue}>
+        <Text variant="bodyStrong">{stealth ? HIDDEN : formatMoney(h.value)}</Text>
+        {pct === null ? null : (
+          <Text variant="caption" color={pct < 0 ? 'danger' : 'success'}>
+            {`${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`}
+          </Text>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -107,5 +165,12 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  rowValue: {
+    alignItems: 'flex-end',
+    gap: spacing.xxs,
+  },
+  cards: {
+    gap: spacing.md,
   },
 });

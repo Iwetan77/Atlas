@@ -166,6 +166,30 @@ export type EarnPosition = {
   value: Money;
   apyPct: string;
 };
+// GET /v1/positions/spot?currency=NGN → SpotPositions. Built from Atlas's own filled buys and sells:
+// average entry, what went in, live value. Only what the wallet still holds counts, so tokens sent
+// away leave with their share of the cost. Money here can be negative (pnl, realizedPnl).
+export type SpotPosition = {
+  assetId: string;
+  symbol: string;
+  name: string;
+  kind: AssetKind;
+  chain: Chain;
+  iconUrl: string | null;
+  amount: string;
+  invested: Money;
+  value: Money;
+  pnl: Money;
+  // Null when nothing is invested (can't take a percentage of zero).
+  pnlPct: string | null;
+  entryPrice: Money | null;
+  price: Money;
+  realizedPnl: Money;
+  // When this run of holding began; a full sell ends it.
+  openedAtUnixMs: number;
+};
+export type SpotPositions = { positions: SpotPosition[]; asOfUnixMs: number };
+
 // POST /v1/earn/quotes → EarnQuote; POST /v1/earn/quotes/{id}/execute → ExecutionPlan.
 export type EarnAction = 'deposit' | 'withdraw';
 export type EarnQuote = {

@@ -1,16 +1,16 @@
-import * as Sharing from 'expo-sharing';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, Line, LinearGradient, Pattern, Polygon, Rect, Stop } from 'react-native-svg';
-import { captureRef } from 'react-native-view-shot';
 
 import type { PerpPosition } from '@/api/contract';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
+import { useShareImage } from '@/components/share/use-share-image';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
+import { heldFor } from '@/format/duration';
 import { formatMoney, formatPrice } from '@/format/money';
 import { colors, fonts, spacing } from '@/theme';
 
@@ -25,16 +25,6 @@ const ART = `0,0 ${SPLIT_TOP},0 ${SPLIT_BOTTOM},${H} 0,${H}`;
 // Centre and radius of the logo in the art panel.
 const LOGO_X = 66;
 const LOGO_R = 38;
-// Shared image width in pixels: sharp enough to post.
-const EXPORT_W = 1080;
-
-function openFor(openedAtUnixMs: number): string {
-  const mins = Math.max(0, Math.floor((Date.now() - openedAtUnixMs) / 60_000));
-  if (mins < 60) return `${mins}M`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}H ${mins % 60}M`;
-  return `${Math.floor(hours / 24)}D`;
-}
 
 // An open position: a share card kept to the few numbers worth bragging about, with the
 // liquidation price right under it in the app (it's not something people post, but it must
@@ -42,8 +32,7 @@ function openFor(openedAtUnixMs: number): string {
 export function PositionCard({ position: p, handle }: { position: PerpPosition; handle: string | null }) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
-  const [sharing, setSharing] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
+  const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}-${p.side}.png`, 'Share position');
 
   const up = Number(p.unrealizedPnl.amount) >= 0;
   // Venues don't always report PnL % or margin (Paradex doesn't); fall back to numbers they do report.
@@ -52,29 +41,6 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
   const gain = up ? 'success' : 'danger';
   const s = (n: number) => n * scale;
   const onLayout = (e: LayoutChangeEvent) => setScale(e.nativeEvent.layout.width / W);
-
-  const share = async () => {
-    setSharing(true);
-    setShareError(null);
-    const size = { width: EXPORT_W, height: EXPORT_W / (W / H) };
-    try {
-      if (Platform.OS === 'web') {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'data-uri', ...size });
-        const a = document.createElement('a');
-        a.href = uri;
-        a.download = `atlas-${p.symbol.toLowerCase()}-${p.side}.png`;
-        a.click();
-      } else {
-        const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile', ...size });
-        if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share position' });
-      }
-    } catch (e) {
-      console.warn('[atlas] share card failed', e);
-      setShareError("Couldn't create the image. Try again.");
-    } finally {
-      setSharing(false);
-    }
-  };
 
   const t = (size: number, lineHeight = size * 1.25) => ({ fontSize: s(size), lineHeight: s(lineHeight) });
 
@@ -135,7 +101,7 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
             </Text>
             <View style={[styles.meta, { gap: s(5) }]}>
               <Text color="textSecondary" style={[styles.caps, t(10.5)]}>
-                {p.leverage}× {p.side === 'long' ? 'LONG' : 'SHORT'} · {openFor(p.openedAtUnixMs)}
+                {p.leverage}× {p.side === 'long' ? 'LONG' : 'SHORT'} · {heldFor(p.openedAtUnixMs)}
               </Text>
               <Icon name="time-outline" size={s(12)} color="textSecondary" />
             </View>
