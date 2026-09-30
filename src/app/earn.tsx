@@ -238,15 +238,17 @@ function VenueTile({ venue, selected, onPress }: { venue: Venue; selected: boole
       style={({ pressed }) => [styles.venue, selected && styles.venueSelected, pressed && styles.pressed]}>
       <View style={styles.venueTop}>
         <AssetAvatar symbol={venue.venue} iconUrl={venue.iconUrl} size={36} />
-        <View style={styles.chainChip}>
-          <Text variant="caption" color="textSecondary">
-            {CHAIN_NAMES[venue.chain] ?? venue.chain}
+        <View style={styles.venueName}>
+          <Text variant="bodyStrong" numberOfLines={1}>
+            {venue.venue}
+          </Text>
+          <Text variant="caption" color="textSecondary" numberOfLines={1}>
+            on {CHAIN_NAMES[venue.chain] ?? venue.chain}
           </Text>
         </View>
       </View>
-      <Text variant="bodyStrong">{venue.venue}</Text>
-      <Text variant="label" color="success">
-        {venue.options.length > 1 ? `Up to ${best.apyPct}%` : `${best.apyPct}%`}
+      <Text variant="label" color="success" numberOfLines={1}>
+        {venue.options.length > 1 ? `Up to ${best.apyPct}%` : `${best.apyPct}%`} a year
       </Text>
     </Pressable>
   );
@@ -262,14 +264,17 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  // Two to a row, however many venues there are, so names never wrap mid-word.
   venues: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
   },
   venue: {
-    flex: 1,
-    gap: spacing.xs,
-    padding: spacing.lg,
+    flexBasis: '46%',
+    flexGrow: 1,
+    gap: spacing.sm,
+    padding: spacing.md,
     borderRadius: radii.lg,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -282,14 +287,10 @@ const styles = StyleSheet.create({
   venueTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
   },
-  chainChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.bgSurfaceAlt,
+  venueName: {
+    flex: 1,
   },
   pressed: {
     opacity: 0.8,
