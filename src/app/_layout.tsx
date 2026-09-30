@@ -92,12 +92,13 @@ function RootStack() {
           <Stack.Screen name="dev-home-preview" />
         </Stack.Protected>
       </Stack.Protected>
-      {/* Public: someone without Atlas opens an Atlas link here and signs in on the page. */}
-      <Stack.Screen name="claim/[linkId]" />
       <Stack.Protected guard={!authenticated}>
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="sign-in-email" />
       </Stack.Protected>
+      {/* Public: someone without Atlas opens an Atlas link here and signs in on the page. Last, because
+          the router falls back to the first screen it may show: signed out, that must be sign-in. */}
+      <Stack.Screen name="claim/[linkId]" />
     </Stack>
   );
 }
