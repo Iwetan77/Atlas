@@ -136,6 +136,26 @@ export type BankDepositAccount = {
   currency: 'NGN';
 };
 
+// Deposits from other networks (USDT on Tron, USDC on Arbitrum…), turned into USDC in the balance
+// by 1Click. GET /v1/deposit/networks → { networks: DepositNetwork[] };
+// POST /v1/deposit/quote { networkId, amount: Money } → DepositAddress;
+// GET /v1/deposit/status?address=&memo= → { state: DepositState }.
+export type DepositNetwork = { id: string; label: string; network: string; asset: string };
+export type DepositAddress = {
+  address: string;
+  memo: string | null;
+  network: string;
+  label: string;
+  asset: string;
+  // Send about this much; anything from minAmount up is converted.
+  sendAmount: string;
+  minAmount: string;
+  receive: Money;
+  timeEstimateSec: number | null;
+  expiresAtUnixMs: number;
+};
+export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
+
 // Card/bank via Circle Onramp: POST /v1/onramp/session → short-lived hosted widget URL.
 // The engine picks the destination wallet from the token; the URL must not be cached or logged.
 export type OnrampSession = {

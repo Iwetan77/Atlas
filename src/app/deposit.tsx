@@ -1,187 +1,191 @@
 import * as Clipboard from 'expo-clipboard';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 import QRCodeStyled from 'react-native-qrcode-styled';
 
-import { engineGet, enginePost } from '@/api/client';
-import type { BankDepositAccount, OnrampSession } from '@/api/contract';
+import { engineGet, enginePost, SAFE_TO_REPLAY } from '@/api/client';
+import type { DepositAddress, DepositNetwork, DepositState } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { AmountInput } from '@/components/amount-input';
+import { MoneyError } from '@/components/money-error';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
+import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { network } from '@/config';
+import { formatMoney } from '@/format/money';
+import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
-type Rail = 'base' | 'solana';
+// Base and Solana USDC go straight to the user's own wallets; every other network gets a one-off
+// deposit address that turns what arrives into USDC in the balance.
+const OWN: { id: 'base' | 'solana'; label: string; network: string }[] = [
+  { id: 'base', label: network === 'mainnet' ? 'USDC on Base' : 'USDC on Base Sepolia (testnet)', network: 'Base' },
+  { id: 'solana', label: network === 'mainnet' ? 'USDC on Solana' : 'USDC on Solana devnet (testnet)', network: 'Solana' },
+];
 
-// Crypto deposits land straight in the user's own embedded wallets; these are the only screens
-// where a chain name is shown, because sending on the wrong network is how people lose funds.
-const RAILS: Record<Rail, { tab: string; label: string }> = {
-  base: { tab: 'Base', label: network === 'mainnet' ? 'USDC on Base' : 'USDC on Base Sepolia (testnet)' },
-  solana: { tab: 'Solana', label: network === 'mainnet' ? 'USDC on Solana' : 'USDC on Solana devnet (testnet)' },
+const STATE_TEXT: Record<DepositState, string> = {
+  waiting: 'Waiting for your deposit…',
+  processing: 'It arrived. Adding it to your balance…',
+  done: 'Done. It’s in your balance.',
+  incomplete: 'Less than the minimum arrived. Send the rest to the same address.',
+  refunded: 'This deposit couldn’t be converted, so it was returned to your NEAR account.',
+  failed: 'Something went wrong with this deposit. Contact support with the address below.',
 };
 
+// Receive money from a wallet or an exchange, on the network the user picks. Chain names show only
+// here, because sending on the wrong network is how people lose money.
 export default function DepositScreen() {
   const { wallets, getAccessToken } = useAtlasAuth();
-  const [rail, setRail] = useState<Rail>('base');
-  const [bank, setBank] = useState<BankDepositAccount | null>(null);
-  const [bankError, setBankError] = useState<string | null>(null);
-  const [cardError, setCardError] = useState<string | null>(null);
-  const [cardLoading, setCardLoading] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
+  const { displayCurrency } = useSettings();
+  const [networks, setNetworks] = useState<DepositNetwork[]>([]);
+  const [picked, setPicked] = useState<string>('base');
+  const [amount, setAmount] = useState('');
+  const [deposit, setDeposit] = useState<DepositAddress | null>(null);
+  const [state, setState] = useState<DepositState>('waiting');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     getAccessToken()
-      .then((token) => engineGet<BankDepositAccount>('/v1/deposit/bank-account', token))
-      .then(setBank)
-      .catch((e) => setBankError(errorMessage(e)));
+      .then((token) => engineGet<{ networks: DepositNetwork[] }>('/v1/deposit/networks', token))
+      .then((r) => setNetworks(r.networks))
+      .catch(() => setNetworks([]));
   }, [getAccessToken]);
 
-  const copy = async (value: string, what: string) => {
-    await Clipboard.setStringAsync(value);
-    setCopied(what);
-    setTimeout(() => setCopied(null), 2000);
+  // Follow a deposit address until the money is in the balance.
+  useEffect(() => {
+    if (!deposit || state === 'done' || state === 'refunded' || state === 'failed') return;
+    const id = setInterval(async () => {
+      try {
+        const query = `address=${encodeURIComponent(deposit.address)}${deposit.memo ? `&memo=${encodeURIComponent(deposit.memo)}` : ''}`;
+        const r = await engineGet<{ state: DepositState }>(`/v1/deposit/status?${query}`, await getAccessToken());
+        setState(r.state);
+      } catch {
+        // A missed check is retried on the next tick.
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [deposit, state, getAccessToken]);
+
+  const own = OWN.find((o) => o.id === picked);
+  const other = networks.find((n) => n.id === picked);
+  const address = own ? wallets[own.id] : deposit?.address;
+
+  const choose = (id: string) => {
+    setPicked(id);
+    setDeposit(null);
+    setProblem(null);
+    setState('waiting');
   };
 
-  const payWithCard = async () => {
-    setCardLoading(true);
-    setCardError(null);
+  const getAddress = async () => {
+    if (!other) return;
+    setBusy(true);
+    setProblem(null);
     try {
-      const token = await getAccessToken();
-      const session = await enginePost<OnrampSession>('/v1/onramp/session', token, { chain: 'base' });
-      await WebBrowser.openBrowserAsync(session.widgetUrl);
+      const d = await enginePost<DepositAddress>(
+        '/v1/deposit/quote',
+        await getAccessToken(),
+        { networkId: other.id, amount: { amount: (Number(amount) || 0).toFixed(2), currency: displayCurrency } },
+        SAFE_TO_REPLAY,
+      );
+      setDeposit(d);
+      setState('waiting');
     } catch (e) {
-      setCardError(errorMessage(e));
+      setProblem(errorMessage(e));
     } finally {
-      setCardLoading(false);
+      setBusy(false);
     }
   };
 
-  const address = wallets[rail];
+  const copy = async (value: string) => {
+    await Clipboard.setStringAsync(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Screen>
-      <BackHeader title="Deposit" />
+      <BackHeader title="Wallet or exchange" />
+      <SelectSheet
+        title="Which network are you sending on?"
+        value={picked}
+        onChange={choose}
+        items={[
+          ...OWN.map((o) => ({ key: o.id, label: o.label, detail: 'Straight to your Atlas wallet' })),
+          ...networks.map((n) => ({ key: n.id, label: n.label, detail: 'Arrives as dollars in your balance' })),
+        ]}
+      />
 
-      <Card style={styles.card}>
-        <Text variant="heading">Bank transfer (NGN)</Text>
-        {bank ? (
-          <>
-            <Row label="Bank" value={bank.bankName} />
-            <Row label="Account name" value={bank.accountName} />
-            <Pressable onPress={() => copy(bank.accountNumber, 'account')}>
-              <Row label="Account number" value={bank.accountNumber} />
-              <Text variant="caption" color="accentPinkTint">
-                {copied === 'account' ? 'Copied' : 'Tap to copy'}
+      {other && !deposit ? (
+        <Card style={styles.card}>
+          <AmountInput label={`How much ${other.asset} will you send?`} value={amount} onChange={setAmount} currency={displayCurrency} />
+          {problem ? <MoneyError message={problem} /> : null}
+          <PillButton label="Get deposit address" loading={busy} disabled={!(Number(amount) > 0)} onPress={getAddress} />
+        </Card>
+      ) : null}
+
+      {address && (own || deposit) ? (
+        <Card style={styles.card}>
+          {deposit ? (
+            <>
+              <Text variant="heading">
+                Send {deposit.sendAmount} {deposit.asset} on {deposit.network}
               </Text>
-            </Pressable>
-          </>
-        ) : (
-          <Text color="textSecondary">
-            {bankError ? 'Naira bank deposits aren’t available yet.' : 'Loading your account details…'}
+              <Text color="textSecondary">
+                Anything from {deposit.minAmount} {deposit.asset} counts. You’ll get about {formatMoney(deposit.receive)}
+                {deposit.timeEstimateSec ? `, usually within ${Math.max(1, Math.round(deposit.timeEstimateSec / 60))} min of it arriving` : ''}.
+              </Text>
+            </>
+          ) : (
+            <Text variant="bodyStrong">{own?.label}</Text>
+          )}
+          <View style={styles.qr}>
+            <QRCodeStyled
+              data={address}
+              pieceSize={5}
+              padding={12}
+              color={colors.bgBase}
+              outerEyesOptions={{ borderRadius: 6, color: colors.accentPink }}
+              innerEyesOptions={{ borderRadius: 3, color: colors.bgBase }}
+            />
+          </View>
+          <Text selectable variant="caption" style={styles.address}>
+            {address}
           </Text>
-        )}
-      </Card>
-
-      <Card style={styles.card}>
-        <Text variant="heading">Card</Text>
-        <Text color="textSecondary">Buy USDC with a card through Circle.</Text>
-        {cardError ? <Text color="danger">Card deposits aren’t available yet.</Text> : null}
-        <PillButton label="Pay with card" tone="secondary" loading={cardLoading} onPress={payWithCard} />
-      </Card>
-
-      <Card style={styles.card}>
-        <Text variant="heading">Send crypto</Text>
-        <View style={styles.tabs}>
-          {(Object.keys(RAILS) as Rail[]).map((r) => (
-            <Pressable
-              key={r}
-              onPress={() => setRail(r)}
-              style={[
-                styles.tab,
-                r === rail
-                  ? { backgroundColor: colors.accentPinkDim, borderColor: colors.accentPink }
-                  : { borderColor: colors.border },
-              ]}>
-              <Text variant="label" color={r === rail ? 'accentPinkTint' : 'textSecondary'}>
-                {RAILS[r].tab}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text variant="bodyStrong">{RAILS[rail].label}</Text>
-        {address ? (
-          <>
-            <View style={styles.qr}>
-              <QRCodeStyled
-                data={address}
-                pieceSize={5}
-                padding={12}
-                color={colors.bgBase}
-                outerEyesOptions={{ borderRadius: 6, color: colors.accentPink }}
-                innerEyesOptions={{ borderRadius: 3, color: colors.bgBase }}
-              />
-            </View>
-            <Text selectable variant="caption" style={styles.address}>
-              {address}
+          {deposit?.memo ? (
+            <Text selectable variant="bodyStrong" style={styles.address}>
+              Memo (required): {deposit.memo}
             </Text>
-            <View style={styles.actions}>
-              <PillButton
-                label={copied === 'address' ? 'Copied' : 'Copy'}
-                onPress={() => copy(address, 'address')}
-                style={styles.action}
-              />
-              <PillButton
-                label="Share"
-                tone="secondary"
-                onPress={() => Share.share({ message: address })}
-                style={styles.action}
-              />
-            </View>
-            <Text variant="caption" color="textSecondary">
-              Only send {RAILS[rail].label} to this address. Anything else may be lost.
+          ) : null}
+          <View style={styles.actions}>
+            <PillButton label={copied ? 'Copied' : 'Copy'} onPress={() => copy(address)} style={styles.action} />
+            <PillButton label="Share" tone="secondary" onPress={() => Share.share({ message: address })} style={styles.action} />
+          </View>
+          {deposit ? (
+            <Text color={state === 'done' ? 'success' : state === 'failed' || state === 'refunded' ? 'danger' : 'textSecondary'}>
+              {STATE_TEXT[state]}
             </Text>
-          </>
-        ) : (
-          <Text color="textSecondary">Setting up your wallet…</Text>
-        )}
-      </Card>
+          ) : null}
+          <Text variant="caption" color="textSecondary">
+            Only send {deposit ? `${deposit.asset} on ${deposit.network}` : own?.label} to this address. Anything else may be lost.
+            {deposit ? ' Use it within 2 hours of getting it.' : ''}
+          </Text>
+        </Card>
+      ) : own ? (
+        <Text color="textSecondary">Setting up your wallet…</Text>
+      ) : null}
     </Screen>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text color="textSecondary">{label}</Text>
-      <Text variant="bodyStrong" selectable>
-        {value}
-      </Text>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     gap: spacing.md,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  tabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  tab: {
-    borderWidth: 1,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.lg,
   },
   qr: {
     alignSelf: 'center',
