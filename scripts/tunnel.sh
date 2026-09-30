@@ -10,6 +10,12 @@ if ! command -v cloudflared >/dev/null; then
   exit 1
 fi
 
+# Expo would quietly move to the next port, but the tunnel would still point at this one.
+if ss -ltn 2>/dev/null | grep -q ":$PORT "; then
+  echo "Something is already serving port $PORT (another Metro?). Stop it first, or run PORT=8082 npm run start:tunnel."
+  exit 1
+fi
+
 LOG="$(mktemp)"
 CF_PID=""
 trap '[ -n "$CF_PID" ] && kill "$CF_PID" 2>/dev/null || true; rm -f "$LOG"' EXIT
