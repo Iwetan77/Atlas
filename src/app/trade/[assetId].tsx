@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import type { Quote, TradeSide } from '@/api/contract';
+import type { IntentStage, Quote, TradeSide } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
 import { executeQuote, requestQuote } from '@/api/markets';
 import { useLiveQuote } from '@/api/use-live-quote';
@@ -25,7 +25,7 @@ import { colors, radii, spacing } from '@/theme';
 type Phase =
   | { kind: 'edit' }
   | { kind: 'preparing' }
-  | { kind: 'settling' }
+  | { kind: 'settling'; stage?: IntentStage }
   | { kind: 'done'; quote: Quote }
   | { kind: 'failed'; message: string };
 
@@ -71,6 +71,7 @@ export default function AssetTradeScreen() {
       const final = await runIntent(
         () => executeQuote(getAccessToken, quote.quoteId),
         () => setPhase({ kind: 'settling' }),
+        (status) => setPhase({ kind: 'settling', stage: status.stage }),
       );
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
@@ -173,6 +174,15 @@ export default function AssetTradeScreen() {
           />
           <QuoteRow label="Price" value={`${formatPrice(quote.price)} / ${params.symbol}`} />
           <QuoteRow label="Fee" value={formatMoney(quote.fee)} />
+          {quote.funding ? (
+            <View style={styles.funding}>
+              <Icon name="swap-horizontal" size={16} color="accentPinkTint" />
+              <Text variant="caption" color="accentPinkTint" style={styles.fundingText}>
+                {formatMoney(quote.funding.amount)} of your cash moves from {quote.funding.from} to {quote.funding.to} first (
+                {formatMoney(quote.funding.fee)} to move it, about 30 seconds).
+              </Text>
+            </View>
+          ) : null}
           <Text variant="caption" color="textSecondary">
             {quoting ? 'Updating price…' : `Price held for ${secondsLeft}s`}
           </Text>
@@ -180,12 +190,18 @@ export default function AssetTradeScreen() {
       ) : quoting ? (
         <Busy text="Getting the best price…" />
       ) : quoteError ? (
-        <Text color="danger">Couldn&apos;t get a price: {quoteError}</Text>
+        <Text color="danger">{quoteError}</Text>
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
       {phase.kind === 'settling' ? (
-        <Busy text={`${side === 'buy' ? 'Buying' : 'Selling'} ${params.symbol}… this usually takes a few seconds`} />
+        <Busy
+          text={
+            phase.stage === 'fund'
+              ? `Moving your cash to ${quote?.funding?.to ?? 'the right chain'}… about 30 seconds`
+              : `${side === 'buy' ? 'Buying' : 'Selling'} ${params.symbol}… this usually takes a few seconds`
+          }
+        />
       ) : null}
 
       <PillButton
@@ -217,6 +233,14 @@ function Busy({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  funding: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  fundingText: {
+    flex: 1,
+  },
   warning: {
     flexDirection: 'row',
     gap: spacing.sm,

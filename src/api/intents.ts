@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
 
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
-import type { ExecutionPlan, IntentStatus, IntentSubmission } from '@/api/contract';
+import type { ExecutionPlan, IntentStatus, IntentSubmission, SignedTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { ActionCancelled, useConfirmAndExecute } from '@/signing/confirm';
+import { useSigner } from '@/signing/use-signer';
 
 type Token = () => Promise<string | null>;
 
@@ -42,6 +43,7 @@ export async function waitForIntent(
   token: Token,
   first: IntentStatus,
   onStatus?: (status: IntentStatus) => void,
+  signNext?: (status: IntentStatus) => Promise<IntentStatus>,
 ): Promise<IntentStatus> {
   let status = first;
   let stage = status.stage;
@@ -54,6 +56,15 @@ export async function waitForIntent(
       onStatus?.(status);
     }
     if (Date.now() > deadline) throw new StillSettling();
+    // The second step is ready: sign it now. A dropped call just means asking again next round.
+    if (status.stage === 'sign' && signNext) {
+      try {
+        status = await signNext(status);
+        continue;
+      } catch (e) {
+        if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
+      }
+    }
     await new Promise((r) => setTimeout(r, SETTLE_POLL_MS));
     try {
       status = await engineGet<IntentStatus>(`/v1/intents/${encodeURIComponent(status.intentId)}`, await token(), {
@@ -71,6 +82,7 @@ export async function waitForIntent(
 export function useRunIntent() {
   const { getAccessToken } = useAtlasAuth();
   const confirmAndExecute = useConfirmAndExecute();
+  const signer = useSigner();
 
   return useCallback(
     async (
@@ -88,8 +100,22 @@ export function useRunIntent() {
       }
       onSettling?.();
       const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed });
-      return waitForIntent(getAccessToken, first, onStatus);
+      // A two-step plan (cash moved from another chain first): its last transaction is signed here,
+      // covered by the one confirmation the user already gave.
+      const signNext = async (status: IntentStatus) => {
+        const next = await engineGet<{ transactions: UnsignedTx[] }>(
+          `/v1/intents/${encodeURIComponent(status.intentId)}/next`,
+          await getAccessToken(),
+          { timeoutMs: POLL_REQUEST_TIMEOUT_MS },
+        );
+        const signed: SignedTx[] = [];
+        for (const [index, tx] of next.transactions.entries()) {
+          signed.push({ index, transaction: await signer.sign(tx) });
+        }
+        return submitIntent(getAccessToken, status.intentId, { sent: [], signed });
+      };
+      return waitForIntent(getAccessToken, first, onStatus, signNext);
     },
-    [getAccessToken, confirmAndExecute],
+    [getAccessToken, confirmAndExecute, signer],
   );
 }

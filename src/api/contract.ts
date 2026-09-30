@@ -41,7 +41,9 @@ export type IntentKind =
   | 'earn_withdraw';
 
 // 'fund': money is moving to the venue first (perps margin from Base to Paradex, about a minute).
-export type IntentStage = 'discover' | 'validate' | 'fund' | 'execute' | 'settle';
+// 'sign': a two-step plan's second transaction is ready (GET /v1/intents/{id}/next → { transactions });
+// the app signs it without asking again, because the user confirmed the whole action once.
+export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' | 'settle';
 
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
 export type UnsignedTx =
@@ -253,6 +255,9 @@ export type Quote = {
   // One unit of the asset, display currency.
   price: Money;
   fee: Money;
+  // Set when the cash on the asset's chain is short and the rest comes from another chain first
+  // (e.g. Base → Solana): how much moves, Layerswap's fee included.
+  funding?: { from: string; to: string; amount: Money; fee: Money } | null;
   expiresAtUnixMs: number;
 };
 
