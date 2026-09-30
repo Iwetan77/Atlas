@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { engineGet, enginePost, EngineTimeout } from '@/api/client';
+import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
 import type { ExecutionPlan, IntentStatus, IntentSubmission } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { ActionCancelled, useConfirmAndExecute } from '@/signing/confirm';
@@ -12,15 +12,17 @@ const SETTLE_POLL_MS = 2_000;
 const POLL_REQUEST_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 120_000;
 
-// Hands the confirmation to the engine. If the engine is slow to answer, stop waiting on this call and
-// follow the intent's status instead: the engine may still be acting on it, and its status says so.
+// Hands the confirmation to the engine. The engine treats a repeat as a no-op that returns the current
+// status, so a dropped connection is resent. If it still gets no answer, stop waiting on this call and
+// follow the intent's status instead: the engine may already be acting on it, and its status says so.
 export async function submitIntent(token: Token, intentId: string, body: IntentSubmission): Promise<IntentStatus> {
   try {
     return await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(intentId)}/signed`, await token(), body, {
       timeoutMs: SUBMIT_TIMEOUT_MS,
+      retries: 3,
     });
   } catch (e) {
-    if (!(e instanceof EngineTimeout)) throw e;
+    if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
     return { intentId, stage: 'execute', state: 'pending', txIds: [], error: null };
   }
 }
@@ -32,7 +34,7 @@ export class StillSettling extends Error {
   }
 }
 
-// Polls until the engine reports the intent filled or failed. A slow poll is skipped, not fatal.
+// Polls until the engine reports the intent filled or failed. A slow or dropped poll is skipped, not fatal.
 export async function waitForIntent(token: Token, first: IntentStatus): Promise<IntentStatus> {
   let status = first;
   const deadline = Date.now() + SETTLE_TIMEOUT_MS;
@@ -44,7 +46,7 @@ export async function waitForIntent(token: Token, first: IntentStatus): Promise<
         timeoutMs: POLL_REQUEST_TIMEOUT_MS,
       });
     } catch (e) {
-      if (!(e instanceof EngineTimeout)) throw e;
+      if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
     }
   }
   return status;

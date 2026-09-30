@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { engineGet, enginePost } from '@/api/client';
+import { engineGet, enginePost, SAFE_TO_REPLAY } from '@/api/client';
 import type { AssetCategory, AssetsResponse, ExecutionPlan, MarketAsset, Quote, QuoteRequest } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
@@ -39,9 +39,9 @@ export function useAssets(category: AssetCategory, query: string) {
 }
 
 export async function requestQuote(token: Token, req: QuoteRequest): Promise<Quote> {
-  return enginePost<Quote>('/v1/quotes', await token(), req);
+  return enginePost<Quote>('/v1/quotes', await token(), req, SAFE_TO_REPLAY);
 }
 
 export async function executeQuote(token: Token, quoteId: string): Promise<ExecutionPlan> {
-  return enginePost<ExecutionPlan>(`/v1/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {});
+  return enginePost<ExecutionPlan>(`/v1/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
 }

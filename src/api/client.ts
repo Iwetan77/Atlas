@@ -17,8 +17,23 @@ export class EngineTimeout extends EngineUnavailable {
   }
 }
 
+// The connection failed before an answer came back (a dropped mobile connection, or iOS reusing a
+// connection the server had already closed). The request may or may not have reached the engine.
+export class EngineUnreachable extends EngineUnavailable {
+  constructor() {
+    super("Couldn't reach Atlas");
+  }
+}
+
 // timeoutMs: give up waiting after this long (the call may still complete on the engine).
-type Options = { auth?: boolean; timeoutMs?: number };
+// retries: how many times to resend after EngineUnreachable. Only for calls the engine can safely
+// receive twice; GETs default to 2, POSTs to 0.
+type Options = { auth?: boolean; timeoutMs?: number; retries?: number };
+
+// For POSTs the engine answers a second time without acting twice (quotes, plans, confirmations).
+export const SAFE_TO_REPLAY: Options = { retries: 2 };
+
+const RETRY_DELAYS_MS = [500, 1500, 3000];
 
 // Call to atlas-engine. Authenticated calls carry the Privy access token; the engine verifies it
 // and works out which wallets belong to the caller.
@@ -27,10 +42,28 @@ async function engineRequest<T>(
   path: string,
   accessToken: string | null,
   body?: unknown,
-  { auth = true, timeoutMs }: Options = {},
-) {
+  { auth = true, timeoutMs, retries = method === 'GET' ? 2 : 0 }: Options = {},
+): Promise<T> {
   if (!engineUrl) throw new EngineUnavailable('Engine URL is not configured');
   if (auth && !accessToken) throw new EngineUnavailable('Not signed in');
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await engineAttempt<T>(method, path, accessToken, body, auth, timeoutMs);
+    } catch (e) {
+      if (!(e instanceof EngineUnreachable) || attempt >= retries) throw e;
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)]));
+    }
+  }
+}
+
+async function engineAttempt<T>(
+  method: 'GET' | 'POST',
+  path: string,
+  accessToken: string | null,
+  body: unknown,
+  auth: boolean,
+  timeoutMs: number | undefined,
+): Promise<T> {
   const abort = timeoutMs ? new AbortController() : null;
   const timer = abort ? setTimeout(() => abort.abort(), timeoutMs) : null;
   try {
@@ -51,8 +84,10 @@ async function engineRequest<T>(
     }
     return (await res.json()) as T;
   } catch (e) {
+    if (e instanceof EngineUnavailable) throw e;
     if (abort?.signal.aborted) throw new EngineTimeout();
-    throw e;
+    console.warn(`[atlas] ${method} ${path} lost its connection`, e);
+    throw new EngineUnreachable();
   } finally {
     if (timer) clearTimeout(timer);
   }

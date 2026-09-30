@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { engineGet, enginePost, EngineUnavailable } from '@/api/client';
+import { engineGet, enginePost, EngineUnavailable, SAFE_TO_REPLAY } from '@/api/client';
 import type {
   ExecutionPlan,
   PerpAccount,
@@ -126,21 +126,26 @@ export function usePerpsAccess() {
 }
 
 export async function onboardPerps(token: Token): Promise<PerpsOnboardResult> {
-  return enginePost<PerpsOnboardResult>('/v1/perps/onboarding', await token(), {});
+  return enginePost<PerpsOnboardResult>('/v1/perps/onboarding', await token(), {}, SAFE_TO_REPLAY);
 }
 
 export async function requestPerpQuote(token: Token, req: PerpOpenRequest): Promise<PerpQuote> {
-  return enginePost<PerpQuote>('/v1/perps/quotes', await token(), req);
+  return enginePost<PerpQuote>('/v1/perps/quotes', await token(), req, SAFE_TO_REPLAY);
 }
 
 export async function executePerpQuote(token: Token, quoteId: string): Promise<ExecutionPlan> {
-  return enginePost<ExecutionPlan>(`/v1/perps/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {});
+  return enginePost<ExecutionPlan>(`/v1/perps/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
 }
 
 export async function requestCloseQuote(token: Token, positionId: string): Promise<PerpCloseQuote> {
-  return enginePost<PerpCloseQuote>(`/v1/perps/positions/${encodeURIComponent(positionId)}/close-quote`, await token(), {});
+  return enginePost<PerpCloseQuote>(
+    `/v1/perps/positions/${encodeURIComponent(positionId)}/close-quote`,
+    await token(),
+    {},
+    SAFE_TO_REPLAY,
+  );
 }
 
 export async function executeCloseQuote(token: Token, quoteId: string): Promise<ExecutionPlan> {
-  return enginePost<ExecutionPlan>(`/v1/perps/close-quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {});
+  return enginePost<ExecutionPlan>(`/v1/perps/close-quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
 }

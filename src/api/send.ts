@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { engineGet, enginePost, EngineUnavailable } from '@/api/client';
+import { engineGet, enginePost, EngineUnavailable, SAFE_TO_REPLAY } from '@/api/client';
 import type {
   Bank,
   CashLink,
@@ -65,7 +65,12 @@ export async function listBanks(token: Token): Promise<Bank[]> {
 // Returns null when the bank has no such account (engine answers 404).
 export async function resolveAccount(token: Token, bankCode: string, accountNumber: string): Promise<string | null> {
   try {
-    const res = await enginePost<{ accountName: string }>('/v1/offramp/resolve', await token(), { bankCode, accountNumber });
+    const res = await enginePost<{ accountName: string }>(
+      '/v1/offramp/resolve',
+      await token(),
+      { bankCode, accountNumber },
+      SAFE_TO_REPLAY,
+    );
     return res.accountName;
   } catch (e) {
     if (e instanceof EngineUnavailable && e.status === 404) return null;
@@ -74,11 +79,11 @@ export async function resolveAccount(token: Token, bankCode: string, accountNumb
 }
 
 export async function requestSendQuote(token: Token, req: SendQuoteRequest): Promise<SendQuote> {
-  return enginePost<SendQuote>('/v1/sends/quote', await token(), req);
+  return enginePost<SendQuote>('/v1/sends/quote', await token(), req, SAFE_TO_REPLAY);
 }
 
 export async function executeSend(token: Token, quoteId: string): Promise<ExecutionPlan> {
-  return enginePost<ExecutionPlan>(`/v1/sends/quote/${encodeURIComponent(quoteId)}/execute`, await token(), {});
+  return enginePost<ExecutionPlan>(`/v1/sends/quote/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
 }
 
 // Public: the claim page shows the link before the claimant has signed in.
