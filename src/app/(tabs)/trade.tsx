@@ -16,9 +16,9 @@ import { colors, radii, spacing } from '@/theme';
 // Stocks, memes and crypto share one list and one buy flow; chips only filter.
 const CATEGORIES: { key: AssetCategory; label: string }[] = [
   { key: 'popular', label: 'Popular' },
+  { key: 'crypto', label: 'Crypto' },
   { key: 'stocks', label: 'Stocks' },
   { key: 'memes', label: 'Memes' },
-  { key: 'crypto', label: 'Crypto' },
 ];
 
 export default function TradeScreen() {
