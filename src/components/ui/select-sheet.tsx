@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,8 +11,9 @@ export type SelectItem<K extends string> = {
   label: string;
   // Second line under the label.
   detail?: string;
-  // Shown before the label, e.g. a flag.
+  // Shown before the label: a flag (text) or a logo.
   leading?: string;
+  leadingNode?: ReactNode;
   // Shown at the end of the row, e.g. a rate.
   trailing?: string;
   trailingColor?: ColorToken;
@@ -35,6 +36,14 @@ export function SelectSheet<K extends string>({
   const [open, setOpen] = useState(false);
   const current = items.find((i) => i.key === value) ?? items[0];
   if (!current) return null;
+  // One choice isn't a choice: show it, without the dropdown.
+  if (items.length === 1) {
+    return (
+      <View style={styles.field}>
+        <Row item={current} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -82,7 +91,7 @@ export function SelectSheet<K extends string>({
 function Row<K extends string>({ item }: { item: SelectItem<K> }) {
   return (
     <View style={styles.row}>
-      {item.leading ? <Text style={styles.leading}>{item.leading}</Text> : null}
+      {item.leadingNode ?? (item.leading ? <Text style={styles.leading}>{item.leading}</Text> : null)}
       <View style={styles.rowText}>
         <Text variant="bodyStrong" numberOfLines={1}>
           {item.label}

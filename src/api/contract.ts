@@ -156,6 +156,9 @@ export type EarnOption = {
   asset: string;
   apyPct: string;
   about: string;
+  // Logos: the asset saved in, and the venue.
+  iconUrl?: string | null;
+  venueIconUrl?: string | null;
 };
 // GET /v1/earn/positions?currency=NGN → { positions: EarnPosition[] }. Amount includes interest.
 export type EarnPosition = {

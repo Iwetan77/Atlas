@@ -2,13 +2,14 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import type { EarnAction, EarnQuote } from '@/api/contract';
+import type { EarnAction, EarnOption, EarnQuote } from '@/api/contract';
 import { executeEarnQuote, requestEarnQuote, useEarn } from '@/api/earn';
 import { StillSettling, useRunIntent } from '@/api/intents';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { ResultView } from '@/components/result-view';
+import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
@@ -27,6 +28,15 @@ type Phase =
   | { kind: 'failed'; message: string };
 
 const CHAIN_NAMES: Record<string, string> = { base: 'Base', solana: 'Solana' };
+const ASSET_NAMES: Record<string, string> = {
+  USDC: 'US dollar coin',
+  USDT: 'Tether dollar',
+  USDS: 'Sky dollar',
+  JupUSD: 'Jupiter dollar',
+  EURC: 'Euro coin · moves with the euro',
+};
+
+type Venue = { venue: string; chain: string; iconUrl: string | null; options: EarnOption[] };
 
 // Savings: put cash from the balance into a lending market and take it out, at its live (variable)
 // rate. Each option uses the cash on its own chain; the best rate comes first.
@@ -39,8 +49,20 @@ export default function EarnScreen() {
   const option = options?.find((o) => o.optionId === picked) ?? options?.[0];
   const position = positions?.find((p) => p.optionId === option?.optionId);
   const chainName = option ? (CHAIN_NAMES[option.chain] ?? option.chain) : '';
+  // Venues in the order of their best rate (options arrive best rate first).
+  const venues: Venue[] = [];
+  for (const o of options ?? []) {
+    const v = venues.find((x) => x.venue === o.venue);
+    if (v) v.options.push(o);
+    else venues.push({ venue: o.venue, chain: o.chain, iconUrl: o.venueIconUrl ?? null, options: [o] });
+  }
 
   const [action, setAction] = useState<EarnAction>('deposit');
+  const choose = (id: string) => {
+    setPicked(id);
+    // Nothing to take out of an option you haven't used.
+    if (!positions?.some((p) => p.optionId === id)) setAction('deposit');
+  };
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
   const value = Number(amount) || 0;
@@ -97,32 +119,46 @@ export default function EarnScreen() {
   return (
     <Screen>
       <BackHeader title="Savings" />
-      {options && options.length > 1 && option ? (
-        <SelectSheet
-          title="Where your cash earns"
-          value={option.optionId}
-          onChange={(id) => {
-            setPicked(id);
-            // Nothing to take out of an option you haven't used.
-            if (!positions?.some((p) => p.optionId === id)) setAction('deposit');
-          }}
-          items={options.map((o) => {
-            const held = positions?.find((p) => p.optionId === o.optionId);
-            return {
-              key: o.optionId,
-              label: `${o.asset} · ${o.venue}`,
-              detail: held ? `${formatMoney(held.value)} earning` : `Uses your cash on ${CHAIN_NAMES[o.chain] ?? o.chain}`,
-              trailing: `${o.apyPct}%`,
-              trailingColor: 'success' as const,
-            };
-          })}
-        />
+      {options && option ? (
+        <>
+          {/* Step one: where. Step two: what to save in, from that venue's markets. */}
+          <View style={styles.venues}>
+            {venues.map((v) => (
+              <VenueTile
+                key={v.venue}
+                venue={v}
+                selected={v.venue === option.venue}
+                onPress={() => {
+                  if (v.venue !== option.venue) choose(v.options[0].optionId);
+                }}
+              />
+            ))}
+          </View>
+          <SelectSheet
+            title={`Save with ${option.venue}`}
+            value={option.optionId}
+            onChange={choose}
+            items={options
+              .filter((o) => o.venue === option.venue)
+              .map((o) => {
+                const held = positions?.find((p) => p.optionId === o.optionId);
+                return {
+                  key: o.optionId,
+                  label: o.asset,
+                  detail: held ? `${formatMoney(held.value)} earning` : (ASSET_NAMES[o.asset] ?? 'Dollar coin'),
+                  leadingNode: <AssetAvatar symbol={o.asset} iconUrl={o.iconUrl ?? null} size={32} />,
+                  trailing: `${o.apyPct}%`,
+                  trailingColor: 'success' as const,
+                };
+              })}
+          />
+        </>
       ) : null}
 
       {option ? (
         <Card style={styles.rateCard}>
           <Text variant="label" color="textSecondary">
-            {option.name} · {option.venue} · cash on {chainName}
+            {option.asset} with {option.venue} · cash on {chainName}
           </Text>
           <Text variant="display" color="success">
             {option.apyPct}%
@@ -190,6 +226,31 @@ export default function EarnScreen() {
   );
 }
 
+function VenueTile({ venue, selected, onPress }: { venue: Venue; selected: boolean; onPress: () => void }) {
+  const best = venue.options[0];
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${venue.venue}, ${best.apyPct}% a year`}
+      style={({ pressed }) => [styles.venue, selected && styles.venueSelected, pressed && styles.pressed]}>
+      <View style={styles.venueTop}>
+        <AssetAvatar symbol={venue.venue} iconUrl={venue.iconUrl} size={36} />
+        <View style={styles.chainChip}>
+          <Text variant="caption" color="textSecondary">
+            {CHAIN_NAMES[venue.chain] ?? venue.chain}
+          </Text>
+        </View>
+      </View>
+      <Text variant="bodyStrong">{venue.venue}</Text>
+      <Text variant="label" color="success">
+        {venue.options.length > 1 ? `Up to ${best.apyPct}%` : `${best.apyPct}%`}
+      </Text>
+    </Pressable>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
@@ -200,6 +261,38 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  venues: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  venue: {
+    flex: 1,
+    gap: spacing.xs,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.bgBase,
+  },
+  venueSelected: {
+    borderColor: colors.accentPink,
+    backgroundColor: colors.bgSurface,
+  },
+  venueTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  chainChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSurfaceAlt,
+  },
+  pressed: {
+    opacity: 0.8,
+  },
   rateCard: {
     gap: spacing.xs,
   },
