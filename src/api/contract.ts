@@ -110,6 +110,8 @@ export type Holding = {
   valueUsd: string;
   // Circle Gateway buckets (engine `UsdcBalanceBuckets`). Absent for plain wallet assets.
   location?: 'wallet' | 'gateway' | 'gateway_pending' | 'perps';
+  // Logo for listed assets (engine catalog); absent for cash.
+  iconUrl?: string | null;
 };
 
 export type BalanceResponse = {
@@ -142,6 +144,16 @@ export type OnrampSession = {
 // Spot, memes and tokenized stocks are one kind of thing: an asset with a price. One buy flow.
 
 export type AssetCategory = 'popular' | 'stocks' | 'memes' | 'crypto';
+
+// GET /v1/assets/{assetId}/chart?range=1W&currency=NGN → AssetChart. Display only: points are
+// [unix ms, price in the display currency], oldest first, from on-chain trades.
+export type ChartRange = '1D' | '1W' | '1M' | '1Y';
+export type AssetChart = {
+  assetId: string;
+  range: ChartRange;
+  currency: DisplayCurrency;
+  points: [number, number][];
+};
 
 // GET /v1/assets?currency=NGN&category=popular&q=tesla → { assets: MarketAsset[] }
 export type MarketAsset = {

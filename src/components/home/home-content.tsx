@@ -6,6 +6,7 @@ import type { BalanceState } from '@/api/balance';
 import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
+import { YourAssets } from '@/components/home/your-assets';
 import { NextSteps } from '@/components/next-steps';
 import { PromoBanner, type Promo } from '@/components/promo-banner';
 import { Icon } from '@/components/ui/icon';
@@ -77,6 +78,8 @@ export function HomeContent({ balance, banner }: { balance: BalanceState; banner
         onRetry={balance.refresh}
         onDeposit={() => router.push('/deposit')}
       />
+
+      <YourAssets balance={data} stealth={stealthMode} />
 
       <NextSteps
         steps={[

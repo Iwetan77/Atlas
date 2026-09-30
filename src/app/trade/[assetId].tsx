@@ -10,6 +10,7 @@ import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
+import { PriceChart } from '@/components/trade/price-chart';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
@@ -122,6 +123,8 @@ export default function AssetTradeScreen() {
           </Text>
         </View>
       </View>
+
+      <PriceChart assetId={params.assetId} />
 
       <View style={styles.segment}>
         {(['buy', 'sell'] as TradeSide[]).map((s) => (
