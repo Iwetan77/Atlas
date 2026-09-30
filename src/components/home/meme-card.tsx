@@ -9,7 +9,7 @@ import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { heldFor } from '@/format/duration';
-import { formatMoney, formatPrice, formatSignedMoney, HIDDEN } from '@/format/money';
+import { formatMoney, formatPrice, formatSignedMoney, hiddenMoney } from '@/format/money';
 import { colors, fonts, spacing, type ColorToken } from '@/theme';
 
 // Same 360×240 canvas as the perps card, scaled to the card's width, so it exports the same everywhere.
@@ -74,8 +74,8 @@ export function MemeCard({ position: p, handle, stealth }: { position: SpotPosit
   const s = (n: number) => n * scale;
   const t = (size: number, lineHeight = size * 1.25) => ({ fontSize: s(size), lineHeight: s(lineHeight) });
   const onLayout = (e: LayoutChangeEvent) => setScale(e.nativeEvent.layout.width / W);
-  const money = (m: SpotPosition['value']) => (stealth ? HIDDEN : formatMoney(m));
-  const headline = pct === null ? (stealth ? HIDDEN : formatSignedMoney(p.pnl)) : `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`;
+  const money = (m: SpotPosition['value']) => (stealth ? hiddenMoney(m.currency) : formatMoney(m));
+  const headline = pct === null ? (stealth ? hiddenMoney(p.pnl.currency) : formatSignedMoney(p.pnl)) : `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`;
   const realized = Number(p.realizedPnl.amount);
 
   return (
@@ -187,7 +187,7 @@ export function MemeCard({ position: p, handle, stealth }: { position: SpotPosit
         </Text>
         {realized !== 0 ? (
           <Text variant="caption" color={realized > 0 ? 'success' : 'danger'}>
-            {stealth ? HIDDEN : formatSignedMoney(p.realizedPnl)} taken
+            {stealth ? hiddenMoney(p.realizedPnl.currency) : formatSignedMoney(p.realizedPnl)} taken
           </Text>
         ) : null}
       </View>

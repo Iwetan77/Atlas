@@ -42,7 +42,7 @@ export function formatTokenAmount(amount: string, symbol: string): string {
   return `${formatTokenNumber(amount)} ${symbol}`;
 }
 
-export const HIDDEN = '••••••';
+export const HIDDEN = '••••';
 
 // Spelled out rather than read from Intl: Hermes on iOS has no NumberFormat.formatToParts.
 const SYMBOLS: Record<DisplayCurrency, string> = {
@@ -96,4 +96,9 @@ export function formatCompactMoney(money: Money): string {
     notation: 'compact',
     maximumFractionDigits: 2,
   }).format(Number(money.amount));
+}
+
+// A hidden amount keeps its currency symbol ("₦••••"), so it still says what it's in.
+export function hiddenMoney(currency: DisplayCurrency): string {
+  return `${currencySymbol(currency)}${HIDDEN}`;
 }

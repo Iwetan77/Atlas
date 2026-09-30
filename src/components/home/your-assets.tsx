@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { formatMoney, formatTokenNumber, HIDDEN } from '@/format/money';
+import { formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
 import { colors, spacing } from '@/theme';
 
 // Room left for the next card to peek in, so it's clear the row scrolls.
@@ -122,7 +122,7 @@ function AssetRow({
         </Text>
       </View>
       <View style={styles.rowValue}>
-        <Text variant="bodyStrong">{stealth ? HIDDEN : formatMoney(h.value)}</Text>
+        <Text variant="bodyStrong">{stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}</Text>
         {pct === null ? null : (
           <Text variant="caption" color={pct < 0 ? 'danger' : 'success'}>
             {`${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`}

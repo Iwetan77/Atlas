@@ -22,7 +22,8 @@ export function EarnCard({ stealth }: { stealth: boolean }) {
   const best = options?.[0];
   if (!best || !options) return null;
   const earning = positions ?? [];
-  const venues = (list: { venue: string }[]) => list.map((o) => o.venue).join(' and ');
+  // Each venue once ("Jupiter Lend and Aave"), however many of its markets are listed.
+  const venues = (list: { venue: string }[]) => [...new Set(list.map((o) => o.venue))].join(' and ');
   // Display only: the positions are all in the display currency.
   const total = earning.length
     ? formatMoney({ ...earning[0].value, amount: String(earning.reduce((sum, p) => sum + Number(p.value.amount), 0)) })

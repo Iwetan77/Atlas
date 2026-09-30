@@ -5,7 +5,7 @@ import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { formatMoney, formatTokenNumber, formatUsd, HIDDEN } from '@/format/money';
+import { formatMoney, formatTokenNumber, formatUsd, HIDDEN, hiddenMoney } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
 
 type Props = {
@@ -53,18 +53,18 @@ export function HeroBalance(props: Props) {
         {balance ? (
           <View style={styles.figures}>
             <Text variant="display" color="textOnAccent" adjustsFontSizeToFit numberOfLines={1}>
-              {stealth ? HIDDEN : formatMoney(balance.total)}
+              {stealth ? hiddenMoney(balance.total.currency) : formatMoney(balance.total)}
             </Text>
             {balance.total.currency !== 'USD' ? (
               <Text color="textOnAccent" style={styles.soft}>
-                {stealth ? HIDDEN : formatUsd(balance.totalUsd)}
+                {stealth ? hiddenMoney('USD') : formatUsd(balance.totalUsd)}
               </Text>
             ) : null}
             {balance.pending ? (
               <View style={styles.chip}>
                 <Icon name="time-outline" size={14} color="textOnAccent" />
                 <Text variant="label" color="textOnAccent">
-                  {stealth ? HIDDEN : formatMoney(balance.pending)} arriving
+                  {stealth ? hiddenMoney(balance.pending.currency) : formatMoney(balance.pending)} arriving
                 </Text>
               </View>
             ) : null}
@@ -125,7 +125,7 @@ export function HeroBalance(props: Props) {
                       {h.location === 'gateway_pending' ? ' · Arriving' : h.location === 'perps' ? ' · In perps' : h.location === 'earn' ? ' · Earning' : ''}
                     </Text>
                     <Text variant="label" color="textOnLight">
-                      {stealth ? HIDDEN : formatMoney(h.value)}
+                      {stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}
                     </Text>
                   </View>
                 ))}

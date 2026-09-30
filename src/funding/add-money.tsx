@@ -3,6 +3,7 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAtlasAuth } from '@/auth/context';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SelectSheet } from '@/components/ui/select-sheet';
@@ -23,11 +24,12 @@ export function useAddMoney() {
 
 export function AddMoneyProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { authenticated } = useAtlasAuth();
   const show = useCallback(() => setOpen(true), []);
   return (
     <AddMoneyContext.Provider value={show}>
       {children}
-      <AddMoneySheet visible={open} onClose={() => setOpen(false)} />
+      <AddMoneySheet visible={open && authenticated} onClose={() => setOpen(false)} />
     </AddMoneyContext.Provider>
   );
 }
@@ -69,7 +71,8 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
         ],
         onPress: () => {
           onClose();
-          router.push('/deposit');
+          // Back from there brings this sheet back up (see the deposit screen).
+          router.push({ pathname: '/deposit', params: { from: 'add-money' } });
         },
       },
       {

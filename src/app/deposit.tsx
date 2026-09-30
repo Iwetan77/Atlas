@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 import QRCodeStyled from 'react-native-qrcode-styled';
@@ -16,6 +17,7 @@ import { TokenChainLogo } from '@/components/token-chain-logo';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
+import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
@@ -49,6 +51,16 @@ export default function DepositScreen() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const openAddMoney = useAddMoney();
+
+  // Opened from the Add money sheet: leaving goes back to that list, not to Home.
+  useEffect(
+    () => () => {
+      if (from === 'add-money') openAddMoney();
+    },
+    [from, openAddMoney],
+  );
 
   useEffect(() => {
     getAccessToken()
