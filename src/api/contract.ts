@@ -181,6 +181,8 @@ export type EarnOption = {
   asset: string;
   apyPct: string;
   about: string;
+  // A venue with several markets in one asset (Morpho's vaults) names each: "Gauntlet USDC Prime".
+  market?: string | null;
   // Logos: the asset saved in, and the venue.
   iconUrl?: string | null;
   venueIconUrl?: string | null;

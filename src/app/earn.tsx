@@ -145,7 +145,7 @@ export default function EarnScreen() {
                 const held = positions?.find((p) => p.optionId === o.optionId);
                 return {
                   key: o.optionId,
-                  label: o.asset,
+                  label: o.market ?? o.asset,
                   detail: held ? `${formatMoney(held.value)} earning` : (ASSET_NAMES[o.asset] ?? 'Dollar coin'),
                   leadingNode: <AssetAvatar symbol={o.asset} iconUrl={o.iconUrl ?? null} size={32} />,
                   trailing: `${o.apyPct}%`,
@@ -159,7 +159,7 @@ export default function EarnScreen() {
       {option ? (
         <Card style={styles.rateCard}>
           <Text variant="label" color="textSecondary">
-            {option.asset} with {option.venue} · cash on {chainName}
+            {option.market ?? option.asset} with {option.venue} · cash on {chainName}
           </Text>
           <Text variant="display" color="success">
             {option.apyPct}%
