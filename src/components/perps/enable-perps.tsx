@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { EngineUnavailable } from '@/api/client';
-import { onboardPerps, usePerpsAccess } from '@/api/perps';
+import { onboardPerps, type PerpsAccess } from '@/api/perps';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -14,13 +14,16 @@ const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)
 
 function onboardError(e: unknown): string {
   if (e instanceof EngineUnavailable && e.status === 409) {
-    return "Atlas can't see your permission yet. Try again in a moment.";
+    // The engine's 409s are written for people (e.g. Paradex's minimum-balance rule), except the
+    // permission race right after granting.
+    if (/approve atlas perps access/i.test(e.message)) return "Atlas can't see your permission yet. Try again in a moment.";
+    return e.message.replace(/\.?$/, '.');
   }
   if (e instanceof EngineUnavailable && e.status === 503) {
     console.warn('[atlas] perps onboarding not available:', e.message);
     return "Paradex sign-up isn't open on Atlas right now.";
   }
-  // Venue failures come back as 5xx with Paradex's raw reason: keep that for debugging, not the user.
+  // Other venue failures come back as 5xx with Paradex's raw reason: keep that for debugging.
   if (e instanceof EngineUnavailable && (e.status ?? 0) >= 500) {
     console.warn('[atlas] perps onboarding failed:', e.message);
     return "Paradex didn't accept the sign-up. Try again in a bit.";
@@ -31,11 +34,11 @@ function onboardError(e: unknown): string {
 // One-time perps setup, kept apart from trading so a trade is still a single confirmation.
 // Step 1 is the user's permission: the engine's Privy server signer is added to their wallet. Step 2
 // is Paradex's own onboarding, which the engine does with that permission and reports back. One tap
-// runs both. Neither step means trading is open, so this never says "ready to trade".
-export function EnablePerps() {
-  const { authorizeServerSigner, revokeServerSigners, walletsReady, getAccessToken } = useAtlasAuth();
-  const { status, error: statusError, reload, authorized, onboarded, signer } = usePerpsAccess();
-  const [busy, setBusy] = useState<'grant' | 'onboard' | 'revoke' | null>(null);
+// runs both. Once both are done this renders nothing: turning it off lives in Profile.
+export function EnablePerps({ access }: { access: PerpsAccess }) {
+  const { authorizeServerSigner, walletsReady, getAccessToken } = useAtlasAuth();
+  const { status, error: statusError, reload, authorized, onboarded, signer } = access;
+  const [busy, setBusy] = useState<'grant' | 'onboard' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const setUp = async () => {
@@ -65,35 +68,7 @@ export function EnablePerps() {
     }
   };
 
-  const revoke = async () => {
-    setBusy('revoke');
-    setActionError(null);
-    try {
-      await revokeServerSigners();
-      await reload();
-    } catch (e) {
-      setActionError(`Couldn't turn off perps access: ${errorMessage(e)}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  // Both steps done: a quiet status line, still with the way out.
-  if (authorized && onboarded) {
-    return (
-      <View style={styles.enabledRow}>
-        <Icon name="shield-checkmark" size={16} color="success" />
-        <Text variant="caption" color="textSecondary" style={styles.flex}>
-          Perps access on · Paradex account {status?.accountAddress ? short(status.accountAddress) : 'set up'}
-        </Text>
-        <Pressable onPress={revoke} disabled={busy !== null} hitSlop={8}>
-          <Text variant="label" color="accentPinkTint">
-            {busy === 'revoke' ? 'Turning off…' : 'Turn off'}
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
+  if (!status || (authorized && onboarded)) return null;
 
   return (
     <Card variant="outlined" style={styles.card}>
@@ -101,7 +76,7 @@ export function EnablePerps() {
       <Text color="textSecondary">
         Perps orders go to Paradex. To place them for you, Atlas&apos;s trading service needs your permission to sign
         perps orders for your wallet. You still confirm every trade in the app, your keys never leave Privy, and you can
-        turn this off any time.
+        turn this off any time in Profile.
       </Text>
 
       <Step
@@ -117,12 +92,12 @@ export function EnablePerps() {
         title="Paradex account"
         subtitle={
           onboarded
-            ? `Set up${status?.accountAddress ? ` · ${short(status.accountAddress)}` : ''}`
+            ? `Set up${status.accountAddress ? ` · ${short(status.accountAddress)}` : ''}`
             : busy === 'onboard'
-              ? 'Registering you with Paradex…'
+              ? 'Opening your Paradex account…'
               : authorized
                 ? 'Not set up yet'
-                : 'Set up by Atlas right after step 1'
+                : 'Opened by Atlas right after step 1'
         }
         pending={busy === 'onboard'}
       />
@@ -133,7 +108,7 @@ export function EnablePerps() {
           {statusError}
         </Text>
       ) : null}
-      {status && !authorized && !signer ? (
+      {!authorized && !signer ? (
         <Text variant="caption" color="textSecondary">
           Atlas&apos;s trading service isn&apos;t accepting permissions yet. Check back soon.
         </Text>
@@ -142,17 +117,52 @@ export function EnablePerps() {
       <PillButton
         label={authorized ? 'Set up Paradex account' : 'Enable perps'}
         icon="flash-outline"
-        loading={busy === 'grant' || busy === 'onboard'}
+        loading={busy !== null}
         disabled={!walletsReady || busy !== null || (!authorized && !signer)}
         onPress={setUp}
       />
-      {authorized ? (
-        <Pressable onPress={revoke} disabled={busy !== null} hitSlop={8} style={styles.turnOff}>
-          <Text variant="label" color="textSecondary">
-            {busy === 'revoke' ? 'Turning off…' : 'Turn off perps access'}
+    </Card>
+  );
+}
+
+// Profile's view of perps access: where it's on, which Paradex account, and the way to turn it off.
+export function PerpsAccessSettings({ access }: { access: PerpsAccess }) {
+  const { revokeServerSigners } = useAtlasAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { status, authorized, reload } = access;
+  if (!authorized) return null;
+
+  const turnOff = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await revokeServerSigners();
+      await reload();
+    } catch (e) {
+      setError(`Couldn't turn off perps access: ${errorMessage(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card style={styles.settings}>
+      <View style={styles.settingsRow}>
+        <View style={styles.settingsIcon}>
+          <Icon name="flash-outline" size={18} color="accentPinkTint" />
+        </View>
+        <View style={styles.flex}>
+          <Text variant="bodyStrong">Perps access</Text>
+          <Text variant="caption" color="textSecondary">
+            {access.onboarded && status?.accountAddress
+              ? `On · Paradex account ${short(status.accountAddress)}`
+              : 'On · Paradex account not set up yet'}
           </Text>
-        </Pressable>
-      ) : null}
+        </View>
+      </View>
+      {error ? <Text color="danger">{error}</Text> : null}
+      <PillButton label="Turn off perps access" tone="secondary" size="sm" loading={busy} onPress={turnOff} />
     </Card>
   );
 }
@@ -206,13 +216,21 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  turnOff: {
-    alignSelf: 'center',
+  settings: {
+    gap: spacing.md,
   },
-  enabledRow: {
+  settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  settingsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentPinkDim,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   flex: {
     flex: 1,

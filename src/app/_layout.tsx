@@ -90,7 +90,7 @@ function RootStack() {
           <Stack.Screen name="dev-home-preview" />
         </Stack.Protected>
       </Stack.Protected>
-      {/* Public: someone without Atlas opens a cash link here and signs in on the page. */}
+      {/* Public: someone without Atlas opens an Atlas link here and signs in on the page. */}
       <Stack.Screen name="claim/[linkId]" />
       <Stack.Protected guard={!authenticated}>
         <Stack.Screen name="sign-in" />

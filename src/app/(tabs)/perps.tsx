@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { PerpCategory, PerpMarket } from '@/api/contract';
-import { usePerpMarkets, usePerpPositions } from '@/api/perps';
+import { usePerpMarkets, usePerpPositions, usePerpsAccess } from '@/api/perps';
 import { useMe } from '@/api/send';
 import { EnablePerps } from '@/components/perps/enable-perps';
 import { PositionCard } from '@/components/perps/position-card';
@@ -38,6 +38,8 @@ export default function PerpsScreen() {
   );
   const { markets, error: marketsError, reload: reloadMarkets } = usePerpMarkets();
   const { account, error: positionsError } = usePerpPositions(focused);
+  const access = usePerpsAccess();
+  const on = access.authorized && access.onboarded;
   const { me } = useMe();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -53,23 +55,39 @@ export default function PerpsScreen() {
 
   return (
     <Screen>
-      <Text variant="title">Perps</Text>
+      <View style={styles.titleRow}>
+        <Text variant="title">Perps</Text>
+        {on ? (
+          <View style={styles.onChip} accessibilityLabel="Perps access is on">
+            <View style={styles.onDot} />
+            <Text variant="label" color="success">
+              On
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
-      <EnablePerps />
+      <EnablePerps access={access} />
 
-      {account && account.positions.length > 0 ? (
+      {/* Positions live here, never on Home: each one as its share card. */}
+      {on || (account && account.positions.length > 0) ? (
         <>
           <Text variant="overline" color="textSecondary">
-            Your positions
+            Your positions{account && account.positions.length > 0 ? ` · ${account.positions.length}` : ''}
           </Text>
-          {account.positions.map((p) => (
-            <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />
-          ))}
+          {account && account.positions.length > 0 ? (
+            account.positions.map((p) => <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />)
+          ) : positionsError ? (
+            <Text variant="caption" color="textSecondary">
+              {positionsError}
+            </Text>
+          ) : (
+            <Card style={styles.emptyPositions}>
+              <Icon name="pulse-outline" size={22} color="textSecondary" />
+              <Text color="textSecondary">No open positions. Pick a market below to open one.</Text>
+            </Card>
+          )}
         </>
-      ) : positionsError && markets ? (
-        <Text variant="caption" color="textSecondary">
-          {positionsError}
-        </Text>
       ) : null}
 
       <Text variant="overline" color="textSecondary">
@@ -86,7 +104,11 @@ export default function PerpsScreen() {
             autoCorrect={false}
             returnKeyType="search"
           />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsScroll}
+            contentContainerStyle={styles.chips}>
             {filters.map((f) => {
               const active = f.key === filter;
               return (
@@ -176,8 +198,38 @@ function MarketRow({ market: m, divider }: { market: PerpMarket; divider: boolea
 }
 
 const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  onChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xxs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.successDim,
+  },
+  onDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  emptyPositions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  // A horizontal row never grows vertically, however few chips it holds.
+  chipsScroll: {
+    flexGrow: 0,
+  },
   chips: {
     gap: spacing.sm,
+    alignItems: 'center',
   },
   chip: {
     paddingVertical: spacing.sm,

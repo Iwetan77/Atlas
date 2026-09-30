@@ -89,7 +89,7 @@ export default function CashLinkScreen() {
 
   return (
     <Screen>
-      <BackHeader title="Cash Link" />
+      <BackHeader title="Atlas Link" />
       <Text color="textSecondary">Send money with just a link. They open it and claim it, no app needed.</Text>
       <AmountInput label="Link amount" value={amount} onChange={setAmount} currency={displayCurrency} />
       <Field

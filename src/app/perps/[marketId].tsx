@@ -43,7 +43,8 @@ export default function PerpTicketScreen() {
     iconUrl: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
-  const { authorized } = usePerpsAccess();
+  const access = usePerpsAccess();
+  const { authorized } = access;
   const { displayCurrency } = useSettings();
   const runIntent = useRunIntent();
 
@@ -226,7 +227,7 @@ export default function PerpTicketScreen() {
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
       {/* Setup is its own one-time step; it never rides along with a trade confirmation. */}
-      {authorized ? null : <EnablePerps />}
+      {authorized ? null : <EnablePerps access={access} />}
       <PillButton
         label={authorized ? `Open ${long ? 'long' : 'short'} ${leverage}×` : 'Enable perps first'}
         disabled={!authorized || !quote || quoting}

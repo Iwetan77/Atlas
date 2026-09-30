@@ -130,6 +130,8 @@ export function usePerpsAccess() {
   };
 }
 
+export type PerpsAccess = ReturnType<typeof usePerpsAccess>;
+
 export async function onboardPerps(token: Token): Promise<PerpsOnboardResult> {
   return enginePost<PerpsOnboardResult>('/v1/perps/onboarding', await token(), {}, SAFE_TO_REPLAY);
 }

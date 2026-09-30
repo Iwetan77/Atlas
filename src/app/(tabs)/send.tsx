@@ -37,7 +37,7 @@ export default function SendScreen() {
       <SendOption
         href="/send/link"
         tile={<IconTile icon="logo-usd" tone="blue" />}
-        title="Cash Link"
+        title="Atlas Link"
         subtitle="Just share a link with text"
       />
     </Screen>

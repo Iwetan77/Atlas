@@ -3,8 +3,10 @@ import { type ReactNode, useCallback } from 'react';
 import { Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
 import type { DisplayCurrency } from '@/api/contract';
+import { usePerpsAccess } from '@/api/perps';
 import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
+import { PerpsAccessSettings } from '@/components/perps/enable-perps';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -29,6 +31,7 @@ export default function ProfileScreen() {
     }, [reload]),
   );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
+  const perps = usePerpsAccess();
 
   return (
     <Screen>
@@ -108,6 +111,15 @@ export default function ProfileScreen() {
           onChange={(v) => update({ showEmptyPockets: v })}
         />
       </Card>
+
+      {perps.authorized ? (
+        <>
+          <Text variant="overline" color="textSecondary">
+            Perps
+          </Text>
+          <PerpsAccessSettings access={perps} />
+        </>
+      ) : null}
 
       <Text variant="overline" color="textSecondary">
         More
