@@ -21,9 +21,10 @@ import { colors, radii, spacing } from '@/theme';
 
 // Base and Solana USDC go straight to the user's own wallets; every other network gets a one-off
 // deposit address that turns what arrives into USDC in the balance.
+// Solana first: cash there never needs Atlas to pay gas.
 const OWN: { id: 'base' | 'solana'; label: string; network: string }[] = [
-  { id: 'base', label: network === 'mainnet' ? 'USDC on Base' : 'USDC on Base Sepolia (testnet)', network: 'Base' },
   { id: 'solana', label: network === 'mainnet' ? 'USDC on Solana' : 'USDC on Solana devnet (testnet)', network: 'Solana' },
+  { id: 'base', label: network === 'mainnet' ? 'USDC on Base' : 'USDC on Base Sepolia (testnet)', network: 'Base' },
 ];
 
 const STATE_TEXT: Record<DepositState, string> = {
@@ -41,7 +42,7 @@ export default function DepositScreen() {
   const { wallets, getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const [networks, setNetworks] = useState<DepositNetwork[]>([]);
-  const [picked, setPicked] = useState<string>('base');
+  const [picked, setPicked] = useState<string>('solana');
   const [amount, setAmount] = useState('');
   const [deposit, setDeposit] = useState<DepositAddress | null>(null);
   const [state, setState] = useState<DepositState>('waiting');
