@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
-import { network } from '@/config';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -39,20 +38,9 @@ export function HeroBalance(props: Props) {
         <View style={styles.wash} />
 
         <View style={styles.header}>
-          <View style={styles.title}>
-            <Text variant="bodyStrong" color="textOnAccent">
-              Balance
-            </Text>
-            {/* Fixed for the build, not a switch: the engine picks the balance network, and swaps and
-                sends still run on mainnet, so this only says where the number comes from. */}
-            {network === 'testnet' ? (
-              <View style={styles.networkTag} accessibilityLabel="Testnet balance">
-                <Text variant="label" color="textOnAccent">
-                  Testnet
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          <Text variant="bodyStrong" color="textOnAccent">
+            Balance
+          </Text>
           <Pressable
             onPress={props.onToggleStealth}
             hitSlop={10}
@@ -211,18 +199,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  title: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  networkTag: {
-    paddingVertical: spacing.xxs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.textOnAccent,
   },
   figures: {
     gap: spacing.xxs,
