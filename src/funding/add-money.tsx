@@ -3,13 +3,11 @@ import { createContext, type ReactNode, useCallback, useContext, useMemo, useSta
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { errorMessage } from '@/auth/context';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { CURRENCIES } from '@/format/currencies';
-import { useCardFunding } from '@/funding/card';
 import { useSettings } from '@/settings/context';
 import { colors, maxContentWidth, radii, spacing } from '@/theme';
 
@@ -48,8 +46,6 @@ type Method = {
 function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const { displayCurrency, update } = useSettings();
-  const card = useCardFunding();
-  const [problem, setProblem] = useState<string | null>(null);
 
   const methods: Method[] = useMemo(
     () => [
@@ -61,22 +57,9 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
         soon: true,
       },
       {
-        key: 'card',
-        title: 'Debit or credit card',
-        subtitle: 'Visa or Mastercard, lands in your balance in minutes',
-        icon: 'card-outline',
-        onPress: () => {
-          setProblem(null);
-          card
-            .fund()
-            .then(onClose)
-            .catch((e) => setProblem(errorMessage(e)));
-        },
-      },
-      {
         key: 'wallet',
         title: 'Wallet or exchange',
-        subtitle: 'Send USDC from Binance, Bybit, OKX or any wallet',
+        subtitle: 'USDT or USDC from Binance, Bybit, OKX or any wallet',
         logos: [
           { symbol: 'USDC', url: null },
           {
@@ -97,7 +80,7 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
         soon: true,
       },
     ],
-    [displayCurrency, card, onClose],
+    [displayCurrency, onClose],
   );
 
   return (
@@ -162,11 +145,6 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
               )}
             </Pressable>
           ))}
-          {problem ? (
-            <Text variant="caption" color="danger">
-              {problem}
-            </Text>
-          ) : null}
         </Pressable>
       </Pressable>
     </Modal>

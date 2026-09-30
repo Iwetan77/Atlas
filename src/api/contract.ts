@@ -156,13 +156,6 @@ export type DepositAddress = {
 };
 export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
 
-// Card/bank via Circle Onramp: POST /v1/onramp/session → short-lived hosted widget URL.
-// The engine picks the destination wallet from the token; the URL must not be cached or logged.
-export type OnrampSession = {
-  widgetUrl: string;
-  expiresAtUnixMs: number;
-};
-
 // ── Markets and trading ─────────────────────────────────────────────────────────────────
 // Spot, memes and tokenized stocks are one kind of thing: an asset with a price. One buy flow.
 
