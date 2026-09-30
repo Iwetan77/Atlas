@@ -249,15 +249,21 @@ export type CashLink = {
 // price, is a field the engine returns from Paradex; the app displays it without recomputing it.
 
 // GET /v1/perps/markets?currency=NGN → { markets: PerpMarket[] }
+export type PerpCategory = 'crypto' | 'meme' | 'stock' | 'commodity' | 'index';
+
+// Every perp Paradex lists, most traded first (thin markets can refuse fills).
 export type PerpMarket = {
   marketId: string; // Paradex market, e.g. "BTC-USD-PERP"
   symbol: string;
-  name: string;
+  name: string; // "Gold", "Alphabet"; the ticker when there's no better name
+  category: PerpCategory;
+  iconUrl: string | null;
   markPrice: Money;
   change24hPct: string | null;
   maxLeverage: number;
   // Funding per 8h as a percent decimal string ("0.0100"), null if unknown.
   fundingRate8hPct: string | null;
+  volume24hUsd: string;
 };
 
 // GET /v1/perps/positions?currency=NGN → PerpAccount
@@ -265,6 +271,7 @@ export type PerpPosition = {
   positionId: string;
   marketId: string;
   symbol: string;
+  iconUrl?: string | null;
   side: 'long' | 'short';
   leverage: number;
   size: string; // base units, e.g. "0.0132"

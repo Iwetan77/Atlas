@@ -40,6 +40,7 @@ export default function PerpTicketScreen() {
     maxLeverage: string;
     change: string;
     funding: string;
+    iconUrl: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
   const { authorized } = usePerpsAccess();
@@ -121,7 +122,7 @@ export default function PerpTicketScreen() {
     <Screen>
       <BackHeader />
       <View style={styles.header}>
-        <AssetAvatar symbol={params.symbol} iconUrl={null} size={52} />
+        <AssetAvatar symbol={params.symbol} iconUrl={params.iconUrl || null} size={52} />
         <View style={styles.headerText}>
           <Text variant="heading">{/perpetual/i.test(params.name) ? params.name : `${params.name} perpetual`}</Text>
           <Text color="textSecondary">

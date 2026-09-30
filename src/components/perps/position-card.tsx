@@ -120,7 +120,7 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
 
         <View style={[styles.logo, { left: s(LOGO_X - LOGO_R), top: s(H / 2 - LOGO_R) }]}>
           <View style={[styles.logoRing, { width: s(LOGO_R * 2), height: s(LOGO_R * 2), borderRadius: s(LOGO_R), borderWidth: s(3) }]}>
-            <AssetAvatar symbol={p.symbol} iconUrl={null} size={s(LOGO_R * 2 - 6)} />
+            <AssetAvatar symbol={p.symbol} iconUrl={p.iconUrl ?? null} size={s(LOGO_R * 2 - 6)} />
           </View>
         </View>
 
