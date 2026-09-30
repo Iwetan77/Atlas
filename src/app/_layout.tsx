@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, type ErrorBoundaryProps, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
@@ -71,12 +71,19 @@ export default function RootLayout() {
 
 function RootStack() {
   const { ready, authenticated, initError } = useAtlasAuth();
+  // Once started, the navigator stays mounted and sign-in only changes while Privy is settled. A
+  // passing blip (Privy re-checking the session, a network error) that tore it down or flipped the
+  // guard would land the user back on Home mid-task.
+  const [started, setStarted] = useState(false);
+  const [signedIn, setSignedIn] = useState(authenticated);
+  if (ready && !initError && !started) setStarted(true);
+  if (ready && !initError && authenticated !== signedIn) setSignedIn(authenticated);
 
-  if (!ready || initError) return <StartupStatus error={initError} />;
+  if (!started) return <StartupStatus error={initError} />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
-      <Stack.Protected guard={authenticated}>
+      <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deposit" />
         <Stack.Screen name="earn" />
@@ -90,7 +97,7 @@ function RootStack() {
         <Stack.Screen name="send/link" />
         <Stack.Screen name="handle" />
       </Stack.Protected>
-      <Stack.Protected guard={!authenticated}>
+      <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="sign-in-email" />
       </Stack.Protected>
