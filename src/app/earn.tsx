@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import type { EarnAction, EarnQuote } from '@/api/contract';
+import type { EarnAction, EarnOption, EarnPosition, EarnQuote } from '@/api/contract';
 import { executeEarnQuote, requestEarnQuote, useEarn } from '@/api/earn';
 import { StillSettling, useRunIntent } from '@/api/intents';
 import { useLiveQuote } from '@/api/use-live-quote';
@@ -25,14 +25,19 @@ type Phase =
   | { kind: 'done'; quote: EarnQuote }
   | { kind: 'failed'; message: string };
 
-// Savings: put cash from the balance into Aave and take it out, at Aave's live (variable) rate.
+const CHAIN_NAMES: Record<string, string> = { base: 'Base', solana: 'Solana' };
+
+// Savings: put cash from the balance into a lending market and take it out, at its live (variable)
+// rate. Each option uses the cash on its own chain; the best rate comes first.
 export default function EarnScreen() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const { options, positions, reload } = useEarn();
   const runIntent = useRunIntent();
-  const option = options?.[0];
+  const [picked, setPicked] = useState<string | null>(null);
+  const option = options?.find((o) => o.optionId === picked) ?? options?.[0];
   const position = positions?.find((p) => p.optionId === option?.optionId);
+  const chainName = option ? (CHAIN_NAMES[option.chain] ?? option.chain) : '';
 
   const [action, setAction] = useState<EarnAction>('deposit');
   const [amount, setAmount] = useState('');
@@ -63,7 +68,7 @@ export default function EarnScreen() {
     } catch (e) {
       setPhase({
         kind: 'failed',
-        message: e instanceof StillSettling ? 'Still confirming on Base. Check your balance in a minute.' : friendlyTxError(e),
+        message: e instanceof StillSettling ? `Still confirming on ${chainName}. Check your balance in a minute.` : friendlyTxError(e),
       });
     }
   };
@@ -91,10 +96,28 @@ export default function EarnScreen() {
   return (
     <Screen>
       <BackHeader title="Savings" />
+      {options && options.length > 1 ? (
+        <View style={styles.options}>
+          {options.map((o) => (
+            <OptionRow
+              key={o.optionId}
+              option={o}
+              position={positions?.find((p) => p.optionId === o.optionId)}
+              selected={o.optionId === option?.optionId}
+              onPress={() => {
+                setPicked(o.optionId);
+                // Nothing to take out of an option you haven't used.
+                if (!positions?.some((p) => p.optionId === o.optionId)) setAction('deposit');
+              }}
+            />
+          ))}
+        </View>
+      ) : null}
+
       {option ? (
         <Card style={styles.rateCard}>
           <Text variant="label" color="textSecondary">
-            {option.name} · {option.venue}
+            {option.name} · {option.venue} · cash on {chainName}
           </Text>
           <Text variant="display" color="success">
             {option.apyPct}%
@@ -139,7 +162,7 @@ export default function EarnScreen() {
           <Row label={action === 'deposit' ? 'Goes into savings' : 'Comes back to your balance'} value={quote.all ? 'Everything, with interest' : formatMoney(quote.amount)} />
           <Row label="Rate now" value={`${quote.apyPct}% a year`} />
           <Text variant="caption" color="textSecondary">
-            Your cash moves on Base as USDC. Gas is on Atlas.
+            {option?.chain === 'base' ? 'Your cash moves on Base as USDC. Gas is on Atlas.' : `Your cash moves on ${chainName} as USDC.`}
           </Text>
         </Card>
       ) : quoting ? (
@@ -162,6 +185,36 @@ export default function EarnScreen() {
   );
 }
 
+function OptionRow({
+  option,
+  position,
+  selected,
+  onPress,
+}: {
+  option: EarnOption;
+  position: EarnPosition | undefined;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      style={[styles.option, selected && styles.optionSelected]}>
+      <View style={styles.optionText}>
+        <Text variant="bodyStrong">{option.venue}</Text>
+        <Text variant="caption" color="textSecondary">
+          {position ? `${formatMoney(position.value)} earning` : `Uses your cash on ${CHAIN_NAMES[option.chain] ?? option.chain}`}
+        </Text>
+      </View>
+      <Text variant="bodyStrong" color="success">
+        {option.apyPct}%
+      </Text>
+    </Pressable>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
@@ -172,6 +225,26 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  options: {
+    gap: spacing.sm,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  optionSelected: {
+    borderColor: colors.accentPink,
+    backgroundColor: colors.bgSurface,
+  },
+  optionText: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
   rateCard: {
     gap: spacing.xs,
   },

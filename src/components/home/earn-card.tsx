@@ -18,9 +18,16 @@ export function EarnCard({ stealth }: { stealth: boolean }) {
       reload();
     }, [reload]),
   );
-  const option = options?.[0];
-  if (!option) return null;
-  const earning = positions?.find((p) => p.optionId === option.optionId);
+  // Options come best rate first.
+  const best = options?.[0];
+  if (!best || !options) return null;
+  const earning = positions ?? [];
+  const venues = (list: { venue: string }[]) => list.map((o) => o.venue).join(' and ');
+  // Display only: the positions are all in the display currency.
+  const total = earning.length
+    ? formatMoney({ ...earning[0].value, amount: String(earning.reduce((sum, p) => sum + Number(p.value.amount), 0)) })
+    : null;
+  const topRate = earning.length ? earning.reduce((top, p) => (Number(p.apyPct) > Number(top) ? p.apyPct : top), '0') : null;
 
   return (
     <View style={styles.section}>
@@ -34,18 +41,22 @@ export function EarnCard({ stealth }: { stealth: boolean }) {
               <Icon name="leaf-outline" size={22} color="accentPinkTint" />
             </View>
             <View style={styles.text}>
-              {earning ? (
+              {total ? (
                 <>
-                  <Text variant="bodyStrong">{stealth ? HIDDEN : formatMoney(earning.value)} earning</Text>
+                  <Text variant="bodyStrong">{stealth ? HIDDEN : total} earning</Text>
                   <Text variant="caption" color="textSecondary">
-                    {option.name} · {earning.apyPct}% a year
+                    {best.name} with {venues(earning)} · {earning.length > 1 ? 'up to ' : ''}
+                    {topRate}% a year
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text variant="bodyStrong">Earn {option.apyPct}% a year on your cash</Text>
+                  <Text variant="bodyStrong">
+                    Earn {options.length > 1 ? 'up to ' : ''}
+                    {best.apyPct}% a year on your cash
+                  </Text>
                   <Text variant="caption" color="textSecondary">
-                    Savings with {option.venue}. Take it out any time.
+                    Savings with {venues(options)}. Take it out any time.
                   </Text>
                 </>
               )}
