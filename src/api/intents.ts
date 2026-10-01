@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
 import type { ExecutionPlan, IntentStatus, IntentSubmission, SentTx, SignedTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
-import { waitForTx } from '@/signing/chains';
+import { sendAfterPrevious, waitForTx } from '@/signing/chains';
 import { ActionCancelled, useConfirmAndExecute } from '@/signing/confirm';
 import { useSigner } from '@/signing/use-signer';
 
@@ -118,7 +118,7 @@ export function useRunIntent() {
             signed.push({ index, transaction: await signer.sign(tx) });
             continue;
           }
-          const result = await signer.send(tx);
+          const result = sent.length > 0 ? await sendAfterPrevious(() => signer.send(tx), tx) : await signer.send(tx);
           await waitForTx(result, tx);
           sent.push(result);
         }

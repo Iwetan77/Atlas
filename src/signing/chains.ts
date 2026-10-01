@@ -64,3 +64,22 @@ export async function waitForTx(sent: SentTx, tx: UnsignedTx): Promise<void> {
   const { value } = await solanaConnection.confirmTransaction({ signature: sent.id, ...latest }, 'confirmed');
   if (value.err) throw new Error(`Solana transaction failed: ${sent.id}`);
 }
+
+// Right after one transaction lands, the node behind the wallet can still be a block behind and
+// refuse the next one in its pre-send check (Uniswap's "STF": the approval it relies on isn't there
+// yet). Nothing is broadcast when that happens, so it waits and tries again for a few seconds.
+const CATCH_UP_TRIES = 5;
+const CATCH_UP_MS = 2_000;
+
+export async function sendAfterPrevious(send: () => Promise<SentTx>, tx: UnsignedTx): Promise<SentTx> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await send();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      const behind = /revert|nonce too low|STF/i.test(message);
+      if (tx.chain === 'solana' || !behind || attempt >= CATCH_UP_TRIES) throw e;
+      await new Promise((r) => setTimeout(r, CATCH_UP_MS));
+    }
+  }
+}
