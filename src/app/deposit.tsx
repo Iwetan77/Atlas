@@ -5,11 +5,12 @@ import { Share, StyleSheet, View } from 'react-native';
 import QRCodeStyled from 'react-native-qrcode-styled';
 
 import { engineGet, enginePost, SAFE_TO_REPLAY } from '@/api/client';
-import type { DepositAddress, DepositNetwork, DepositState } from '@/api/contract';
+import type { DepositAddress, DepositJourney as Journey, DepositNetwork, DepositState } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { MoneyError } from '@/components/money-error';
 import { BackHeader } from '@/components/ui/back-header';
+import { DepositJourney } from '@/components/deposit-journey';
 import { DepositProgress } from '@/components/deposit-progress';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
@@ -40,6 +41,7 @@ export default function DepositScreen() {
   const [amount, setAmount] = useState('');
   const [deposit, setDeposit] = useState<DepositAddress | null>(null);
   const [state, setState] = useState<DepositState>('waiting');
+  const [journey, setJourney] = useState<Journey | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -67,8 +69,12 @@ export default function DepositScreen() {
     const id = setInterval(async () => {
       try {
         const query = `address=${encodeURIComponent(deposit.address)}${deposit.memo ? `&memo=${encodeURIComponent(deposit.memo)}` : ''}`;
-        const r = await engineGet<{ state: DepositState }>(`/v1/deposit/status?${query}`, await getAccessToken());
+        const r = await engineGet<{ state: DepositState; journey?: Journey }>(
+          `/v1/deposit/status?${query}`,
+          await getAccessToken(),
+        );
         setState(r.state);
+        if (r.journey) setJourney(r.journey);
       } catch {
         // A missed check is retried on the next tick.
       }
@@ -85,6 +91,7 @@ export default function DepositScreen() {
     setDeposit(null);
     setProblem(null);
     setState('waiting');
+    setJourney(null);
   };
 
   const getAddress = async () => {
@@ -100,6 +107,7 @@ export default function DepositScreen() {
       );
       setDeposit(d);
       setState('waiting');
+      setJourney(null);
     } catch (e) {
       setProblem(errorMessage(e));
     } finally {
@@ -199,6 +207,7 @@ export default function DepositScreen() {
             <PillButton label="Share" tone="secondary" onPress={() => Share.share({ message: address })} style={styles.action} />
           </View>
           {deposit ? <DepositProgress state={state} /> : null}
+          {deposit ? <DepositJourney journey={journey} network={deposit.network} /> : null}
           <Text variant="caption" color="textSecondary">
             Only send {deposit ? `${deposit.asset} on ${deposit.network}` : own?.label} to this address. Anything else may be lost.
             {deposit ? ' Use it within 2 hours of getting it.' : ''}

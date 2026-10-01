@@ -1,5 +1,6 @@
 import { EngineUnreachable } from '@/api/client';
 import { errorMessage } from '@/auth/context';
+import { MaybeSent } from '@/signing/chains';
 
 // Wallet/RPC errors arrive as raw viem or Solana dumps (URLs, hex, versions). Users get one plain line;
 // the full error still goes to the console for debugging.
@@ -10,6 +11,7 @@ export function friendlyTxError(e: unknown): string {
   // Only reaches here before the user confirms (after that, a lost connection means keep watching the
   // status), so nothing has been ordered or sent.
   if (e instanceof EngineUnreachable) return "Couldn't reach Atlas. Check your connection and try again.";
+  if (e instanceof MaybeSent) return e.message;
 
   if (/insufficient (funds|lamports|.*balance)|attempt to debit an account but found no record/i.test(raw)) {
     return "You don't have enough for this.";

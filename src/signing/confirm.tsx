@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { sendAfterPrevious, waitForTx } from '@/signing/chains';
+import { useAtlasAuth } from '@/auth/context';
+import { sendOnce, waitForTx } from '@/signing/chains';
 import { friendlyTxError } from '@/signing/errors';
 import { useSigner } from '@/signing/use-signer';
 import { watchWalletPrompts } from '@/signing/wallet-prompts';
@@ -58,6 +59,7 @@ export function useConfirmAndExecute() {
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const signer = useSigner();
+  const { wallets } = useAtlasAuth();
   const insets = useSafeAreaInsets();
   const [pending, setPending] = useState<Pending | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'review' });
@@ -92,7 +94,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           signed.push({ index, transaction: await signer.sign(tx) });
           continue;
         }
-        const result = sent.length > 0 ? await sendAfterPrevious(() => signer.send(tx), tx) : await signer.send(tx);
+        const result = await sendOnce(() => signer.send(tx), tx, wallets.base, sent.length > 0);
         await waitForTx(result, tx);
         sent.push(result);
       }

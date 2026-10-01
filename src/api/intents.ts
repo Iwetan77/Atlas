@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
 import type { ExecutionPlan, IntentStatus, IntentSubmission, SentTx, SignedTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
-import { sendAfterPrevious, waitForTx } from '@/signing/chains';
+import { sendOnce, waitForTx } from '@/signing/chains';
 import { ActionCancelled, useConfirmAndExecute } from '@/signing/confirm';
 import { useSigner } from '@/signing/use-signer';
 
@@ -15,6 +15,12 @@ const POLL_REQUEST_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 120_000;
 // Moving perps margin to Paradex takes about a minute; the engine gives it up to ten.
 const FUND_TIMEOUT_MS = 11 * 60_000;
+
+// What was already sent or signed for each step of an intent ('validate', then 'sign'). A step is
+// sent once: if reporting it to the engine drops, the same report goes again, and nothing is fetched
+// or sent anew (the engine would plan a fresh transaction, and the wallet would send it twice).
+const reported = new Map<string, IntentSubmission>();
+const stepKey = (intentId: string, stage: string) => `${intentId}:${stage}`;
 
 // Hands the confirmation to the engine. The engine treats a repeat as a no-op that returns the current
 // status, so a dropped connection is resent. If it still gets no answer, stop waiting on this call and
@@ -57,8 +63,20 @@ export async function waitForIntent(
       onStatus?.(status);
     }
     if (Date.now() > deadline) throw new StillSettling();
+    // The engine hasn't seen a step the app already sent (its report was dropped): report it again.
+    const unseen = reported.get(stepKey(status.intentId, status.stage));
+    if (unseen) {
+      try {
+        status = await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(status.intentId)}/signed`, await token(), unseen, {
+          timeoutMs: SUBMIT_TIMEOUT_MS,
+        });
+        if (status.state !== 'pending') break;
+      } catch (e) {
+        if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
+      }
+    }
     // The second step is ready: sign it now. A dropped call just means asking again next round.
-    if (status.stage === 'sign' && signNext) {
+    else if (status.stage === 'sign' && signNext) {
       try {
         status = await signNext(status);
         continue;
@@ -81,7 +99,7 @@ export async function waitForIntent(
 // Every money-moving action runs the same way: get the engine's plan, the user confirms it once,
 // hand back what was signed/sent, wait for it to settle. Resolves null if the user cancels.
 export function useRunIntent() {
-  const { getAccessToken } = useAtlasAuth();
+  const { getAccessToken, wallets } = useAtlasAuth();
   const confirmAndExecute = useConfirmAndExecute();
   const signer = useSigner();
 
@@ -100,6 +118,7 @@ export function useRunIntent() {
         throw e;
       }
       onSettling?.();
+      reported.set(stepKey(plan.intentId, 'validate'), { sent: report.sent, signed: report.signed });
       const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed });
       // A two-step plan (cash moved from another chain first): its last transaction is signed here,
       // covered by the one confirmation the user already gave.
@@ -118,14 +137,20 @@ export function useRunIntent() {
             signed.push({ index, transaction: await signer.sign(tx) });
             continue;
           }
-          const result = sent.length > 0 ? await sendAfterPrevious(() => signer.send(tx), tx) : await signer.send(tx);
+          const result = await sendOnce(() => signer.send(tx), tx, wallets.base, sent.length > 0);
           await waitForTx(result, tx);
           sent.push(result);
         }
+        reported.set(stepKey(status.intentId, 'sign'), { sent, signed });
         return submitIntent(getAccessToken, status.intentId, { sent, signed });
       };
-      return waitForIntent(getAccessToken, first, onStatus, signNext);
+      try {
+        return await waitForIntent(getAccessToken, first, onStatus, signNext);
+      } finally {
+        reported.delete(stepKey(plan.intentId, 'validate'));
+        reported.delete(stepKey(plan.intentId, 'sign'));
+      }
     },
-    [getAccessToken, confirmAndExecute, signer],
+    [getAccessToken, wallets.base, confirmAndExecute, signer],
   );
 }

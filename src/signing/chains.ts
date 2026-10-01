@@ -83,3 +83,37 @@ export async function sendAfterPrevious(send: () => Promise<SentTx>, tx: Unsigne
     }
   }
 }
+
+// A wallet can broadcast a transaction even when the call reporting it fails (a dropped mobile
+// connection). So a failed EVM send is only called "not sent" once the wallet's transaction count
+// shows nothing went out; otherwise the user is told to check before trying again.
+export class MaybeSent extends Error {
+  constructor() {
+    super('This may have gone through. Check your balance before trying again.');
+  }
+}
+
+const SETTLE_CHECK_MS = 4_000;
+
+export async function sendOnce(
+  send: () => Promise<SentTx>,
+  tx: UnsignedTx,
+  from: string | null,
+  afterPrevious: boolean,
+): Promise<SentTx> {
+  const attempt = () => (afterPrevious ? sendAfterPrevious(send, tx) : send());
+  if (tx.chain === 'solana' || !from) return attempt();
+  const client = evmClient(evmChainFor(tx));
+  const address = from as `0x${string}`;
+  const count = () => client.getTransactionCount({ address, blockTag: 'pending' }).catch(() => null);
+  const before = await count();
+  try {
+    return await attempt();
+  } catch (e) {
+    if (before === null) throw e;
+    await new Promise((r) => setTimeout(r, SETTLE_CHECK_MS));
+    const after = await count();
+    if (after !== null && after > before) throw new MaybeSent();
+    throw e;
+  }
+}

@@ -143,7 +143,7 @@ export type BankDepositAccount = {
 // Deposits from other networks (USDT on Tron, USDC on Arbitrum…), turned into USDC in the balance
 // by 1Click. GET /v1/deposit/networks → { networks: DepositNetwork[] };
 // POST /v1/deposit/quote { networkId, amount: Money } → DepositAddress;
-// GET /v1/deposit/status?address=&memo= → { state: DepositState }.
+// GET /v1/deposit/status?address=&memo= → { state: DepositState, journey }.
 export type DepositNetwork = {
   id: string;
   label: string;
@@ -169,6 +169,10 @@ export type DepositAddress = {
   expiresAtUnixMs: number;
 };
 export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
+// Each hop a deposit takes, with its transactions as they happen: the deposit on its own network, the
+// swap on NEAR Intents, the payout to the user's Solana wallet. `url` opens it in that chain's explorer.
+export type DepositHopTx = { hash: string; url: string | null };
+export type DepositJourney = { deposit: DepositHopTx[]; swap: DepositHopTx[]; payout: DepositHopTx[] };
 
 // ── Markets and trading ─────────────────────────────────────────────────────────────────
 // Spot, memes and tokenized stocks are one kind of thing: an asset with a price. One buy flow.
