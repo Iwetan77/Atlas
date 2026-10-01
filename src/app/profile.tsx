@@ -37,7 +37,7 @@ async function choosePhoto(): Promise<string | null> {
 
 export default function ProfileScreen() {
   const { email, logout, getAccessToken } = useAtlasAuth();
-  const { me, reload, setMe } = useMe();
+  const { me, error: meError, reload, setMe } = useMe();
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -91,7 +91,10 @@ export default function ProfileScreen() {
           </Pressable>
         ) : null}
         {photoError ? <Text color="danger">{photoError}</Text> : null}
-        <Text variant="heading">{me?.handle ? `@${me.handle}` : (email ?? 'Atlas user')}</Text>
+        {/* Until the profile loads, a blank line the same height rather than the email flashing first. */}
+        <Text variant="heading">
+          {me?.handle ? `@${me.handle}` : me || meError ? (email ?? 'Atlas user') : '\u00a0'}
+        </Text>
         {me?.handle && email ? (
           <Text variant="caption" color="textSecondary">
             {email}

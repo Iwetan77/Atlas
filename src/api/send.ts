@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { engineGet, enginePost, EngineUnavailable, SAFE_TO_REPLAY } from '@/api/client';
 import type {
@@ -19,9 +20,41 @@ type Token = () => Promise<string | null>;
 export const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 export const normaliseHandle = (raw: string) => raw.trim().replace(/^@/, '').toLowerCase();
 
+// The signed-in user's profile, shared by every screen and kept on the device, so a screen opens
+// showing who they are instead of flashing their email while /v1/me loads.
+const ME_KEY = 'atlas.me.v1';
+let sharedMe: Me | null = null;
+let restored = false;
+const meListeners = new Set<() => void>();
+
+function publishMe(next: Me) {
+  sharedMe = next;
+  meListeners.forEach((listener) => listener());
+  AsyncStorage.setItem(ME_KEY, JSON.stringify(next)).catch(() => {});
+}
+
+function subscribeMe(listener: () => void) {
+  meListeners.add(listener);
+  if (!restored) {
+    restored = true;
+    AsyncStorage.getItem(ME_KEY)
+      .then((raw) => {
+        if (!raw || sharedMe) return;
+        sharedMe = JSON.parse(raw) as Me;
+        meListeners.forEach((l) => l());
+      })
+      .catch(() => {});
+  }
+  return () => {
+    meListeners.delete(listener);
+  };
+}
+
 export function useMe() {
-  const { authenticated, getAccessToken } = useAtlasAuth();
-  const [me, setMe] = useState<Me | null>(null);
+  const { authenticated, userId, getAccessToken } = useAtlasAuth();
+  const stored = useSyncExternalStore(subscribeMe, () => sharedMe);
+  // Only this user's profile: never someone's who signed out on this device.
+  const me = stored && stored.userId === userId ? stored : null;
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
@@ -30,7 +63,7 @@ export function useMe() {
       .then((token) => engineGet<Me>('/v1/me', token))
       .then(
         (next) => {
-          setMe(next);
+          publishMe(next);
           setError(null);
         },
         (e) => setError(errorMessage(e)),
@@ -41,11 +74,14 @@ export function useMe() {
     reload();
   }, [reload]);
 
-  return { me, error, reload, setMe };
+  return { me, error, reload, setMe: publishMe };
 }
 
 export async function claimHandle(token: Token, handle: string): Promise<Me> {
-  return enginePost<Me>('/v1/me/handle', await token(), { handle });
+  const claimed = await enginePost<Me>('/v1/me/handle', await token(), { handle });
+  // Every screen shows the new handle at once (the claim's answer carries no photo).
+  publishMe(sharedMe?.userId === claimed.userId ? { ...sharedMe, ...claimed } : claimed);
+  return claimed;
 }
 
 // Returns null when no Atlas user has that handle (engine answers 404).
