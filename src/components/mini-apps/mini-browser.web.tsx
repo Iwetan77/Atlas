@@ -17,7 +17,7 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
       <Card style={styles.card}>
         <Text variant="heading">{app.blurb}</Text>
         <Text color="textSecondary">
-          Mini apps open inside the Atlas phone app with your wallet already connected. In a browser, {app.name}
+          Mini apps open inside the Atlas phone app with your wallet already connected. In a browser, {app.name}{' '}
           opens in a new tab instead.
         </Text>
         <View style={styles.actions}>

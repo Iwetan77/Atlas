@@ -1,44 +1,82 @@
-// A mini app inside Atlas: the dapp runs in a WebView with the Atlas wallet injected. Reads go to
-// Base; every signature or transaction waits for the user's yes on an Atlas sheet first.
-import { useEmbeddedEthereumWallet } from '@privy-io/expo';
+// A mini app inside Atlas: the dapp runs in a WebView with the Atlas wallet injected (an EIP-1193
+// wallet on Base, a Wallet Standard wallet on Solana). Reads go straight to the chain; every
+// signature or transaction waits for the user's yes on an Atlas sheet first. A Solana transaction
+// is simulated first, and never signed if someone else pays its fee or it would fail.
+import { useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { getBase58Decoder } from '@solana/kit';
+import { Buffer } from 'buffer';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { formatEther, hexToString, isHex, numberToHex } from 'viem';
 import { base } from 'viem/chains';
 
 import { useAtlasAuth } from '@/auth/context';
-import type { MiniApp } from '@/components/mini-apps/catalog';
+import { type MiniApp, onAppSite } from '@/components/mini-apps/catalog';
 import { PROVIDER_SCRIPT, READ_METHODS, SIGN_METHODS } from '@/components/mini-apps/provider-script';
+import { SOLANA_PROVIDER_SCRIPT } from '@/components/mini-apps/solana-provider-script';
+import { looksLikeTransaction, reviewSolanaTransaction, type SolanaReview } from '@/components/mini-apps/solana-review';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { evmClient } from '@/signing/chains';
+import { evmClient, MaybeSent, solanaConnection } from '@/signing/chains';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, maxContentWidth, radii, spacing } from '@/theme';
 
-type Request = { id: number; method: string; params: unknown[] };
+type Request = { id: number; method: string; params: any };
 type RpcError = { code: number; message: string };
+// A Solana transaction's review: still running, done, or couldn't be done.
+type Review = 'checking' | SolanaReview;
 
 const BASE_CHAIN_ID = '0x2105';
 const baseClient = evmClient(base);
+const SOLANA_SIGN = new Set(['solana:signMessage', 'solana:signTransaction', 'solana:signAndSendTransaction']);
 
 export function MiniBrowser({ app }: { app: MiniApp }) {
   const insets = useSafeAreaInsets();
   const { wallets } = useAtlasAuth();
   const eth = useEmbeddedEthereumWallet();
+  const sol = useEmbeddedSolanaWallet();
   const web = useRef<WebView>(null);
   const [asking, setAsking] = useState<Request | null>(null);
+  const [review, setReview] = useState<Review | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const onSolana = app.chain === 'solana';
   const address = wallets.base;
 
   const reply = (id: number, result: unknown, error?: RpcError) => {
     web.current?.injectJavaScript(
       `window.__atlasReply(${id}, ${JSON.stringify(result ?? null)}, ${JSON.stringify(error ?? null)}); true;`,
     );
+  };
+
+  const close = () => {
+    setAsking(null);
+    setReview(null);
+    setProblem(null);
+  };
+
+  const onSolanaMessage = async (request: Request) => {
+    const { id, method, params } = request;
+    const owner = wallets.solana;
+    if (method === 'standard:connect') {
+      return owner ? reply(id, { address: owner }) : reply(id, null, { code: 4001, message: 'Your Solana wallet is still being set up' });
+    }
+    if (method === 'standard:disconnect') return reply(id, null);
+    if (!SOLANA_SIGN.has(method)) return reply(id, null, { code: 4200, message: `${method} isn't supported in Atlas mini apps` });
+    if (!owner) return reply(id, null, { code: 4001, message: 'Your Solana wallet is still being set up' });
+    setProblem(null);
+    setAsking(request);
+    if (method === 'solana:signMessage') return;
+    setReview('checking');
+    try {
+      setReview(await reviewSolanaTransaction(Buffer.from(String(params?.transaction ?? ''), 'base64'), owner));
+    } catch {
+      setReview({ transaction: null as never, changes: [], fee: '0', unknown: [], refusal: 'Atlas couldn’t check what this transaction does, so it won’t sign it. Try again in a moment.' });
+    }
   };
 
   const onMessage = async (event: WebViewMessageEvent) => {
@@ -48,6 +86,7 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
     } catch {
       return;
     }
+    if (onSolana) return onSolanaMessage(request);
     const { id, method, params } = request;
     try {
       if (method === 'eth_requestAccounts' || method === 'eth_accounts') return reply(id, address ? [address] : []);
@@ -77,19 +116,59 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
     }
   };
 
+  // The user said yes on the sheet: sign with their own embedded Solana wallet. A send that fails
+  // after it may have gone out is never reported as "nothing taken".
+  const approveSolana = async (request: Request) => {
+    const wallet = sol.status === 'connected' ? sol.wallets[0] : undefined;
+    if (!wallet) throw new Error('Your Solana wallet is still being set up');
+    const provider = await wallet.getProvider();
+    if (request.method === 'solana:signMessage') {
+      const { signature } = await provider.request({ method: 'signMessage', params: { message: String(request.params.message) } });
+      return reply(request.id, { signature });
+    }
+    if (!review || review === 'checking' || review.refusal) return;
+    const { signedTransaction } = await provider.request({ method: 'signTransaction', params: { transaction: review.transaction } });
+    if (request.method === 'solana:signTransaction') {
+      return reply(request.id, { signedTransaction: Buffer.from(signedTransaction.serialize()).toString('base64') });
+    }
+    const signature = signedTransaction.signatures[0];
+    const sent = { signature: Buffer.from(signature).toString('base64') };
+    try {
+      await solanaConnection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: !!request.params?.options?.skipPreflight,
+        maxRetries: 3,
+      });
+      reply(request.id, sent);
+    } catch (e) {
+      // Refused by the node's own check: it never went out. Anything else may have.
+      if (/simulation failed|preflight/i.test(String((e as Error)?.message ?? e))) throw e;
+      await new Promise((r) => setTimeout(r, 3_000));
+      const id = getBase58Decoder().decode(signature);
+      const status = (await solanaConnection.getSignatureStatuses([id]).catch(() => null))?.value[0];
+      if (status && !status.err) return reply(request.id, sent);
+      reply(request.id, null, { code: -32603, message: 'It may have gone through' });
+      throw new MaybeSent();
+    }
+  };
+
   const decide = async (approve: boolean) => {
     const request = asking;
     if (!request) return;
     if (!approve) {
       reply(request.id, null, { code: 4001, message: 'The user rejected the request' });
-      setAsking(null);
+      close();
       return;
     }
-    const wallet = eth.wallets[0];
-    if (!wallet) return;
     setBusy(true);
     setProblem(null);
     try {
+      if (onSolana) {
+        await approveSolana(request);
+        close();
+        return;
+      }
+      const wallet = eth.wallets[0];
+      if (!wallet) return;
       const provider = await wallet.getProvider();
       let result: unknown;
       if (request.method === 'eth_sendTransaction') {
@@ -104,11 +183,14 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
       reply(request.id, result);
       setAsking(null);
     } catch (e) {
-      setProblem(friendlyTxError(e));
+      setProblem(e instanceof MaybeSent ? e.message : friendlyTxError(e));
     } finally {
       setBusy(false);
     }
   };
+
+  const refusal = onSolana ? solanaRefusal(asking, review) : null;
+  const checking = review === 'checking';
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -119,15 +201,21 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
         <View style={styles.barText}>
           <Text variant="bodyStrong">{app.name}</Text>
           <Text variant="caption" color="textSecondary">
-            {app.origin} · Atlas wallet on Base
+            {app.origin} · Atlas wallet on {onSolana ? 'Solana' : 'Base'}
           </Text>
         </View>
       </View>
       <WebView
         ref={web}
         source={{ uri: app.url }}
-        injectedJavaScriptBeforeContentLoaded={PROVIDER_SCRIPT}
+        injectedJavaScriptBeforeContentLoaded={onSolana ? SOLANA_PROVIDER_SCRIPT : PROVIDER_SCRIPT}
         onMessage={onMessage}
+        // The app stays on its own site; links elsewhere open in the phone's browser.
+        onShouldStartLoadWithRequest={(request) => {
+          if (!request.isTopFrame || onAppSite(app, request.url)) return true;
+          if (/^https?:/i.test(request.url)) Linking.openURL(request.url).catch(() => {});
+          return false;
+        }}
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loading}>
@@ -140,14 +228,99 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
       <Modal visible={!!asking} transparent animationType="slide" onRequestClose={() => decide(false)}>
         <View style={styles.backdrop}>
           <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-            {asking ? <RequestDetails app={app} request={asking} /> : null}
+            {asking && onSolana ? <SolanaDetails app={app} request={asking} review={review} /> : null}
+            {asking && !onSolana ? <RequestDetails app={app} request={asking} /> : null}
+            {refusal ? <Text color="danger">{refusal}</Text> : null}
             {problem ? <Text color="danger">{problem}</Text> : null}
-            <PillButton label="Approve" loading={busy} onPress={() => decide(true)} />
-            <PillButton label="Reject" tone="secondary" disabled={busy} onPress={() => decide(false)} />
+            {refusal ? (
+              <PillButton label="Close" tone="secondary" onPress={() => decide(false)} />
+            ) : (
+              <>
+                <PillButton label="Approve" loading={busy} disabled={checking} onPress={() => decide(true)} />
+                <PillButton label="Reject" tone="secondary" disabled={busy} onPress={() => decide(false)} />
+              </>
+            )}
           </View>
         </View>
       </Modal>
     </View>
+  );
+}
+
+// Why Atlas won't sign a Solana request, if it won't.
+function solanaRefusal(request: Request | null, review: Review | null): string | null {
+  if (!request) return null;
+  if (request.method === 'solana:signMessage') {
+    return looksLikeTransaction(Buffer.from(String(request.params?.message ?? ''), 'base64'))
+      ? 'This “message” is really a transaction, and signing it would approve that transaction. Atlas won’t sign it.'
+      : null;
+  }
+  return review && review !== 'checking' ? review.refusal : null;
+}
+
+// A message's text, or its bytes in hex when it isn't readable text.
+function readable(bytes: Buffer): { text: string; binary: boolean } {
+  const text = bytes.toString('utf8');
+  const clean = Buffer.from(text, 'utf8').equals(bytes) && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(text);
+  return clean ? { text, binary: false } : { text: `0x${bytes.toString('hex')}`, binary: true };
+}
+
+function SolanaDetails({ app, request, review }: { app: MiniApp; request: Request; review: Review | null }) {
+  if (request.method === 'solana:signMessage') {
+    const { text, binary } = readable(Buffer.from(String(request.params?.message ?? ''), 'base64'));
+    return (
+      <>
+        <Text variant="title">{request.params?.signIn ? 'Sign in' : 'Sign a message'}</Text>
+        <Text color="textSecondary">
+          {app.name} ({app.origin}) wants your signature. Signing doesn&apos;t move money by itself.
+        </Text>
+        <View style={styles.message}>
+          <Text numberOfLines={10}>{text}</Text>
+        </View>
+        {binary ? (
+          <Text variant="caption" color="danger">
+            This isn&apos;t readable text. Only sign it if you trust {app.name}.
+          </Text>
+        ) : null}
+      </>
+    );
+  }
+  const sends = request.method === 'solana:signAndSendTransaction';
+  return (
+    <>
+      <Text variant="title">{sends ? 'Send a transaction' : 'Sign a transaction'}</Text>
+      <Text color="textSecondary">
+        {app.name} ({app.origin}) wants your wallet to {sends ? 'send' : 'sign'} this on Solana.
+      </Text>
+      {review === 'checking' || !review ? (
+        <View style={styles.checking}>
+          <ActivityIndicator color={colors.accentPink} />
+          <Text color="textSecondary">Checking what this does…</Text>
+        </View>
+      ) : review.refusal ? null : (
+        <>
+          {review.changes.length ? (
+            review.changes.map((c) => (
+              <View key={c.label} style={styles.detail}>
+                <Text color="textSecondary">{c.positive ? 'You get' : 'You send'}</Text>
+                <Text variant="bodyStrong" color={c.positive ? 'success' : 'textPrimary'}>
+                  {c.positive ? '+' : ''}
+                  {c.amount} {c.label}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Detail label="Balance change" value="None" />
+          )}
+          <Detail label="Network fee" value={`${review.fee} SOL`} />
+          {review.unknown.length ? (
+            <Text variant="caption" color="danger">
+              It also runs programs Atlas doesn&apos;t know ({review.unknown.join(', ')}). Only approve if you trust {app.name}.
+            </Text>
+          ) : null}
+        </>
+      )}
+    </>
   );
 }
 
@@ -253,6 +426,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radii.md,
     backgroundColor: colors.bgBase,
+  },
+  checking: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   detail: {
     flexDirection: 'row',

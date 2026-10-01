@@ -3,6 +3,7 @@ import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MINI_APPS, miniAppIcon } from '@/components/mini-apps/catalog';
+import { ChainBadge } from '@/components/token-chain-logo';
 import { type IconName } from '@/components/ui/icon';
 import { IconTile, SoonChip } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
@@ -26,7 +27,7 @@ export default function MoreScreen() {
         Mini apps
       </Text>
       <Text variant="caption" color="textSecondary">
-        Apps on Base that open inside Atlas with your wallet connected. You approve every signature.
+        Apps on Base and Solana that open inside Atlas with your wallet connected. You approve every signature.
       </Text>
       <View style={styles.apps}>
         {MINI_APPS.map((app) => (
@@ -36,7 +37,10 @@ export default function MoreScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Open ${app.name}`}
             style={({ pressed }) => [styles.app, pressed && { opacity: 0.7 }]}>
-            <Image source={{ uri: miniAppIcon(app) }} style={styles.appIcon} contentFit="cover" />
+            <View>
+              <Image source={{ uri: miniAppIcon(app) }} style={styles.appIcon} contentFit="cover" />
+              <ChainBadge chain={app.chain} />
+            </View>
             <Text variant="label" numberOfLines={1}>
               {app.name}
             </Text>

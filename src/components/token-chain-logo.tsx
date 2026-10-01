@@ -5,7 +5,7 @@ import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { colors } from '@/theme';
 
 // Chains whose logos ship with the app, so the badge never waits on the network.
-const BUNDLED_CHAINS: Record<string, number> = {
+export const BUNDLED_CHAINS: Record<string, number> = {
   base: require('@/assets/chains/base.png'),
   solana: require('@/assets/chains/solana.png'),
   hyperliquid: require('@/assets/chains/hyperliquid.png'),
@@ -37,6 +37,17 @@ export function TokenChainLogo({
           <Image source={chainIcon} style={{ width: badge, height: badge, borderRadius: badge / 2 }} contentFit="cover" />
         </View>
       ) : null}
+    </View>
+  );
+}
+
+// Just the chain's badge, for the corner of any square logo (a mini app's icon).
+export function ChainBadge({ chain, size = 20 }: { chain: string; size?: number }) {
+  const icon = BUNDLED_CHAINS[chain];
+  if (!icon) return null;
+  return (
+    <View style={[styles.badge, { width: size + 4, height: size + 4, borderRadius: (size + 4) / 2 }]}>
+      <Image source={icon} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" />
     </View>
   );
 }
