@@ -1,21 +1,23 @@
 import { Connection } from '@solana/web3.js';
 import { type Chain, createPublicClient, http, type PublicClient } from 'viem';
-import { base, mainnet } from 'viem/chains';
+import { base, mainnet, monad } from 'viem/chains';
 
 import type { SentTx, UnsignedTx } from '@/api/contract';
 import { solana } from '@/config';
 
-// Mainnet only: Base, and Ethereum for the occasional L1 leg.
+// Mainnet only: Base, Ethereum for the occasional L1 leg, and Monad (selling MON sends it from here).
 export const evmChains = {
   base,
   ethereum: mainnet,
+  monad,
 } as const;
 
 // Every EVM network the app will sign on, and which `chain` family each belongs to. A plan names
 // its network by chainId; anything else is refused rather than guessed.
-const KNOWN_EVM: Record<number, { chain: Chain; family: 'base' | 'ethereum' }> = {
+const KNOWN_EVM: Record<number, { chain: Chain; family: 'base' | 'ethereum' | 'monad' }> = {
   [base.id]: { chain: base, family: 'base' },
   [mainnet.id]: { chain: mainnet, family: 'ethereum' },
+  [monad.id]: { chain: monad, family: 'monad' },
 };
 
 // Privy must know every chain it may send on; the build's default Base goes first.
@@ -26,7 +28,7 @@ export const privyEvmChains = [
     .filter((c) => c.id !== evmChains.base.id),
 ] as [Chain, ...Chain[]];
 
-type EvmTx = Extract<UnsignedTx, { chain: 'base' | 'ethereum' }>;
+type EvmTx = Extract<UnsignedTx, { chain: 'base' | 'ethereum' | 'monad' }>;
 
 export function evmChainFor(tx: EvmTx): Chain {
   const known = KNOWN_EVM[tx.chainId];
@@ -49,12 +51,14 @@ export function evmClient(chain: Chain): PublicClient {
 export const evmClients = {
   base: evmClient(evmChains.base),
   ethereum: evmClient(evmChains.ethereum),
+  monad: evmClient(evmChains.monad),
 };
 
 export const solanaConnection = new Connection(solana.rpcUrl, 'confirmed');
 
 // Plans run in order (e.g. approve → swap), so each transaction must land before the next is sent.
 export async function waitForTx(sent: SentTx, tx: UnsignedTx): Promise<void> {
+  if (tx.chain === 'privy') return;
   if (tx.chain !== 'solana') {
     const receipt = await evmClient(evmChainFor(tx)).waitForTransactionReceipt({ hash: sent.id as `0x${string}` });
     if (receipt.status !== 'success') throw new Error(`Transaction reverted on ${sent.chain}: ${sent.id}`);
@@ -102,7 +106,7 @@ export async function sendOnce(
   afterPrevious: boolean,
 ): Promise<SentTx> {
   const attempt = () => (afterPrevious ? sendAfterPrevious(send, tx) : send());
-  if (tx.chain === 'solana' || !from) return attempt();
+  if (tx.chain === 'solana' || tx.chain === 'privy' || !from) return attempt();
   const client = evmClient(evmChainFor(tx));
   const address = from as `0x${string}`;
   const count = () => client.getTransactionCount({ address, blockTag: 'pending' }).catch(() => null);

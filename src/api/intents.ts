@@ -133,6 +133,10 @@ export function useRunIntent() {
         const signed: SignedTx[] = [];
         const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
+          if (tx.chain === 'privy') {
+            signed.push({ index, transaction: await signer.approve(tx.request) });
+            continue;
+          }
           if (tx.chain === 'solana' && tx.submit === 'engine') {
             signed.push({ index, transaction: await signer.sign(tx) });
             continue;

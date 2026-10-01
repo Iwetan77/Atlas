@@ -48,10 +48,11 @@ export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' 
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
 export type UnsignedTx =
   | {
-      // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g. bridging).
-      chain: 'base' | 'ethereum';
-      // The exact network: 8453 Base, 1 Ethereum. Required: the app refuses a plan for a network it
-      // doesn't sign on rather than guessing.
+      // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g.
+      // bridging); Monad is where MON is sold from.
+      chain: 'base' | 'ethereum' | 'monad';
+      // The exact network: 8453 Base, 1 Ethereum, 143 Monad. Required: the app refuses a plan for a
+      // network it doesn't sign on rather than guessing.
       chainId: number;
       to: `0x${string}`;
       data?: `0x${string}`;
@@ -65,7 +66,22 @@ export type UnsignedTx =
       // 'engine': the app only signs and hands the signed bytes back; the engine lands it
       // (Jupiter's order → execute flow). Engine-submitted transactions come last in a plan.
       submit?: 'app' | 'engine';
+    }
+  | {
+      // Not a transaction: the exact Privy Wallet API request the engine prepared (signing a swap in
+      // the user's own Sui wallet). The device approves it with the user's own authorization key and
+      // hands the approval back as a signed entry; the engine passes it to Privy.
+      chain: 'privy';
+      request: PrivyApprovalRequest;
     };
+
+export type PrivyApprovalRequest = {
+  version: 1;
+  method: 'POST';
+  url: string;
+  body: unknown;
+  headers: { 'privy-app-id': string; 'privy-request-expiry'?: string };
+};
 
 export type SignedChain = UnsignedTx['chain'];
 

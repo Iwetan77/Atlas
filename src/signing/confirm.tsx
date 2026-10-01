@@ -90,6 +90,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     try {
       for (const [index, tx] of plan.transactions.entries()) {
         setPhase({ kind: 'signing', step: index + 1 });
+        if (tx.chain === 'privy') {
+          signed.push({ index, transaction: await signer.approve(tx.request) });
+          continue;
+        }
         if (tx.chain === 'solana' && tx.submit === 'engine') {
           signed.push({ index, transaction: await signer.sign(tx) });
           continue;

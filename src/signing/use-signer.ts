@@ -1,12 +1,12 @@
 // Native signer: Privy Expo SDK embedded wallets. The Expo SDK has no signing UI of its own,
 // so nothing here can prompt the user.
-import { useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuthorizationSignature, useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { VersionedTransaction } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
-import type { SentTx, UnsignedTx } from '@/api/contract';
+import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
@@ -14,11 +14,13 @@ export function useSigner(): Signer {
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
 
+  const { generateAuthorizationSignature } = useAuthorizationSignature();
   const ethWallet = eth.wallets[0];
   const solWallet = sol.status === 'connected' ? sol.wallets[0] : undefined;
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
+      if (tx.chain === 'privy') throw new Error('A Privy approval is signed, not sent');
       if (tx.chain !== 'solana') {
         if (!ethWallet) throw new Error('EVM wallet is not ready');
         // Sent by the user's own wallet session, paid from its own ETH (plans top the tank up first
@@ -64,5 +66,11 @@ export function useSigner(): Signer {
     [solWallet],
   );
 
-  return { ready: !!ethWallet && !!solWallet, send, sign };
+  const approve = useCallback(
+    async (request: PrivyApprovalRequest): Promise<string> =>
+      (await generateAuthorizationSignature(request)).signature,
+    [generateAuthorizationSignature],
+  );
+
+  return { ready: !!ethWallet && !!solWallet, send, sign, approve };
 }

@@ -1,13 +1,13 @@
 // Web signer: Privy React SDK with wallet UIs forced off, so the confirm sheet stays the only prompt.
 // The user's own wallet session sends every transaction and pays its own gas: Privy sponsorship is
 // never requested.
-import { useSendTransaction } from '@privy-io/react-auth';
+import { useAuthorizationSignature, useSendTransaction } from '@privy-io/react-auth';
 import { useSignAndSendTransaction, useSignTransaction, useWallets } from '@privy-io/react-auth/solana';
 import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 
-import type { SentTx, UnsignedTx } from '@/api/contract';
+import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
 import { evmChainFor } from '@/signing/chains';
@@ -21,11 +21,13 @@ export function useSigner(): Signer {
   const { signAndSendTransaction } = useSignAndSendTransaction();
   const { signTransaction } = useSignTransaction();
   const { wallets: solanaWallets } = useWallets();
+  const { generateAuthorizationSignature } = useAuthorizationSignature();
 
   const solWallet = solanaWallets.find((w) => w.address === addresses.solana);
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
+      if (tx.chain === 'privy') throw new Error('A Privy approval is signed, not sent');
       if (tx.chain !== 'solana') {
         // One EVM address serves every EVM chain; it's labelled "base" because Base is the default.
         if (!addresses.base) throw new Error('EVM wallet is not ready');
@@ -69,5 +71,11 @@ export function useSigner(): Signer {
     [solWallet, signTransaction],
   );
 
-  return { ready: !!addresses.base && !!solWallet, send, sign };
+  const approve = useCallback(
+    async (request: PrivyApprovalRequest): Promise<string> =>
+      (await generateAuthorizationSignature(request)).signature,
+    [generateAuthorizationSignature],
+  );
+
+  return { ready: !!addresses.base && !!solWallet, send, sign, approve };
 }
