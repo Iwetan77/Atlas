@@ -47,6 +47,8 @@ export default function AssetTradeScreen() {
     verified: string;
     tradeable: string;
   }>();
+  // A Base coin's id is "base:<address>": the warning shows the address itself.
+  const address = params.assetId.replace(/^base:/, '');
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency, stealthMode } = useSettings();
   const runIntent = useRunIntent();
@@ -184,7 +186,7 @@ export default function AssetTradeScreen() {
           <Icon name="warning-outline" size={18} color="danger" />
           <Text variant="caption" color="danger" style={styles.flex}>
             Unverified token. Anyone can create a token with any name or logo, so make sure this address is the
-            one you meant: {params.assetId.slice(0, 6)}…{params.assetId.slice(-6)}
+            one you meant: {address.slice(0, 6)}…{address.slice(-6)}
           </Text>
         </View>
       ) : null}

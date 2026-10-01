@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { AssetCategory, MarketAsset } from '@/api/contract';
 import { useAssets } from '@/api/markets';
-import { AssetAvatar } from '@/components/trade/asset-avatar';
+import { TokenChainLogo } from '@/components/token-chain-logo';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -114,7 +114,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
         })
       }
       style={({ pressed }) => [styles.row, divider && styles.divider, pressed && styles.pressed]}>
-      <AssetAvatar symbol={asset.symbol} iconUrl={asset.iconUrl} />
+      <TokenChainLogo symbol={asset.symbol} iconUrl={asset.iconUrl} chain={asset.chain === 'base' ? 'base' : undefined} size={44} />
       <View style={styles.rowText}>
         <Text variant="bodyStrong" numberOfLines={1}>
           {asset.name}

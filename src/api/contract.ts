@@ -264,8 +264,10 @@ export type MarketAsset = {
   // Percent over 24h as a decimal string ("-3.21"), null when the venue has no history.
   change24hPct: string | null;
   iconUrl: string | null;
-  // False for a token found by pasting its address that Jupiter hasn't verified: anyone can make a
-  // token with any name, so the app warns before trading it.
+  // Where the coin lives ('solana', 'base'). Base coins carry Base's badge.
+  chain?: string;
+  // False for a token found by pasting its address that Jupiter (Solana) or CoinGecko (Base) hasn't
+  // verified: anyone can make a token with any name, so the app warns before trading it.
   verified?: boolean;
   // False when Atlas can show the asset but can't buy it yet (e.g. an unlisted Sui token before its
   // route is live): the asset screen shows it without a Buy button.
