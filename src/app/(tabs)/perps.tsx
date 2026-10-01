@@ -3,9 +3,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { PerpCategory, PerpMarket } from '@/api/contract';
-import { usePerpMarkets, usePerpPositions, usePerpsAccess } from '@/api/perps';
+import { usePerpMarkets, usePerpPositions } from '@/api/perps';
 import { useMe } from '@/api/send';
-import { EnablePerps } from '@/components/perps/enable-perps';
 import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Card } from '@/components/ui/card';
@@ -40,8 +39,6 @@ export default function PerpsScreen() {
   );
   const { markets, error: marketsError, reload: reloadMarkets } = usePerpMarkets();
   const { account, error: positionsError } = usePerpPositions(focused);
-  const access = usePerpsAccess();
-  const on = access.authorized && access.onboarded;
   const { me } = useMe();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -68,7 +65,6 @@ export default function PerpsScreen() {
         <Text variant="title">Perps</Text>
       </View>
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
-      <EnablePerps access={access} />
 
       <View style={styles.segment}>
         {(['markets', 'positions'] as const).map((v) => (
@@ -89,7 +85,7 @@ export default function PerpsScreen() {
       {view === 'positions' ? (
         account && positionCount > 0 ? (
           account.positions.map((p) => <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />)
-        ) : positionsError && on ? (
+        ) : positionsError ? (
           <Text variant="caption" color="textSecondary">
             {positionsError}
           </Text>

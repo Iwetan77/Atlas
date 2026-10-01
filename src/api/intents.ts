@@ -13,7 +13,7 @@ const SUBMIT_TIMEOUT_MS = 30_000;
 const SETTLE_POLL_MS = 2_000;
 const POLL_REQUEST_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 120_000;
-// Moving perps margin to Paradex takes about a minute; the engine gives it up to ten.
+// Moving money to a venue first (perps margin, cash between chains) can take minutes; the engine gives it up to ten.
 const FUND_TIMEOUT_MS = 11 * 60_000;
 
 // What was already sent or signed for each step of an intent ('validate', then 'sign'). A step is

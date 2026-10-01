@@ -7,14 +7,13 @@ import {
   useLoginWithEmail,
   useLoginWithOAuth,
   usePrivy,
-  useSigners,
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { setIdentityTokenSource } from '@/api/client';
-import { AtlasAuthContext, errorMessage, withTimeout } from '@/auth/context';
+import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
@@ -75,7 +74,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const oauth = useLoginWithOAuth();
   const email = useLoginWithEmail();
-  const { addSigners, removeSigners } = useSigners();
   useEffect(() => {
     setIdentityTokenSource(authenticated ? getIdentityToken : null);
   }, [authenticated]);
@@ -121,14 +119,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       walletsReady: !!solanaAddress && !!baseAddress,
       // A failed attempt doesn't matter once both wallets exist.
       walletError: solanaAddress && baseAddress ? null : walletError,
-      authorizeServerSigner: async (signer) => {
-        if (!baseAddress) throw new Error('Your wallet is still being set up');
-        await withTimeout(addSigners({ address: baseAddress, signers: [signer] }), 30_000, 'Privy');
-      },
-      revokeServerSigners: async () => {
-        if (!baseAddress) return;
-        await withTimeout(removeSigners({ address: baseAddress }), 30_000, 'Privy');
-      },
       emailLogin,
       loginWithGoogle: () => oauth.initOAuth({ provider: 'google' }),
       googleLoading: oauth.loading,
@@ -143,8 +133,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       solanaAddress,
       baseAddress,
       walletError,
-      addSigners,
-      removeSigners,
       emailLogin,
       oauth,
       logout,

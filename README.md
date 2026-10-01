@@ -33,8 +33,9 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    confirms once on the confirm sheet, and the app signs the engine's plan and follows it to the end:
    "Getting your money ready…", then "Buying…", then done. If the cash is on another chain, it moves first,
    inside that same confirm.
-6. **Perps** on Paradex: long or short with leverage, margin from the balance, liquidation price shown before
-   opening, one tap to close.
+6. **Perps** on Hyperliquid: crypto, stocks, commodities, indices and currencies, long or short with leverage,
+   margin from the balance, liquidation price shown before opening, one tap to close, and the money comes back
+   to the balance.
 7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
    take out any time.
 8. **Send** to an @handle, straight to the friend's wallet on the chain the cash is on. Bank payouts (Daya)
@@ -77,7 +78,7 @@ flowchart LR
   U[User] --> APP[Atlas app<br/>Expo: iOS · Android · web]
   APP -->|sign-in, wallets, signing| PRIVY[Privy]
   APP -->|quote → plan → signed → status| ENGINE[Atlas Engine<br/>Render]
-  ENGINE --> VENUES[Jupiter · 1Click · Relay · Layerswap · CoW · Paradex · Morpho · Aave …]
+  ENGINE --> VENUES[Jupiter · 1Click · Relay · Hyperliquid · CoW · Morpho · Aave …]
 ```
 
 ```

@@ -35,7 +35,7 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
   const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}-${p.side}.png`, 'Share position');
 
   const up = Number(p.unrealizedPnl.amount) >= 0;
-  // Venues don't always report PnL % or margin (Paradex doesn't); fall back to numbers they do report.
+  // Venues don't always report PnL % or margin; fall back to numbers they do report.
   const pct = p.unrealizedPnlPct === null ? null : Number(p.unrealizedPnlPct);
   const pnlText = `${up ? '+' : ''}${formatMoney(p.unrealizedPnl)}`;
   const gain = up ? 'success' : 'danger';

@@ -8,12 +8,11 @@ import {
   useLoginWithEmail,
   useLoginWithOAuth,
   usePrivy,
-  useSigners,
 } from '@privy-io/expo';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { setIdentityTokenSource } from '@/api/client';
-import { AtlasAuthContext, errorMessage, withTimeout } from '@/auth/context';
+import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy } from '@/config';
@@ -44,7 +43,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const oauth = useLoginWithOAuth();
   const email = useLoginWithEmail();
-  const { addSigners, removeSigners } = useSigners();
   const { getIdentityToken } = useIdentityToken();
   useEffect(() => {
     setIdentityTokenSource(user ? getIdentityToken : null);
@@ -94,14 +92,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
       wallets: { solana: solanaAddress, base: baseAddress },
       walletsReady: !!solanaAddress && !!baseAddress,
       walletError: solanaAddress && baseAddress ? null : walletError,
-      authorizeServerSigner: async (signer) => {
-        if (!baseAddress) throw new Error('Your wallet is still being set up');
-        await withTimeout(addSigners({ address: baseAddress, signers: [signer] }), 30_000, 'Privy');
-      },
-      revokeServerSigners: async () => {
-        if (!baseAddress) return;
-        await withTimeout(removeSigners({ address: baseAddress }), 30_000, 'Privy');
-      },
       emailLogin,
       loginWithGoogle: async () => {
         await oauth.login({ provider: 'google' });
@@ -111,7 +101,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       logout,
       getAccessToken: () => getAccessToken(),
     };
-  }, [user, isReady, privyError, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout, addSigners, removeSigners]);
+  }, [user, isReady, privyError, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);
 
   return <AtlasAuthContext.Provider value={value}>{children}</AtlasAuthContext.Provider>;
 }

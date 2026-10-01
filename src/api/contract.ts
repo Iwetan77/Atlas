@@ -15,15 +15,15 @@ export type Chain =
   | 'near'
   | 'monad'
   | 'sui'
-  // Perps margin held in the user's Paradex account.
-  | 'paradex';
+  // Perps margin held in the user's Hyperliquid account.
+  | 'hyperliquid';
 
 export type Venue =
   | 'daya'
   | 'circle'
   | 'jupiter'
   | 'one_inch'
-  | 'paradex'
+  | 'hyperliquid'
   | 'jito'
   | 'marinade'
   | 'aave'
@@ -40,7 +40,7 @@ export type IntentKind =
   | 'earn_deposit'
   | 'earn_withdraw';
 
-// 'fund': money is moving to the venue first (perps margin from Base to Paradex, about a minute).
+// 'fund': money is moving to the venue first (perps margin into Hyperliquid, usually seconds).
 // 'sign': a two-step plan's second transaction is ready (GET /v1/intents/{id}/next → { transactions });
 // the app signs it without asking again, because the user confirmed the whole action once.
 export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' | 'settle';
@@ -371,7 +371,7 @@ export type CashLink = {
   expiresAtUnixMs: number;
 };
 
-// ── Perps (Paradex) ─────────────────────────────────────────────────────────────────────
+// ── Perps (Hyperliquid) ─────────────────────────────────────────────────────────────────────
 // The app does no perps maths. Every number shown for a position, above all the liquidation
 // price, is a field the engine returns from the venue (Hyperliquid); the app never recomputes it.
 
@@ -380,7 +380,7 @@ export type PerpCategory = 'crypto' | 'meme' | 'stock' | 'commodity' | 'index' |
 
 // Every perp the venue lists, most traded first (thin markets can refuse fills).
 export type PerpMarket = {
-  marketId: string; // Paradex market, e.g. "BTC-USD-PERP"
+  marketId: string; // e.g. "BTC-PERP", or "xyz:TSLA-PERP" on Hyperliquid's stock dex
   symbol: string;
   name: string; // "Gold", "Alphabet"; the ticker when there's no better name
   category: PerpCategory;
@@ -406,7 +406,7 @@ export type PerpPosition = {
   markPrice: Money;
   // Exactly the venue's value; null when the position has none (low leverage).
   liquidationPrice: Money | null;
-  // Null when the venue doesn't report per-position margin (Paradex doesn't); the app never derives it.
+  // Null when the venue doesn't report per-position margin; the app never derives it.
   margin: Money | null;
   unrealizedPnl: Money;
   unrealizedPnlPct: string | null;
@@ -426,23 +426,23 @@ export type PerpQuote = {
   size: string;
   notional: Money;
   entryPrice: Money;
-  // Null before opening when the venue only reports liquidation for open positions (Paradex).
+  // Null before opening when the venue only reports liquidation for open positions (Hyperliquid).
   // The app then says "Available after opening"; it never estimates one.
   liquidationPrice: Money | null;
   fee: Money;
-  // Set when the Paradex account is short: this much moves from the Atlas balance to Paradex in the
-  // same confirmation (plus Layerswap's fee), then the order is placed.
+  // Set when the Hyperliquid account is short: this much moves from the Atlas balance to it in the
+  // same confirmation (plus Relay's few cents), then the order is placed.
   funding?: { amount: Money } | null;
   expiresAtUnixMs: number;
 };
-// POST /v1/perps/quotes/{quoteId}/execute → ExecutionPlan (kind "perp_open"). May carry zero
-// transactions when the engine places the Paradex order with the user's consented server signer.
+// POST /v1/perps/quotes/{quoteId}/execute → ExecutionPlan (kind "perp_open"). Carries zero
+// transactions unless margin moves in from Solana; the user's Hyperliquid agent places the order.
 
 // POST /v1/perps/positions/{positionId}/close-quote {} → PerpCloseQuote
 export type PerpCloseQuote = {
   quoteId: string;
   positionId: string;
-  // What comes back to the balance: margin ± realised PnL − fees.
+  // What comes back to the balance: margin ± realised PnL − fees (the engine moves it back to cash).
   receive: Money;
   realizedPnl: Money;
   exitPrice: Money;
@@ -452,24 +452,3 @@ export type PerpCloseQuote = {
 // POST /v1/perps/close-quotes/{quoteId}/execute → ExecutionPlan (kind "perp_close"),
 // then the usual POST /v1/intents/{id}/signed + GET /v1/intents/{id}.
 
-// GET /v1/perps/onboarding → the verified user's EVM wallet checked against Paradex.
-// `onboarded` is Paradex's own answer; it does NOT mean trading is open (the engine still has to
-// place and verify a real order), so the app never shows "ready to trade" from this alone.
-export type PerpsOnboarding = {
-  walletAddress: string;
-  accountAddress: string | null;
-  onboarded: boolean;
-  // The engine's Privy server signer for perps. This app's wallets run in Privy's TEE, where the
-  // user grants access by adding a signer (Privy `addSigners`); Privy rejects `delegateWallet` for
-  // TEE apps. Null until the engine has one configured.
-  signer: ServerSigner | null;
-  // Whether that signer is already on the user's wallet (the engine checks with Privy server-side).
-  signerAuthorized: boolean;
-};
-
-// POST /v1/perps/onboarding {} → the engine registers the wallet's Paradex account, signing only
-// Paradex's onboarding message with the granted signer. Idempotent: an onboarded wallet just gets
-// its status back. 409 = the signer isn't granted yet; 503 = the engine has onboarding switched off.
-export type PerpsOnboardResult = Pick<PerpsOnboarding, 'walletAddress' | 'accountAddress' | 'onboarded'>;
-
-export type ServerSigner = { signerId: string; policyIds: string[] };

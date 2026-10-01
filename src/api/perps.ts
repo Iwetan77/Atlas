@@ -8,8 +8,6 @@ import type {
   PerpMarket,
   PerpOpenRequest,
   PerpQuote,
-  PerpsOnboarding,
-  PerpsOnboardResult,
 } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
@@ -92,48 +90,6 @@ export function usePerpPositions(active: boolean) {
   }, [reload, active]);
 
   return { account, error, reload };
-}
-
-export function usePerpsOnboarding() {
-  const { authenticated, getAccessToken } = useAtlasAuth();
-  const [status, setStatus] = useState<PerpsOnboarding | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(() => {
-    if (!authenticated) return Promise.resolve();
-    return getWith<PerpsOnboarding>(getAccessToken, '/v1/perps/onboarding').then(
-      (next) => {
-        setStatus(next);
-        setError(null);
-      },
-      (e) => setError(perpsError(e, "Couldn't check your perps account right now.")),
-    );
-  }, [authenticated, getAccessToken]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  return { status, error, reload };
-}
-
-// Perps access = the engine's signer is authorised on the wallet (step 1) and Paradex onboarding is
-// done (step 2). Both come from the engine, which checks Privy and Paradex itself.
-export function usePerpsAccess() {
-  const onboarding = usePerpsOnboarding();
-  const status = onboarding.status;
-  return {
-    ...onboarding,
-    authorized: !!status?.signerAuthorized,
-    onboarded: !!status?.onboarded,
-    signer: status?.signer ?? null,
-  };
-}
-
-export type PerpsAccess = ReturnType<typeof usePerpsAccess>;
-
-export async function onboardPerps(token: Token): Promise<PerpsOnboardResult> {
-  return enginePost<PerpsOnboardResult>('/v1/perps/onboarding', await token(), {}, SAFE_TO_REPLAY);
 }
 
 export async function requestPerpQuote(token: Token, req: PerpOpenRequest): Promise<PerpQuote> {

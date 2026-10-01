@@ -6,10 +6,8 @@ import { type ReactNode, useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
-import { usePerpsAccess } from '@/api/perps';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
-import { PerpsAccessSettings } from '@/components/perps/enable-perps';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { TokenChainLogo } from '@/components/token-chain-logo';
 import { BackHeader } from '@/components/ui/back-header';
@@ -64,7 +62,6 @@ export default function ProfileScreen() {
     }, [reload]),
   );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
-  const perps = usePerpsAccess();
   const gas = useBalance().data?.gas ?? [];
 
   return (
@@ -184,15 +181,6 @@ export default function ProfileScreen() {
               </View>
             ))}
           </Card>
-        </>
-      ) : null}
-
-      {perps.authorized && perps.status?.signer ? (
-        <>
-          <Text variant="overline" color="textSecondary">
-            Perps
-          </Text>
-          <PerpsAccessSettings access={perps} />
         </>
       ) : null}
 
