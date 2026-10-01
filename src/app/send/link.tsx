@@ -85,8 +85,8 @@ export default function CashLinkScreen() {
         <PillButton label="Share" icon="share-outline" onPress={() => Share.share({ message: text })} />
         <PillButton
           label={copied ? 'Copied' : 'Copy link'}
-          icon="copy-outline"
-          tone="secondary"
+          icon={copied ? 'checkmark-circle' : 'copy-outline'}
+          tone={copied ? 'success' : 'secondary'}
           onPress={async () => {
             await Clipboard.setStringAsync(phase.url);
             setCopied(true);

@@ -149,7 +149,7 @@ export default function ProfileScreen() {
         />
       </Card>
 
-      {perps.authorized ? (
+      {perps.authorized && perps.status?.signer ? (
         <>
           <Text variant="overline" color="textSecondary">
             Perps

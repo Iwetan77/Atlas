@@ -7,10 +7,13 @@ import { Text } from '@/components/ui/text';
 import { colors } from '@/theme';
 
 // The engine's icon if it sends one (and it loads), else the bundled logo, else the symbol's initials.
+// Never blank: a logo that fails to load (a dev build fetches even bundled ones) falls back too.
 export function AssetAvatar({ symbol, iconUrl, size = 44 }: { symbol: string; iconUrl: string | null; size?: number }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [bundledFailed, setBundledFailed] = useState(false);
   const style = { width: size, height: size, borderRadius: size / 2 };
-  const source = iconUrl && iconUrl !== failedUrl ? { uri: iconUrl } : bundledLogo(symbol);
+  const remote = iconUrl && iconUrl !== failedUrl ? { uri: iconUrl } : null;
+  const source = remote ?? (bundledFailed ? null : bundledLogo(symbol));
   if (source) {
     return (
       <Image
@@ -18,7 +21,7 @@ export function AssetAvatar({ symbol, iconUrl, size = 44 }: { symbol: string; ic
         style={[styles.base, style]}
         contentFit="cover"
         accessibilityLabel={`${symbol} logo`}
-        onError={() => iconUrl && setFailedUrl(iconUrl)}
+        onError={() => (remote && iconUrl ? setFailedUrl(iconUrl) : setBundledFailed(true))}
       />
     );
   }

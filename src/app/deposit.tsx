@@ -10,6 +10,7 @@ import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { MoneyError } from '@/components/money-error';
 import { BackHeader } from '@/components/ui/back-header';
+import { DepositProgress } from '@/components/deposit-progress';
 import { Card } from '@/components/ui/card';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
@@ -28,15 +29,6 @@ const OWN: { id: 'base' | 'solana'; label: string; network: string; chainIcon: s
   { id: 'solana', label: 'USDC on Solana', network: 'Solana', chainIcon: `${LOGOS}/networks/solana_mainnet.png` },
   { id: 'base', label: 'USDC on Base', network: 'Base', chainIcon: `${LOGOS}/networks/base_mainnet.png` },
 ];
-
-const STATE_TEXT: Record<DepositState, string> = {
-  waiting: 'Waiting for your deposit…',
-  processing: 'It arrived. Adding it to your balance…',
-  done: 'Done. It’s in your balance.',
-  incomplete: 'Less than the minimum arrived. Send the rest to the same address.',
-  refunded: 'This deposit couldn’t be converted, so it was returned to your NEAR account.',
-  failed: 'Something went wrong with this deposit. Contact support with the address below.',
-};
 
 // Receive money from a wallet or an exchange, on the network the user picks. Chain names show only
 // here, because sending on the wrong network is how people lose money.
@@ -188,14 +180,16 @@ export default function DepositScreen() {
             </Text>
           ) : null}
           <View style={styles.actions}>
-            <PillButton label={copied ? 'Copied' : 'Copy'} onPress={() => copy(address)} style={styles.action} />
+            <PillButton
+              label={copied ? 'Copied' : 'Copy'}
+              icon={copied ? 'checkmark-circle' : 'copy-outline'}
+              tone={copied ? 'success' : 'primary'}
+              onPress={() => copy(address)}
+              style={styles.action}
+            />
             <PillButton label="Share" tone="secondary" onPress={() => Share.share({ message: address })} style={styles.action} />
           </View>
-          {deposit ? (
-            <Text color={state === 'done' ? 'success' : state === 'failed' || state === 'refunded' ? 'danger' : 'textSecondary'}>
-              {STATE_TEXT[state]}
-            </Text>
-          ) : null}
+          {deposit ? <DepositProgress state={state} /> : null}
           <Text variant="caption" color="textSecondary">
             Only send {deposit ? `${deposit.asset} on ${deposit.network}` : own?.label} to this address. Anything else may be lost.
             {deposit ? ' Use it within 2 hours of getting it.' : ''}

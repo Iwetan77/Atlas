@@ -4,7 +4,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing, type ColorToken } from '@/theme';
 
-type Tone = 'primary' | 'secondary';
+type Tone = 'primary' | 'secondary' | 'success';
 
 type Props = Omit<PressableProps, 'children'> & {
   label: string;
@@ -18,6 +18,8 @@ type Props = Omit<PressableProps, 'children'> & {
 const TONES: Record<Tone, { bg: string; pressed: string; fg: ColorToken }> = {
   primary: { bg: colors.accentPink, pressed: colors.accentPinkDeep, fg: 'textOnAccent' },
   secondary: { bg: colors.surfaceLight, pressed: colors.textSecondary, fg: 'textOnLight' },
+  // A finished action ("Copied"): green, so it reads as done at a glance.
+  success: { bg: colors.success, pressed: colors.success, fg: 'textOnLight' },
 };
 
 export function PillButton({ label, tone = 'primary', size = 'md', icon, disabled, loading, style, ...rest }: Props) {
