@@ -157,6 +157,15 @@ export default function DepositScreen() {
                 Anything from {deposit.minAmount} {deposit.asset} counts. You’ll get about {formatMoney(deposit.receive)}
                 {deposit.timeEstimateSec ? `, usually within ${Math.max(1, Math.round(deposit.timeEstimateSec / 60))} min of it arriving` : ''}.
               </Text>
+              {/* What the move costs, plainly: on small deposits the fixed fees are a big share. */}
+              {deposit.receive.currency === displayCurrency && Number(amount) > Number(deposit.receive.amount) ? (
+                <Text variant="caption" color="textSecondary">
+                  Fees: about {formatMoney({ amount: String(Number(amount) - Number(deposit.receive.amount)), currency: displayCurrency })}
+                  {Number(amount) > 0 && (Number(amount) - Number(deposit.receive.amount)) / Number(amount) > 0.05
+                    ? '. They’re mostly fixed, so bigger deposits lose a smaller share.'
+                    : ''}
+                </Text>
+              ) : null}
             </>
           ) : (
             <Text variant="bodyStrong">{own?.label}</Text>
