@@ -27,8 +27,8 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'meme', label: 'Memes' },
 ];
 
-// Perpetuals on Paradex: open positions first (with their liquidation prices), then every market
-// Paradex lists, most traded first, with search and category chips.
+// Perpetuals on Hyperliquid: open positions first (with their liquidation prices), then every market
+// it lists, most traded first, with search and category chips.
 export default function PerpsScreen() {
   const [focused, setFocused] = useState(false);
   useFocusEffect(

@@ -89,7 +89,7 @@ export default function PerpTicketScreen() {
         kind: 'failed',
         message:
           e instanceof StillSettling
-            ? "Paradex hasn't confirmed this order yet. Check your positions before opening another."
+            ? "Hyperliquid hasn't confirmed this order yet. Check your positions before opening another."
             : friendlyTxError(e),
       });
     }
@@ -200,18 +200,18 @@ export default function PerpTicketScreen() {
             <Row label="Fee" value={formatMoney(quote.fee)} />
             {quote.funding ? (
               <>
-                <Row label="From your balance to Paradex" value={formatMoney(quote.funding.amount)} />
+                <Row label="From your balance to Hyperliquid" value={formatMoney(quote.funding.amount)} />
                 <Text variant="caption" color="textSecondary">
-                  Your Paradex account is short of this margin, so it moves over first, in the same confirmation. It takes
-                  about a minute, then your order goes in.
+                  Your perps account is short of this margin, so it moves over first, in the same confirmation. It takes a
+                  few seconds, then your order goes in.
                 </Text>
               </>
             ) : null}
             <Text variant="caption" color="textSecondary">
               {phase.kind === 'settling'
               ? phase.funding
-                ? 'Moving your margin to Paradex…'
-                : 'Confirming with Paradex…'
+                ? 'Moving your margin to Hyperliquid…'
+                : 'Confirming with Hyperliquid…'
               : phase.kind === 'opening'
                 ? 'Getting your order ready…'
                 : quoting

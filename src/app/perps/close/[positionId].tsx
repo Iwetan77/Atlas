@@ -56,7 +56,7 @@ export default function ClosePositionScreen() {
         kind: 'failed',
         message:
           e instanceof StillSettling
-            ? "Paradex hasn't confirmed the close yet. Check your positions before trying again."
+            ? "Hyperliquid hasn't confirmed the close yet. Check your positions before trying again."
             : friendlyTxError(e),
       });
     }
@@ -98,7 +98,7 @@ export default function ClosePositionScreen() {
           <Row label="Exit price" value={formatPrice(quote.exitPrice)} />
           <Row label="Fee" value={formatMoney(quote.fee)} />
           <Text variant="caption" color="textSecondary">
-            {phase.kind === 'settling' ? 'Confirming with Paradex…' : quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
+            {phase.kind === 'settling' ? 'Confirming with Hyperliquid…' : quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
           </Text>
         </Card>
       ) : quoting ? (

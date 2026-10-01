@@ -14,7 +14,8 @@ export function LiquidationPrice({
   symbol,
   compact,
 }: {
-  // Null when the venue can't say yet (before opening): shown as such, never estimated.
+  // Null before opening (the venue can't say yet), or on an open position with no liquidation price
+  // (low leverage): shown as such, never estimated.
   price: Money | null;
   side: 'long' | 'short';
   symbol: string;
@@ -23,7 +24,9 @@ export function LiquidationPrice({
   return (
     <View
       style={[styles.band, compact && styles.compact]}
-      accessibilityLabel={price ? `Liquidation price ${formatExactMoney(price)}` : 'Liquidation price available after opening'}>
+      accessibilityLabel={
+        price ? `Liquidation price ${formatExactMoney(price)}` : compact ? 'No liquidation price' : 'Liquidation price available after opening'
+      }>
       <View style={styles.label}>
         <Icon name="warning-outline" size={16} color="danger" />
         <Text variant="label" color="danger">
@@ -35,7 +38,7 @@ export function LiquidationPrice({
           {formatExactMoney(price)}
         </Text>
       ) : (
-        <Text variant={compact ? 'bodyStrong' : 'heading'}>Available after opening</Text>
+        <Text variant={compact ? 'bodyStrong' : 'heading'}>{compact ? 'None at this leverage' : 'Available after opening'}</Text>
       )}
       {compact ? null : (
         <Text variant="caption" color="textSecondary">

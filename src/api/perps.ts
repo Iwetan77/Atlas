@@ -22,9 +22,9 @@ export function perpsError(e: unknown, notReady: string): string {
   if (e instanceof EngineUnavailable && e.status === 503) {
     console.warn('[atlas] perps not available:', e.message);
     // Thin order books are a venue state, not a missing feature: say what's actually wrong.
-    if (/cannot fill this amount/i.test(e.message)) return "Paradex can't fill that much right now. Try a smaller amount.";
+    if (/cannot fill this amount/i.test(e.message)) return "The market can't fill that much right now. Try a smaller amount.";
     if (/no fillable liquidity|too far from mark/i.test(e.message)) {
-      return 'Nobody on Paradex is trading this near the market price right now. Try again later.';
+      return 'Nobody is trading this near the market price right now. Try again later.';
     }
     return notReady;
   }
@@ -106,7 +106,7 @@ export function usePerpsOnboarding() {
         setStatus(next);
         setError(null);
       },
-      (e) => setError(perpsError(e, "Couldn't check your Paradex account right now.")),
+      (e) => setError(perpsError(e, "Couldn't check your perps account right now.")),
     );
   }, [authenticated, getAccessToken]);
 

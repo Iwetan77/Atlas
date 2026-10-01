@@ -364,12 +364,12 @@ export type CashLink = {
 
 // ── Perps (Paradex) ─────────────────────────────────────────────────────────────────────
 // The app does no perps maths. Every number shown for a position, above all the liquidation
-// price, is a field the engine returns from Paradex; the app displays it without recomputing it.
+// price, is a field the engine returns from the venue (Hyperliquid); the app never recomputes it.
 
 // GET /v1/perps/markets?currency=NGN → { markets: PerpMarket[] }
 export type PerpCategory = 'crypto' | 'meme' | 'stock' | 'commodity' | 'index';
 
-// Every perp Paradex lists, most traded first (thin markets can refuse fills).
+// Every perp the venue lists, most traded first (thin markets can refuse fills).
 export type PerpMarket = {
   marketId: string; // Paradex market, e.g. "BTC-USD-PERP"
   symbol: string;
@@ -395,8 +395,8 @@ export type PerpPosition = {
   size: string; // base units, e.g. "0.0132"
   entryPrice: Money;
   markPrice: Money;
-  // Exactly the venue's value (Paradex `liquidation_price`).
-  liquidationPrice: Money;
+  // Exactly the venue's value; null when the position has none (low leverage).
+  liquidationPrice: Money | null;
   // Null when the venue doesn't report per-position margin (Paradex doesn't); the app never derives it.
   margin: Money | null;
   unrealizedPnl: Money;
