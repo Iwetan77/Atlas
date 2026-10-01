@@ -4,11 +4,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
+import { useBalance } from '@/api/balance';
 import { usePerpsAccess } from '@/api/perps';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { PerpsAccessSettings } from '@/components/perps/enable-perps';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { TokenChainLogo } from '@/components/token-chain-logo';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -17,7 +19,7 @@ import { Screen } from '@/components/ui/screen';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { CURRENCIES } from '@/format/currencies';
-import { currencySymbol } from '@/format/money';
+import { currencySymbol, formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing } from '@/theme';
 
@@ -62,6 +64,7 @@ export default function ProfileScreen() {
   );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
   const perps = usePerpsAccess();
+  const gas = useBalance().data?.gas ?? [];
 
   return (
     <Screen>
@@ -151,6 +154,34 @@ export default function ProfileScreen() {
           onChange={(v) => update({ showEmptyPockets: v })}
         />
       </Card>
+
+      {gas.length > 0 ? (
+        <>
+          <Text variant="overline" color="textSecondary">
+            Gas
+          </Text>
+          <Card style={styles.group}>
+            <Text variant="caption" color="textSecondary">
+              A little SOL and ETH pays the network fees when your money moves. Atlas fills it from your
+              cash when it runs low, so you never have to. It isn&apos;t counted in your balance.
+            </Text>
+            {gas.map((tank) => (
+              <View key={tank.chain} style={styles.row}>
+                <View style={styles.rowLabel}>
+                  <TokenChainLogo symbol={tank.symbol} iconUrl={null} chain={tank.chain} size={32} />
+                  <View style={styles.rowText}>
+                    <Text variant="bodyStrong">{tank.chain === 'solana' ? 'Solana' : 'Base'}</Text>
+                    <Text variant="caption" color="textSecondary">
+                      {stealthMode ? HIDDEN : formatTokenNumber(tank.amount)} {tank.symbol}
+                    </Text>
+                  </View>
+                </View>
+                <Text variant="bodyStrong">{stealthMode ? hiddenMoney(tank.value.currency) : formatMoney(tank.value)}</Text>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : null}
 
       {perps.authorized && perps.status?.signer ? (
         <>

@@ -124,8 +124,12 @@ export type BalanceResponse = {
   // Counted in `total` but still settling (e.g. a Gateway deposit awaiting finality). Null when nothing is.
   pending: Money | null;
   holdings: Holding[];
+  // What pays network fees on each chain (SOL on Solana, ETH on Base). Not counted in `total`.
+  gas?: GasTank[];
   asOfUnixMs: number;
 };
+
+export type GasTank = { chain: Chain; symbol: string; amount: string; value: Money };
 
 // ── Deposits ────────────────────────────────────────────────────────────────────────────
 // Naira in by bank transfer: GET /v1/deposit/bank-account → the user's Daya virtual account.
@@ -270,7 +274,8 @@ export type TradeSide = 'buy' | 'sell';
 
 // POST /v1/quotes. Buy: `amount` is what to spend. Sell: `amount` is the value to sell.
 // Both are in the display currency; the engine converts to venue units.
-export type QuoteRequest = { assetId: string; side: TradeSide; amount: Money };
+// `all`: a sell of the whole holding (Max); `amount` is then just what it's worth.
+export type QuoteRequest = { assetId: string; side: TradeSide; amount: Money; all?: boolean };
 
 export type QuoteLeg = { amount: string; symbol: string; value: Money };
 

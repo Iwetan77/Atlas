@@ -5,14 +5,12 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
 
-const STEPS = ['Waiting for your deposit', 'Received, turning it into dollars', 'In your balance'] as const;
-
-// Which step a deposit is on: 0 waiting, 1 converting, 2 done.
-function stepOf(state: DepositState): number {
-  if (state === 'done') return 2;
-  if (state === 'processing') return 1;
-  return 0;
-}
+// What the deposit is doing now, one line at a time.
+const NOW: Partial<Record<DepositState, string>> = {
+  processing: 'Received. Turning it into dollars…',
+  done: 'In your balance',
+};
+const WAITING = 'Waiting for your deposit…';
 
 const TROUBLE: Partial<Record<DepositState, string>> = {
   incomplete: 'Less than the minimum arrived. Send the rest to the same address and it will go through.',
@@ -20,7 +18,7 @@ const TROUBLE: Partial<Record<DepositState, string>> = {
   failed: 'Something went wrong with this deposit. Contact support with the address above.',
 };
 
-// A deposit's progress as three steps: done ones ticked, the current one spinning.
+// A deposit's progress as a single line that changes as it moves: spinning until it's in, then ticked.
 export function DepositProgress({ state }: { state: DepositState }) {
   const trouble = TROUBLE[state];
   if (trouble) {
@@ -33,65 +31,40 @@ export function DepositProgress({ state }: { state: DepositState }) {
       </View>
     );
   }
-  const current = stepOf(state);
+  const done = state === 'done';
+  const line = NOW[state] ?? WAITING;
   return (
-    <View style={styles.box} accessibilityLabel={STEPS[current]}>
-      {STEPS.map((label, i) => {
-        const done = i < current || state === 'done';
-        const active = i === current && state !== 'done';
-        return (
-          <View key={label} style={styles.step}>
-            <View style={styles.marker}>
-              {done ? (
-                <Icon name="checkmark-circle" size={22} color="success" />
-              ) : active ? (
-                <ActivityIndicator size="small" color={colors.accentPink} />
-              ) : (
-                <View style={styles.dot} />
-              )}
-            </View>
-            <Text variant={active || (done && i === STEPS.length - 1) ? 'bodyStrong' : 'body'} color={done || active ? 'textPrimary' : 'textSecondary'}>
-              {label}
-            </Text>
-          </View>
-        );
-      })}
+    <View style={[styles.box, done && styles.done]} accessibilityLiveRegion="polite" accessibilityLabel={line}>
+      {done ? (
+        <Icon name="checkmark-circle" size={22} color="success" />
+      ) : (
+        <ActivityIndicator size="small" color={colors.accentPink} />
+      )}
+      <Text variant="bodyStrong" style={styles.flex}>
+        {line}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   box: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
     borderRadius: radii.md,
     backgroundColor: colors.bgSurfaceAlt,
   },
+  done: {
+    backgroundColor: colors.successDim,
+  },
   trouble: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
     backgroundColor: colors.dangerDim,
   },
   flex: {
     flex: 1,
-  },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  marker: {
-    width: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    borderColor: colors.border,
   },
 });

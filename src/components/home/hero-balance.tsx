@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
-import { AssetAvatar } from '@/components/trade/asset-avatar';
+import { TokenChainLogo } from '@/components/token-chain-logo';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, formatUsd, HIDDEN, hiddenMoney } from '@/format/money';
@@ -115,7 +115,7 @@ export function HeroBalance(props: Props) {
                 {holdings.map((h) => (
                   <View key={`${h.assetId}:${h.chain}:${h.location ?? 'wallet'}`} style={styles.asset}>
                     <View style={styles.assetAvatar}>
-                      <AssetAvatar symbol={h.symbol} iconUrl={null} size={36} />
+                      <TokenChainLogo symbol={h.symbol} iconUrl={h.iconUrl ?? null} chain={h.chain} size={36} />
                     </View>
                     <Text variant="heading" color="textOnLight" numberOfLines={1}>
                       {stealth ? HIDDEN : formatTokenNumber(h.amount)}

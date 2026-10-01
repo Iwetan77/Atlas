@@ -65,14 +65,6 @@ export default function PerpsScreen() {
     <Screen>
       <View style={styles.titleRow}>
         <Text variant="title">Perps</Text>
-        {on ? (
-          <View style={styles.onChip} accessibilityLabel="Perps access is on">
-            <View style={styles.onDot} />
-            <Text variant="label" color="success">
-              On
-            </Text>
-          </View>
-        ) : null}
       </View>
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
       <EnablePerps access={access} />
@@ -219,21 +211,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  onChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xxs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.successDim,
-  },
-  onDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.success,
   },
   emptyPositions: {
     alignItems: 'center',

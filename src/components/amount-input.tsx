@@ -18,16 +18,21 @@ const QUICK: Record<DisplayCurrency, number[]> = {
 };
 
 // Raw decimal string in and out ("10000.5"); shown grouped ("10,000.5") with the currency symbol.
+// `onMax`: a Max chip first (e.g. selling everything held), for the screen to fill in.
 export function AmountInput({
   label,
   value,
   onChange,
   currency,
+  onMax,
+  maxActive,
 }: {
   label: string;
   value: string;
   onChange: (raw: string) => void;
   currency: DisplayCurrency;
+  onMax?: () => void;
+  maxActive?: boolean;
 }) {
   return (
     <Card style={styles.card}>
@@ -50,6 +55,17 @@ export function AmountInput({
         />
       </View>
       <View style={styles.quick}>
+        {onMax ? (
+          <Pressable
+            onPress={onMax}
+            accessibilityRole="button"
+            accessibilityState={{ selected: !!maxActive }}
+            style={[styles.chip, maxActive && styles.chipActive]}>
+            <Text variant="label" color={maxActive ? 'textOnAccent' : 'textPrimary'}>
+              Max
+            </Text>
+          </Pressable>
+        ) : null}
         {QUICK[currency].map((q) => (
           <Pressable key={q} onPress={() => onChange(String(q))} style={styles.chip}>
             <Text variant="label">{formatMoney({ amount: String(q), currency }).replace(/\.00$/, '')}</Text>
@@ -84,5 +100,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radii.pill,
     backgroundColor: colors.bgSurfaceAlt,
+  },
+  chipActive: {
+    backgroundColor: colors.accentPink,
   },
 });

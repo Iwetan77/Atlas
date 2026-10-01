@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
+import { useBalance } from '@/api/balance';
 import type { IntentStage, Quote, TradeSide } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
 import { executeQuote, requestQuote } from '@/api/markets';
@@ -47,6 +48,15 @@ export default function AssetTradeScreen() {
 
   const [side, setSide] = useState<TradeSide>('buy');
   const [amount, setAmount] = useState('');
+  // Max on the sell side: the whole holding, not whatever its value rounds to.
+  const [all, setAll] = useState(false);
+  const holdings = useBalance().data?.holdings;
+  const held = holdings?.find((h) => h.assetId === params.assetId && (h.location ?? 'wallet') === 'wallet');
+  const sellAll = side === 'sell' && all;
+  const editAmount = (raw: string) => {
+    setAll(false);
+    setAmount(raw);
+  };
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
   const value = Number(amount) || 0;
@@ -58,8 +68,9 @@ export default function AssetTradeScreen() {
         assetId: params.assetId,
         side,
         amount: { amount: value.toFixed(2), currency: displayCurrency },
+        ...(sellAll ? { all: true } : {}),
       }),
-    [getAccessToken, params.assetId, side, value, displayCurrency],
+    [getAccessToken, params.assetId, side, value, displayCurrency, sellAll],
   );
   const { quote, error: quoteError, quoting, secondsLeft, clear } = useLiveQuote(
     value > 0 ? request : null,
@@ -100,6 +111,7 @@ export default function AssetTradeScreen() {
           tone="secondary"
           onPress={() => {
             setAmount('');
+            setAll(false);
             clear();
             setPhase({ kind: 'edit' });
           }}
@@ -168,8 +180,17 @@ export default function AssetTradeScreen() {
       <AmountInput
         label={side === 'buy' ? 'You spend' : 'You sell (value)'}
         value={amount}
-        onChange={setAmount}
+        onChange={editAmount}
         currency={displayCurrency}
+        onMax={
+          side === 'sell' && held && Number(held.amount) > 0
+            ? () => {
+                setAmount(held.value.amount);
+                setAll(true);
+              }
+            : undefined
+        }
+        maxActive={sellAll}
       />
 
       {quote ? (
