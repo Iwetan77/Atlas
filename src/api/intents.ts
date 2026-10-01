@@ -118,7 +118,7 @@ export function useRunIntent() {
             signed.push({ index, transaction: await signer.sign(tx) });
             continue;
           }
-          const result = await signer.send(tx, status.intentId);
+          const result = await signer.send(tx);
           await waitForTx(result, tx);
           sent.push(result);
         }

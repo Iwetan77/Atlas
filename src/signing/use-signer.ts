@@ -6,58 +6,38 @@ import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
-import { enginePost, SAFE_TO_REPLAY } from '@/api/client';
 import type { SentTx, UnsignedTx } from '@/api/contract';
-import { useAtlasAuth } from '@/auth/context';
 import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
-
-const BASE_MAINNET = 8453;
 
 export function useSigner(): Signer {
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
-  const { getAccessToken } = useAtlasAuth();
 
   const ethWallet = eth.wallets[0];
   const solWallet = sol.status === 'connected' ? sol.wallets[0] : undefined;
 
   const send = useCallback(
-    async (tx: UnsignedTx, intentId: string): Promise<SentTx> => {
+    async (tx: UnsignedTx): Promise<SentTx> => {
       if (tx.chain !== 'solana') {
         if (!ethWallet) throw new Error('EVM wallet is not ready');
+        // Sent by the user's own wallet session, paid from its own ETH (plans top the tank up first
+        // when it's empty). The engine checks every hash against the plan it made.
         const chainId = evmChainFor(tx).id;
-        // Ethereum L1 legs go out directly from the wallet; Base goes through the engine's relay.
-        if (chainId !== BASE_MAINNET) {
-          const provider = await ethWallet.getProvider();
-          const hash = await provider.request({
-            method: 'eth_sendTransaction',
-            params: [
-              {
-                from: ethWallet.address,
-                to: tx.to,
-                data: tx.data ?? '0x',
-                value: numberToHex(BigInt(tx.value ?? '0')),
-                chainId: numberToHex(chainId),
-              },
-            ],
-          });
-          return { chain: tx.chain, id: String(hash) };
-        }
-        // The engine sends the planned transaction for us (only ever one it planned for this intent,
-        // and only once), paid from the wallet's own ETH: plans top the tank up first when it's empty.
-        return enginePost<SentTx>(
-          '/v1/relay/evm',
-          await getAccessToken(),
-          {
-            intentId,
-            chainId,
-            to: tx.to,
-            data: tx.data ?? '0x',
-            value: tx.value ?? '0',
-          },
-          SAFE_TO_REPLAY,
-        );
+        const provider = await ethWallet.getProvider();
+        const hash = await provider.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: ethWallet.address,
+              to: tx.to,
+              data: tx.data ?? '0x',
+              value: numberToHex(BigInt(tx.value ?? '0')),
+              chainId: numberToHex(chainId),
+            },
+          ],
+        });
+        return { chain: tx.chain, id: String(hash) };
       }
 
       if (!solWallet) throw new Error('Solana wallet is not ready');
@@ -69,7 +49,7 @@ export function useSigner(): Signer {
       });
       return { chain: 'solana', id: signature };
     },
-    [ethWallet, solWallet, getAccessToken],
+    [ethWallet, solWallet],
   );
 
   const sign = useCallback(
