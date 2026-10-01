@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { engineGet, enginePost, SAFE_TO_REPLAY } from '@/api/client';
+import { engineGet, enginePost, EngineTimeout, SAFE_TO_REPLAY } from '@/api/client';
 import type {
   AssetCategory,
   AssetChart,
@@ -16,30 +16,41 @@ import { useSettings } from '@/settings/context';
 
 type Token = () => Promise<string | null>;
 
+// How long a search may take before it's called slow (the engine answers within a few seconds, leaving
+// out any source that's slow).
+const SEARCH_TIMEOUT_MS = 15_000;
+
 export function useAssets(category: AssetCategory, query: string) {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const [assets, setAssets] = useState<MarketAsset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Only the latest request may update the list: a slow answer for "bon" never replaces "bonk".
+  const latest = useRef(0);
 
   const load = useCallback(async () => {
+    const ticket = ++latest.current;
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({ currency: displayCurrency, category });
       if (query.trim()) params.set('q', query.trim());
-      const res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, await getAccessToken());
+      const res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, await getAccessToken(), {
+        timeoutMs: SEARCH_TIMEOUT_MS,
+      });
+      if (ticket !== latest.current) return;
       setAssets(res.assets);
-      setError(null);
     } catch (e) {
-      setError(errorMessage(e));
+      if (ticket !== latest.current) return;
+      setError(e instanceof EngineTimeout ? 'Search is taking too long. Try again.' : errorMessage(e));
     } finally {
-      setLoading(false);
+      if (ticket === latest.current) setLoading(false);
     }
   }, [getAccessToken, displayCurrency, category, query]);
 
   useEffect(() => {
-    // Typing shouldn't fire a request per keystroke.
+    // Typing shouldn't fire a request per keystroke; the keyboard's Search key runs it at once.
     const id = setTimeout(load, query ? 350 : 0);
     return () => clearTimeout(id);
   }, [load, query]);

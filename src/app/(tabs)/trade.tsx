@@ -38,6 +38,7 @@ export default function TradeScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        onSubmitEditing={reload}
       />
       <View style={styles.chips}>
         {CATEGORIES.map((c) => {
@@ -57,16 +58,20 @@ export default function TradeScreen() {
         })}
       </View>
 
-      {assets && assets.length > 0 ? (
-        <Card style={styles.list}>
-          {assets.map((a, i) => (
-            <AssetRow key={a.assetId} asset={a} divider={i > 0} />
+      {/* While a search or a chip change is loading, show that it's loading, not the old list. */}
+      {loading ? (
+        <Card style={styles.list} accessibilityLabel={query.trim() ? `Searching for ${query.trim()}` : 'Loading markets'}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={[styles.row, i > 0 && styles.divider]}>
+              <View style={styles.skeletonAvatar} />
+              <View style={styles.skeletonLine} />
+            </View>
           ))}
         </Card>
-      ) : error && !assets ? (
+      ) : error ? (
         <Card style={styles.state}>
           <Icon name="cloud-offline-outline" size={28} color="textSecondary" />
-          <Text variant="heading">Markets aren&apos;t available right now</Text>
+          <Text variant="heading">{query.trim() ? "Search didn't finish" : "Markets aren't available right now"}</Text>
           <Text variant="caption" color="textSecondary">
             {error}
           </Text>
@@ -76,18 +81,17 @@ export default function TradeScreen() {
             </Text>
           </Pressable>
         </Card>
-      ) : loading ? (
+      ) : assets && assets.length > 0 ? (
         <Card style={styles.list}>
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} style={[styles.row, i > 0 && styles.divider]}>
-              <View style={styles.skeletonAvatar} />
-              <View style={styles.skeletonLine} />
-            </View>
+          {assets.map((a, i) => (
+            <AssetRow key={a.assetId} asset={a} divider={i > 0} />
           ))}
         </Card>
       ) : (
         <Card style={styles.state}>
-          <Text color="textSecondary">Nothing matches “{query}”.</Text>
+          <Text color="textSecondary">
+            {query.trim() ? `Nothing matches “${query.trim()}”. Try a name, a ticker, or paste the token's address.` : 'No markets to show right now.'}
+          </Text>
         </Card>
       )}
     </Screen>
