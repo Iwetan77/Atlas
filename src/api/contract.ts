@@ -376,7 +376,7 @@ export type CashLink = {
 // price, is a field the engine returns from the venue (Hyperliquid); the app never recomputes it.
 
 // GET /v1/perps/markets?currency=NGN → { markets: PerpMarket[] }
-export type PerpCategory = 'crypto' | 'meme' | 'stock' | 'commodity' | 'index';
+export type PerpCategory = 'crypto' | 'meme' | 'stock' | 'commodity' | 'index' | 'currency';
 
 // Every perp the venue lists, most traded first (thin markets can refuse fills).
 export type PerpMarket = {

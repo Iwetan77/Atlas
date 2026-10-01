@@ -24,6 +24,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'stock', label: 'Stocks' },
   { key: 'commodity', label: 'Commodities' },
   { key: 'index', label: 'Indices' },
+  { key: 'currency', label: 'Currencies' },
   { key: 'meme', label: 'Memes' },
 ];
 
