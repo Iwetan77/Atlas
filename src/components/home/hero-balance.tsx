@@ -22,15 +22,17 @@ type Props = {
 };
 
 // MiniPay's hero card in Atlas pink: one number in the user's currency, the two money-in/money-out
-// actions, and the per-asset breakdown folded inside behind the chevron tab.
+// actions, and where the cash sits folded inside behind the chevron tab: USDC on each chain, in
+// perps, earning. That's what buys are paid from; the coins themselves are under Your assets.
 export function HeroBalance(props: Props) {
   const { balance, loading, error, currency, stealth, showEmptyPockets } = props;
   const [open, setOpen] = useState(false);
-  const holdings = balance
-    ? showEmptyPockets
-      ? balance.holdings
-      : balance.holdings.filter((h) => Number(h.amount) !== 0)
-    : [];
+  const cash = (balance?.holdings ?? []).filter((h) => h.kind === 'cash');
+  const holdings = showEmptyPockets ? cash : cash.filter((h) => Number(h.amount) !== 0);
+  // What the coins add to the balance, so the cards plus this line make the total.
+  const inAssets = (balance?.holdings ?? [])
+    .filter((h) => h.kind !== 'cash')
+    .reduce((sum, h) => sum + Number(h.value.amount), 0);
 
   return (
     <View style={styles.wrap}>
@@ -108,7 +110,7 @@ export function HeroBalance(props: Props) {
             <View style={styles.divider} />
             {holdings.length === 0 ? (
               <Text color="textOnAccent" style={styles.center}>
-                Nothing here yet. Deposit to get started.
+                No cash here yet. Deposit to get started.
               </Text>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assets}>
@@ -131,6 +133,15 @@ export function HeroBalance(props: Props) {
                 ))}
               </ScrollView>
             )}
+            {inAssets > 0 && balance ? (
+              <Text variant="caption" color="textOnAccent" style={styles.center}>
+                +{' '}
+                {stealth
+                  ? hiddenMoney(balance.total.currency)
+                  : formatMoney({ amount: inAssets.toFixed(2), currency: balance.total.currency })}{' '}
+                in your assets below
+              </Text>
+            ) : null}
             {currency !== 'USD' ? (
               <Text variant="caption" color="textOnAccent" style={[styles.center, styles.soft]}>
                 {currency} amounts are approximate
