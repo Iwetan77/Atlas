@@ -21,7 +21,8 @@ import { colors, spacing } from '@/theme';
 type Phase =
   | { kind: 'review' }
   | { kind: 'closing' }
-  | { kind: 'settling' }
+  // `cashing`: the position is closed and its money is on its way back to the balance.
+  | { kind: 'settling'; cashing: boolean }
   | { kind: 'done'; quote: PerpCloseQuote }
   | { kind: 'failed'; message: string };
 
@@ -43,15 +44,25 @@ export default function ClosePositionScreen() {
   const close = async () => {
     if (!quote) return;
     setPhase({ kind: 'closing' });
+    let cashing = false;
     try {
       const final = await runIntent(
         () => executeCloseQuote(getAccessToken, quote.quoteId),
-        () => setPhase({ kind: 'settling' }),
+        () => setPhase({ kind: 'settling', cashing: false }),
+        (status) => {
+          cashing = status.stage === 'settle';
+          setPhase({ kind: 'settling', cashing });
+        },
       );
       if (!final) setPhase({ kind: 'review' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
       else setPhase({ kind: 'failed', message: final.error ?? 'The position was not closed.' });
     } catch (e) {
+      // Closed already; the money is still on its way to the balance.
+      if (e instanceof StillSettling && cashing) {
+        setPhase({ kind: 'done', quote });
+        return;
+      }
       setPhase({
         kind: 'failed',
         message:
@@ -98,7 +109,13 @@ export default function ClosePositionScreen() {
           <Row label="Exit price" value={formatPrice(quote.exitPrice)} />
           <Row label="Fee" value={formatMoney(quote.fee)} />
           <Text variant="caption" color="textSecondary">
-            {phase.kind === 'settling' ? 'Confirming with Hyperliquid…' : quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
+            {phase.kind === 'settling'
+              ? phase.cashing
+                ? 'Closed. Moving the money to your balance…'
+                : 'Confirming with Hyperliquid…'
+              : quoting
+                ? 'Updating…'
+                : `Held for ${secondsLeft}s`}
           </Text>
         </Card>
       ) : quoting ? (
