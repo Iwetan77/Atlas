@@ -17,6 +17,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
+import { claimUrl, keepLinkKey, newLinkKey } from '@/funding/link-key';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { spacing } from '@/theme';
@@ -35,6 +36,9 @@ export default function CashLinkScreen() {
   const [message, setMessage] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
   const [copied, setCopied] = useState(false);
+  // One secret per link; its address is where the money waits until someone claims it.
+  const [key] = useState(newLinkKey);
+  const live = claimUrl(key) !== null;
 
   const value = Number(amount) || 0;
   const note = message.trim();
@@ -42,21 +46,27 @@ export default function CashLinkScreen() {
   const request = useCallback(
     () =>
       requestSendQuote(getAccessToken, {
-        destination: { type: 'cashlink', ...(note ? { message: note } : {}) },
+        destination: { type: 'cashlink', escrow: key.escrow, ...(note ? { message: note } : {}) },
         amount: { amount: value.toFixed(2), currency: displayCurrency },
       }),
-    [getAccessToken, note, value, displayCurrency],
+    [getAccessToken, key.escrow, note, value, displayCurrency],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(value > 0 ? request : null, phase.kind === 'edit');
+  const { quote, quoting, error, secondsLeft } = useLiveQuote(
+    value > 0 && live ? request : null,
+    phase.kind === 'edit',
+  );
 
   const create = async () => {
     if (!quote) return;
+    const url = claimUrl(key);
+    if (!url) return;
     setPhase({ kind: 'sending' });
     try {
+      // Kept on this phone before any money moves, so it can always be taken back.
+      await keepLinkKey(key);
       const final = await runIntent(() => executeSend(getAccessToken, quote.quoteId));
       if (!final) setPhase({ kind: 'edit' });
-      else if (final.state === 'filled' && final.cashLinkUrl)
-        setPhase({ kind: 'done', url: final.cashLinkUrl, amount: formatMoney(quote.receive) });
+      else if (final.state === 'filled') setPhase({ kind: 'done', url, amount: formatMoney(quote.receive) });
       else setPhase({ kind: 'failed', message: final.error ?? 'The link could not be created.' });
     } catch (e) {
       setPhase({ kind: 'failed', message: friendlyTxError(e) });
@@ -99,12 +109,16 @@ export default function CashLinkScreen() {
         maxLength={MESSAGE_MAX}
         accessibilityLabel="Note for the link"
       />
-      <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+      {live ? (
+        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+      ) : (
+        <Text color="textSecondary">Atlas Links open on the Atlas website, which goes live soon.</Text>
+      )}
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
       <PillButton
         label="Create link"
         icon="link-outline"
-        disabled={!quote || quoting}
+        disabled={!live || !quote || quoting}
         loading={phase.kind === 'sending'}
         onPress={create}
         style={styles.cta}

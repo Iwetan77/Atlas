@@ -301,8 +301,6 @@ export type IntentStatus = {
   // Final on-chain ids once landed.
   txIds: string[];
   error: string | null;
-  // Set on a filled cash-link send: the shareable link, secret included. Shown once.
-  cashLinkUrl?: string;
 };
 
 // ── Identity: @handles ──────────────────────────────────────────────────────────────────
@@ -324,7 +322,8 @@ export type SendDestination =
   | { type: 'atlas'; handle: string }
   // Nigerian bank account paid out through Daya.
   | { type: 'bank'; bankCode: string; accountNumber: string }
-  | { type: 'cashlink'; message?: string };
+  // An Atlas Link: `escrow` is the address of the link's secret, made on the sender's phone.
+  | { type: 'cashlink'; escrow: string; message?: string };
 
 // POST /v1/sends/quote → SendQuote. `amount` is what leaves the balance, in the display currency.
 export type SendQuoteRequest = { destination: SendDestination; amount: Money };
@@ -343,8 +342,8 @@ export type SendQuote = {
 };
 
 // POST /v1/sends/quote/{quoteId}/execute → ExecutionPlan, then the same /v1/intents flow as trades.
-// A plan may carry zero transactions when the engine moves funds with the user's consented server
-// signer; the user still confirms it exactly once. A filled cash-link intent carries `cashLinkUrl`.
+// A plan may carry zero transactions (the engine moves funds after the user's one confirm). For an
+// Atlas Link the phone builds the link itself from the secret it made (src/funding/link-key.ts).
 
 // GET  /v1/offramp/banks?country=NG → { banks: Bank[] }
 // POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
