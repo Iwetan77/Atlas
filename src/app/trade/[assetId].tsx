@@ -1,14 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import type { IntentStage, Quote, TradeSide } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
 import { executeQuote, requestQuote } from '@/api/markets';
+import { useSpotPositions } from '@/api/positions';
+import { useMe } from '@/api/send';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { MemeCard } from '@/components/home/meme-card';
 import { MoneyError } from '@/components/money-error';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
@@ -23,6 +26,8 @@ import { formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
+
+const POSITION_POLL_MS = 10_000;
 
 type Phase =
   | { kind: 'edit' }
@@ -43,7 +48,7 @@ export default function AssetTradeScreen() {
     tradeable: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
-  const { displayCurrency } = useSettings();
+  const { displayCurrency, stealthMode } = useSettings();
   const runIntent = useRunIntent();
 
   const [side, setSide] = useState<TradeSide>('buy');
@@ -53,6 +58,24 @@ export default function AssetTradeScreen() {
   const holdings = useBalance().data?.holdings;
   const held = holdings?.find((h) => h.assetId === params.assetId && (h.location ?? 'wallet') === 'wallet');
   const sellAll = side === 'sell' && all;
+
+  // What they hold of this coin, as its share card, kept live while the screen is open.
+  const { me } = useMe();
+  const { data: positions, reload: reloadPositions } = useSpotPositions();
+  const position = positions?.find((p) => p.assetId === params.assetId && Number(p.amount) > 0);
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const id = setInterval(reloadPositions, POSITION_POLL_MS);
+    return () => clearInterval(id);
+  }, [reloadPositions]);
+  const refreshPosition = async () => {
+    setRefreshing(true);
+    try {
+      await reloadPositions();
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const editAmount = (raw: string) => {
     setAll(false);
     setAmount(raw);
@@ -140,6 +163,21 @@ export default function AssetTradeScreen() {
           </Text>
         </View>
       </View>
+
+      {position ? (
+        <View style={styles.position}>
+          <Text variant="overline" color="textSecondary">
+            Your position
+          </Text>
+          <MemeCard
+            position={position}
+            handle={me?.handle ?? null}
+            stealth={stealthMode}
+            onRefresh={refreshPosition}
+            refreshing={refreshing}
+          />
+        </View>
+      ) : null}
 
       {params.verified === 'no' ? (
         <View style={styles.warning}>
@@ -264,6 +302,9 @@ function Busy({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  position: {
+    gap: spacing.sm,
+  },
   soon: {
     flexDirection: 'row',
     alignItems: 'center',

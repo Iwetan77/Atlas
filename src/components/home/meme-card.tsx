@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Pattern, Polygon, Rect, Stop } from 'react-native-svg';
@@ -59,10 +58,22 @@ function sparkle(x: number, y: number, r: number): string {
   return `${x},${y - r} ${x + k},${y - k} ${x + r},${y} ${x + k},${y + k} ${x},${y + r} ${x - k},${y + k} ${x - r},${y} ${x - k},${y - k}`;
 }
 
-// One meme the user holds, as a card worth posting: the coin's own mascot with a mood, the big
+// A coin the user holds, as a card worth posting: the coin's own mascot with a mood, the big
 // percentage, what went in and what it's worth now. Entry and realised gains sit under it, in the
-// app only.
-export function MemeCard({ position: p, handle, stealth }: { position: SpotPosition; handle: string | null; stealth: boolean }) {
+// app only. It lives on the coin's own screen, kept live there (`onRefresh` asks for fresh numbers).
+export function MemeCard({
+  position: p,
+  handle,
+  stealth,
+  onRefresh,
+  refreshing,
+}: {
+  position: SpotPosition;
+  handle: string | null;
+  stealth: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+}) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
   const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}.png`, 'Share your bag');
@@ -198,18 +209,17 @@ export function MemeCard({ position: p, handle, stealth }: { position: SpotPosit
       ) : null}
       <View style={styles.actions}>
         <PillButton label="Share" icon="share-outline" tone="secondary" size="sm" loading={sharing} onPress={share} style={styles.action} />
-        <PillButton
-          label="Trade"
-          tone="secondary"
-          size="sm"
-          style={styles.action}
-          onPress={() =>
-            router.push({
-              pathname: '/trade/[assetId]',
-              params: { assetId: p.assetId, symbol: p.symbol, name: p.name, price: p.price.amount, iconUrl: p.iconUrl ?? '', change: '' },
-            })
-          }
-        />
+        {onRefresh ? (
+          <PillButton
+            label="Refresh"
+            icon="refresh"
+            tone="secondary"
+            size="sm"
+            loading={refreshing}
+            onPress={onRefresh}
+            style={styles.action}
+          />
+        ) : null}
       </View>
     </View>
   );

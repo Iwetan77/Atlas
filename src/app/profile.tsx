@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
@@ -157,9 +158,12 @@ export default function ProfileScreen() {
 
       {gas.length > 0 ? (
         <>
-          <Text variant="overline" color="textSecondary">
-            Gas
-          </Text>
+          <View style={styles.overlineRow}>
+            <MaterialCommunityIcons name="gas-station" size={14} color={colors.textSecondary} />
+            <Text variant="overline" color="textSecondary">
+              Gas
+            </Text>
+          </View>
           <Card style={styles.group}>
             <Text variant="caption" color="textSecondary">
               A little SOL and ETH pays the network fees when your money moves. Atlas fills it from your
@@ -168,7 +172,7 @@ export default function ProfileScreen() {
             {gas.map((tank) => (
               <View key={tank.chain} style={styles.row}>
                 <View style={styles.rowLabel}>
-                  <TokenChainLogo symbol={tank.symbol} iconUrl={null} chain={tank.chain} size={32} />
+                  <TokenChainLogo symbol={tank.symbol} iconUrl={null} chain={tank.chain === 'solana' ? undefined : tank.chain} size={32} />
                   <View style={styles.rowText}>
                     <Text variant="bodyStrong">{tank.chain === 'solana' ? 'Solana' : 'Base'}</Text>
                     <Text variant="caption" color="textSecondary">
@@ -251,6 +255,11 @@ function Divider() {
 }
 
 const styles = StyleSheet.create({
+  overlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   identity: {
     alignItems: 'center',
     gap: spacing.sm,

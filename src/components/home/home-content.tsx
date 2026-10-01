@@ -96,29 +96,33 @@ export function HomeContent({
         onDeposit={addMoney}
       />
 
-      <YourAssets balance={data} positions={positions.data} handle={me?.handle ?? null} stealth={stealthMode} />
+      <YourAssets balance={data} positions={positions.data} stealth={stealthMode} />
 
       <EarnCard stealth={stealthMode} />
 
-      <NextSteps
-        steps={[
-          { key: 'account', title: 'Create your account', subtitle: 'Your wallet is ready', done: true },
-          {
-            key: 'handle',
-            title: 'Pick your @handle',
-            subtitle: 'Friends can send you money with it',
-            done: !!me?.handle,
-            action: { label: 'Pick', onPress: () => router.push('/handle') },
-          },
-          {
-            key: 'deposit',
-            title: 'Make a deposit',
-            subtitle: "Then you're ready",
-            done: hasFunds,
-            action: { label: 'Deposit', onPress: addMoney },
-          },
-        ]}
-      />
+      {/* Only once who they are and what they hold are known: no "Pick your @handle" or "Make a
+          deposit" flashing at someone who already has both. */}
+      {me && data ? (
+        <NextSteps
+          steps={[
+            { key: 'account', title: 'Create your account', subtitle: 'Your wallet is ready', done: true },
+            {
+              key: 'handle',
+              title: 'Pick your @handle',
+              subtitle: 'Friends can send you money with it',
+              done: !!me?.handle,
+              action: { label: 'Pick', onPress: () => router.push('/handle') },
+            },
+            {
+              key: 'deposit',
+              title: 'Make a deposit',
+              subtitle: "Then you're ready",
+              done: hasFunds,
+              action: { label: 'Deposit', onPress: addMoney },
+            },
+          ]}
+        />
+      ) : null}
 
       {dismissedPromos.includes(welcome.id) ? null : (
         <PromoBanner promo={welcome} onDismiss={() => update({ dismissedPromos: [...dismissedPromos, welcome.id] })} />
