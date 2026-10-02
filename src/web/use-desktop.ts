@@ -8,17 +8,24 @@ export function browserDevice(): 'ios' | 'android' | 'desktop' {
 }
 
 const noBrowserEvents = () => () => {};
+// A browser media query, or null on the phone: React Native has a `window` but no matchMedia.
+function media(query: string): MediaQueryList | null {
+  return Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia(query)
+    : null;
+}
 export function useBrowserDevice() {
   return useSyncExternalStore(noBrowserEvents, browserDevice, () => 'desktop' as const);
 }
 function isStandalone() {
-  return typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || !!(navigator as Navigator & { standalone?: boolean }).standalone);
+  const query = media('(display-mode: standalone)');
+  return !!query && (query.matches || !!(navigator as Navigator & { standalone?: boolean }).standalone);
 }
 function standaloneEvents(changed: () => void) {
-  if (typeof window === 'undefined') return () => {};
-  const media = window.matchMedia('(display-mode: standalone)');
-  media.addEventListener('change', changed);
-  return () => media.removeEventListener('change', changed);
+  const query = media('(display-mode: standalone)');
+  if (!query) return () => {};
+  query.addEventListener('change', changed);
+  return () => query.removeEventListener('change', changed);
 }
 export function useStandalone() { return useSyncExternalStore(standaloneEvents, isStandalone, () => false); }
 
@@ -27,9 +34,9 @@ function desktopSnapshot() {
   return Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth >= 1024 && browserDevice() === 'desktop';
 }
 function desktopEvents(changed: () => void) {
-  if (typeof window === 'undefined') return () => {};
-  const media = window.matchMedia('(min-width: 1024px)');
-  media.addEventListener('change', changed);
-  return () => media.removeEventListener('change', changed);
+  const query = media('(min-width: 1024px)');
+  if (!query) return () => {};
+  query.addEventListener('change', changed);
+  return () => query.removeEventListener('change', changed);
 }
 export function useDesktop() { return useSyncExternalStore(desktopEvents, desktopSnapshot, () => false); }
