@@ -383,7 +383,8 @@ export type SendQuote = {
 
 // GET  /v1/offramp/banks?country=NG → { banks: Bank[] }
 // POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
-export type Bank = { code: string; name: string };
+// `logo`: the bank's logo when the engine found one (Daya lists none).
+export type Bank = { code: string; name: string; logo?: string | null };
 
 // Adding money by bank transfer (Daya): a one-time Nigerian account; its naira lands as USDC.
 // POST /v1/onramp/bank/quote { amount: whole naira, currency } → BankTransferQuote (nothing opens)

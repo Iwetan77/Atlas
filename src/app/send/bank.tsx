@@ -18,7 +18,6 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
-import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { spacing } from '@/theme';
 
@@ -31,7 +30,6 @@ type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; label: str
 // Off-ramp: from the one balance straight to a bank account, paid out by the engine through Daya.
 export default function SendToBankScreen() {
   const { getAccessToken } = useAtlasAuth();
-  const { displayCurrency } = useSettings();
   const runIntent = useRunIntent();
 
   const [banks, setBanks] = useState<Bank[] | null>(null);
@@ -74,9 +72,10 @@ export default function SendToBankScreen() {
     () =>
       requestSendQuote(getAccessToken, {
         destination: { type: 'bank', bankCode: bank!.code, accountNumber },
-        amount: { amount: value.toFixed(2), currency: displayCurrency },
+        // What the bank gets, in naira; Daya's fee is added on top.
+        amount: { amount: value.toFixed(2), currency: 'NGN' },
       }),
-    [getAccessToken, bank, accountNumber, value, displayCurrency],
+    [getAccessToken, bank, accountNumber, value],
   );
   const { quote, quoting, error, secondsLeft } = useLiveQuote(ready && value > 0 ? request : null, phase.kind === 'edit');
 
@@ -130,7 +129,7 @@ export default function SendToBankScreen() {
 
       {ready ? (
         <>
-          <AmountInput label="You send" value={amount} onChange={setAmount} currency={displayCurrency} />
+          <AmountInput label="They get" value={amount} onChange={setAmount} currency="NGN" />
           <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
           {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
           <PillButton

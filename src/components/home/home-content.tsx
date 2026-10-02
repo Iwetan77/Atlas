@@ -107,6 +107,7 @@ export function HomeContent({
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
         onDeposit={addMoney}
+        onWithdraw={() => router.push('/send/bank')}
       />
 
       <PendingPurchases onFinished={balance.refresh} />

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { BalanceResponse, Holding, SpotPosition } from '@/api/contract';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
@@ -8,10 +8,10 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
-import { colors, spacing } from '@/theme';
+import { colors, radii, spacing } from '@/theme';
 
-// The stocks, memes and crypto the user owns, most valuable first: one row each with its gain or
-// loss. Tapping one opens its screen, where the position's share card lives and stays live. Cash is
+// The stocks, memes and crypto the user owns, most valuable first: a row of cards to swipe through,
+// each with its gain or loss. Tapping one opens its screen, where the position's share card lives and stays live. Cash is
 // the balance above; perps margin and positions live in Perps, not here.
 export function YourAssets({
   balance,
@@ -43,26 +43,28 @@ export function YourAssets({
           <PillButton label="Explore markets" tone="secondary" size="sm" onPress={() => router.push('/trade')} />
         </Card>
       ) : (
-        <Card style={styles.list}>
-          {owned.map((h, i) => (
-            <AssetRow key={`${h.assetId}:${h.chain}`} holding={h} position={byAsset.get(h.assetId)} stealth={stealth} divider={i > 0} />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.strip}
+          contentContainerStyle={styles.stripContent}>
+          {owned.map((h) => (
+            <AssetCard key={`${h.assetId}:${h.chain}`} holding={h} position={byAsset.get(h.assetId)} stealth={stealth} />
           ))}
-        </Card>
+        </ScrollView>
       )}
     </View>
   );
 }
 
-function AssetRow({
+function AssetCard({
   holding: h,
   position,
   stealth,
-  divider,
 }: {
   holding: Holding;
   position: SpotPosition | undefined;
   stealth: boolean;
-  divider: boolean;
 }) {
   const pct = position?.pnlPct == null ? null : Number(position.pnlPct);
   // The asset screen shows a unit price; for a holding that's its value per token.
@@ -82,18 +84,22 @@ function AssetRow({
           },
         })
       }
-      style={({ pressed }) => [styles.row, divider && styles.divider, pressed && styles.pressed]}>
+      accessibilityRole="button"
+      accessibilityLabel={h.name}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <AssetAvatar symbol={h.symbol} iconUrl={h.iconUrl ?? null} />
-      <View style={styles.rowText}>
+      <View style={styles.cardText}>
         <Text variant="bodyStrong" numberOfLines={1}>
           {h.name}
         </Text>
-        <Text variant="caption" color="textSecondary">
+        <Text variant="caption" color="textSecondary" numberOfLines={1}>
           {stealth ? HIDDEN : `${formatTokenNumber(h.amount)} ${h.symbol}`}
         </Text>
       </View>
-      <View style={styles.rowValue}>
-        <Text variant="bodyStrong">{stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}</Text>
+      <View style={styles.cardText}>
+        <Text variant="bodyStrong" numberOfLines={1}>
+          {stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}
+        </Text>
         {pct === null ? null : (
           <Text variant="caption" color={pct < 0 ? 'danger' : 'success'}>
             {`${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)}%`}
@@ -117,29 +123,25 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
-  list: {
-    paddingVertical: spacing.sm,
+  // Edge to edge: the cards scroll under the screen's side padding, starting in line with it.
+  strip: {
+    marginHorizontal: -spacing.lg,
+  },
+  stripContent: {
     paddingHorizontal: spacing.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
   },
-  divider: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  card: {
+    width: 152,
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    backgroundColor: colors.bgSurface,
   },
   pressed: {
     opacity: 0.7,
   },
-  rowText: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  rowValue: {
-    alignItems: 'flex-end',
+  cardText: {
     gap: spacing.xxs,
   },
 });

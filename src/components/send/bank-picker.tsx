@@ -3,6 +3,7 @@ import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Bank } from '@/api/contract';
+import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -36,7 +37,7 @@ export function BankPicker({
         accessibilityRole="button"
         accessibilityLabel={value ? `Bank: ${value.name}` : 'Choose bank'}
         style={styles.trigger}>
-        <Icon name="business-outline" size={20} color="textSecondary" />
+        {value ? <BankLogo bank={value} size={28} /> : <Icon name="business-outline" size={20} color="textSecondary" />}
         <Text variant="heading" color={value ? 'textPrimary' : 'textDisabled'} style={styles.triggerText}>
           {value?.name ?? (banks ? 'Choose bank' : error ? 'Banks unavailable' : 'Loading banks…')}
         </Text>
@@ -76,7 +77,10 @@ export function BankPicker({
                     setQuery('');
                   }}
                   style={({ pressed }) => [styles.bank, pressed && { backgroundColor: colors.bgSurfaceAlt }]}>
-                  <Text variant="bodyStrong">{item.name}</Text>
+                  <BankLogo bank={item} size={32} />
+                  <Text variant="bodyStrong" style={styles.bankName}>
+                    {item.name}
+                  </Text>
                   {value?.code === item.code ? <Icon name="checkmark" size={18} color="accentPink" /> : null}
                 </Pressable>
               )}
@@ -87,6 +91,17 @@ export function BankPicker({
       </Modal>
     </>
   );
+}
+
+// The bank's logo, or its initials when there's none (or it won't load).
+function BankLogo({ bank, size }: { bank: Bank; size: number }) {
+  const initials = bank.name
+    .split(/\s+/)
+    .filter((w) => /^[a-z0-9]/i.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+  return <AssetAvatar symbol={initials || 'B'} iconUrl={bank.logo ?? null} size={size} />;
 }
 
 const styles = StyleSheet.create({
@@ -125,10 +140,13 @@ const styles = StyleSheet.create({
   },
   bank: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     borderRadius: radii.sm,
+  },
+  bankName: {
+    flex: 1,
   },
 });

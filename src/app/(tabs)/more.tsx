@@ -1,13 +1,16 @@
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MINI_APPS, miniAppIcon } from '@/components/mini-apps/catalog';
 import { ChainBadge } from '@/components/token-chain-logo';
-import { type IconName } from '@/components/ui/icon';
+import { Field } from '@/components/ui/field';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { IconTile, SoonChip } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { addressOrSearch } from '@/components/web-browser/address';
 import { colors, radii, spacing } from '@/theme';
 
 type Item = { title: string; subtitle: string; icon: IconName; tone: 'pink' | 'blue'; href?: Href };
@@ -19,9 +22,30 @@ const ITEMS: Item[] = [
 ];
 
 export default function MoreScreen() {
+  const [search, setSearch] = useState('');
+  // Words search DuckDuckGo; an address opens that site. Both in Atlas's browser, wallet not connected.
+  const browse = () => {
+    const url = addressOrSearch(search);
+    if (!url) return;
+    setSearch('');
+    router.push({ pathname: '/browse', params: { url } });
+  };
   return (
     <Screen>
       <Text variant="title">More</Text>
+
+      <Field
+        prefix={<Icon name="search" size={20} color="textSecondary" />}
+        placeholder="Search the web or type an address"
+        value={search}
+        onChangeText={setSearch}
+        onSubmitEditing={browse}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="web-search"
+        returnKeyType="go"
+        accessibilityLabel="Search the web"
+      />
 
       <Text variant="overline" color="textSecondary">
         Mini apps

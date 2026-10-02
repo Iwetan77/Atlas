@@ -25,6 +25,10 @@ export function SendReview({
         <Row label="To" value={quote.destinationLabel} />
         <Row label="They get" value={formatMoney(quote.receive)} strong />
         <Row label="Fee" value={Number(quote.fee.amount) === 0 ? 'Free' : formatMoney(quote.fee)} />
+        {/* A bank payout's fee goes on top: what leaves the balance is more than they get. */}
+        {quote.send.currency === quote.receive.currency && Number(quote.send.amount) > Number(quote.receive.amount) ? (
+          <Row label="You pay" value={formatMoney(quote.send)} />
+        ) : null}
         <Row label="Arrives" value={quote.eta} />
         <Text variant="caption" color="textSecondary">
           {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
