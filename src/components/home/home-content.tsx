@@ -9,6 +9,7 @@ import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
 import { EarnCard } from '@/components/home/earn-card';
 import { YourAssets } from '@/components/home/your-assets';
+import { PendingPurchases } from '@/components/home/pending-purchases';
 import { NextSteps } from '@/components/next-steps';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { PromoBanner, type Promo } from '@/components/promo-banner';
@@ -95,6 +96,8 @@ export function HomeContent({
         onRetry={balance.refresh}
         onDeposit={addMoney}
       />
+
+      <PendingPurchases onFinished={balance.refresh} />
 
       <YourAssets balance={data} positions={positions.data} stealth={stealthMode} />
 

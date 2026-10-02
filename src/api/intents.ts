@@ -25,7 +25,7 @@ const stepKey = (intentId: string, stage: string) => `${intentId}:${stage}`;
 // Hands the confirmation to the engine. The engine treats a repeat as a no-op that returns the current
 // status, so a dropped connection is resent. If it still gets no answer, stop waiting on this call and
 // follow the intent's status instead: the engine may already be acting on it, and its status says so.
-export async function submitIntent(token: Token, intentId: string, body: IntentSubmission): Promise<IntentStatus> {
+export async function submitIntent(token: Token, intentId: string, body: IntentSubmission): Promise<IntentStatus & { reportPending?: boolean }> {
   try {
     return await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(intentId)}/signed`, await token(), body, {
       timeoutMs: SUBMIT_TIMEOUT_MS,
@@ -33,7 +33,7 @@ export async function submitIntent(token: Token, intentId: string, body: IntentS
     });
   } catch (e) {
     if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
-    return { intentId, stage: 'execute', state: 'pending', txIds: [], error: null };
+    return { intentId, stage: 'execute', state: 'pending', txIds: [], error: null, reportPending: true };
   }
 }
 
@@ -58,6 +58,7 @@ export async function waitForIntent(
   onStatus?.(status);
   while (status.state === 'pending') {
     if (status.stage !== stage) {
+      reported.delete(stepKey(status.intentId, stage));
       stage = status.stage;
       deadline = Date.now() + (stage === 'fund' ? FUND_TIMEOUT_MS : SETTLE_TIMEOUT_MS);
       onStatus?.(status);
@@ -67,9 +68,12 @@ export async function waitForIntent(
     const unseen = reported.get(stepKey(status.intentId, status.stage));
     if (unseen) {
       try {
+        const key = stepKey(status.intentId, status.stage);
         status = await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(status.intentId)}/signed`, await token(), unseen, {
           timeoutMs: SUBMIT_TIMEOUT_MS,
         });
+        // An actual HTTP acknowledgement consumes this report, even when the next step is also 'sign'.
+        reported.delete(key);
         if (status.state !== 'pending') break;
       } catch (e) {
         if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
@@ -118,8 +122,10 @@ export function useRunIntent() {
         throw e;
       }
       onSettling?.();
-      reported.set(stepKey(plan.intentId, 'validate'), { sent: report.sent, signed: report.signed });
+      const initialStage = plan.stage ?? 'validate';
+      reported.set(stepKey(plan.intentId, initialStage), { sent: report.sent, signed: report.signed });
       const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed });
+      if (!first.reportPending) reported.delete(stepKey(plan.intentId, initialStage));
       // A two-step plan (cash moved from another chain first): its last transaction is signed here,
       // covered by the one confirmation the user already gave.
       const signNext = async (status: IntentStatus) => {
@@ -133,6 +139,10 @@ export function useRunIntent() {
         const signed: SignedTx[] = [];
         const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
+          if ('typedData' in tx) {
+            signed.push({ index, transaction: await signer.sign(tx) });
+            continue;
+          }
           if (tx.chain === 'privy') {
             signed.push({ index, transaction: await signer.approve(tx.request) });
             continue;
@@ -146,7 +156,9 @@ export function useRunIntent() {
           sent.push(result);
         }
         reported.set(stepKey(status.intentId, 'sign'), { sent, signed });
-        return submitIntent(getAccessToken, status.intentId, { sent, signed });
+        const answer = await submitIntent(getAccessToken, status.intentId, { sent, signed });
+        if (!answer.reportPending) reported.delete(stepKey(status.intentId, 'sign'));
+        return answer;
       };
       try {
         return await waitForIntent(getAccessToken, first, onStatus, signNext);

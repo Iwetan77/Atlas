@@ -35,14 +35,6 @@ export const SAFE_TO_REPLAY: Options = { retries: 2 };
 
 const RETRY_DELAYS_MS = [500, 1500, 3000];
 
-// Privy's identity token rides along with the access token: when Privy signs as the user on the
-// engine's side (moves without gas, gas top-ups), its wallet exchange takes this one. The auth
-// provider sets where it comes from.
-let identityTokenSource: (() => Promise<string | null>) | null = null;
-export function setIdentityTokenSource(source: (() => Promise<string | null>) | null) {
-  identityTokenSource = source;
-}
-
 // Call to atlas-engine. Authenticated calls carry the Privy access token; the engine verifies it
 // and works out which wallets belong to the caller.
 async function engineRequest<T>(
@@ -72,7 +64,6 @@ async function engineAttempt<T>(
   auth: boolean,
   timeoutMs: number | undefined,
 ): Promise<T> {
-  const identityToken = auth && identityTokenSource ? await identityTokenSource().catch(() => null) : null;
   const abort = timeoutMs ? new AbortController() : null;
   const timer = abort ? setTimeout(() => abort.abort(), timeoutMs) : null;
   try {
@@ -80,7 +71,6 @@ async function engineAttempt<T>(
       method,
       headers: {
         ...(auth ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...(identityToken ? { 'privy-id-token': identityToken } : {}),
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },

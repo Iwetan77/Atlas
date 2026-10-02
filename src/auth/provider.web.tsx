@@ -1,7 +1,6 @@
 // Web auth on the Privy React SDK. Same Privy app as native, so the same login (e.g. Google)
 // resolves to the same Privy user and the same embedded wallet addresses.
 import {
-  getIdentityToken,
   PrivyProvider,
   useCreateWallet,
   useLoginWithEmail,
@@ -10,15 +9,16 @@ import {
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { setIdentityTokenSource } from '@/api/client';
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
 import { privyEvmChains } from '@/signing/chains';
 import { colors } from '@/theme';
+
+type SolanaRpcs = NonNullable<NonNullable<NonNullable<ComponentProps<typeof PrivyProvider>['config']>['solana']>['rpcs']>;
 
 const solanaRpcs = {
   [solana.chainId]: {
@@ -35,7 +35,8 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
         loginMethods: ['google', 'email'],
         defaultChain: privyEvmChains[0],
         supportedChains: privyEvmChains,
-        solana: { rpcs: solanaRpcs },
+        // Privy's RPC type includes test-cluster methods; this configured transport is mainnet.
+        solana: { rpcs: solanaRpcs as SolanaRpcs },
         appearance: { theme: 'dark', accentColor: colors.accentPink },
         embeddedWallets: {
           // AuthBridge creates both wallets itself, one after the other. Letting Privy also do it
@@ -74,9 +75,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const oauth = useLoginWithOAuth();
   const email = useLoginWithEmail();
-  useEffect(() => {
-    setIdentityTokenSource(authenticated ? getIdentityToken : null);
-  }, [authenticated]);
 
   const emailLogin = useOtpFlow(
     useCallback((to) => email.sendCode({ email: to }), [email]),

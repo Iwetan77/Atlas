@@ -20,6 +20,7 @@ export function useSigner(): Signer {
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
+      if ('typedData' in tx) throw new Error('Typed data is signed, not sent');
       if (tx.chain === 'privy') throw new Error('A Privy approval is signed, not sent');
       if (tx.chain !== 'solana') {
         if (!ethWallet) throw new Error('EVM wallet is not ready');
@@ -56,6 +57,12 @@ export function useSigner(): Signer {
 
   const sign = useCallback(
     async (tx: UnsignedTx): Promise<string> => {
+      if ('typedData' in tx) {
+        if (!ethWallet) throw new Error('EVM wallet is not ready');
+        const provider = await ethWallet.getProvider();
+        return String(await provider.request({ method: 'eth_signTypedData_v4',
+          params: [ethWallet.address, JSON.stringify(tx.typedData)] }));
+      }
       if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
       if (!solWallet) throw new Error('Solana wallet is not ready');
       const provider = await solWallet.getProvider();
@@ -63,7 +70,7 @@ export function useSigner(): Signer {
       const { signedTransaction } = await provider.request({ method: 'signTransaction', params: { transaction } });
       return Buffer.from(signedTransaction.serialize()).toString('base64');
     },
-    [solWallet],
+    [solWallet, ethWallet],
   );
 
   const approve = useCallback(

@@ -4,14 +4,12 @@ import {
   getAccessToken,
   useEmbeddedEthereumWallet,
   useEmbeddedSolanaWallet,
-  useIdentityToken,
   useLoginWithEmail,
   useLoginWithOAuth,
   usePrivy,
 } from '@privy-io/expo';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { setIdentityTokenSource } from '@/api/client';
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
@@ -43,10 +41,6 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
   const oauth = useLoginWithOAuth();
   const email = useLoginWithEmail();
-  const { getIdentityToken } = useIdentityToken();
-  useEffect(() => {
-    setIdentityTokenSource(user ? getIdentityToken : null);
-  }, [user, getIdentityToken]);
 
   const emailLogin = useOtpFlow(
     useCallback((to) => email.sendCode({ email: to }), [email]),

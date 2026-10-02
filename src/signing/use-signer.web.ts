@@ -1,7 +1,7 @@
 // Web signer: Privy React SDK with wallet UIs forced off, so the confirm sheet stays the only prompt.
 // The user's own wallet session sends every transaction and pays its own gas: Privy sponsorship is
 // never requested.
-import { useAuthorizationSignature, useSendTransaction } from '@privy-io/react-auth';
+import { useAuthorizationSignature, useSendTransaction, useSignTypedData } from '@privy-io/react-auth';
 import { useSignAndSendTransaction, useSignTransaction, useWallets } from '@privy-io/react-auth/solana';
 import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
@@ -17,6 +17,7 @@ const noWalletUi = { showWalletUIs: false } as const;
 
 export function useSigner(): Signer {
   const { wallets: addresses } = useAtlasAuth();
+  const { signTypedData } = useSignTypedData();
   const { sendTransaction } = useSendTransaction();
   const { signAndSendTransaction } = useSignAndSendTransaction();
   const { signTransaction } = useSignTransaction();
@@ -27,6 +28,7 @@ export function useSigner(): Signer {
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
+      if ('typedData' in tx) throw new Error('Typed data is signed, not sent');
       if (tx.chain === 'privy') throw new Error('A Privy approval is signed, not sent');
       if (tx.chain !== 'solana') {
         // One EVM address serves every EVM chain; it's labelled "base" because Base is the default.
@@ -58,6 +60,11 @@ export function useSigner(): Signer {
 
   const sign = useCallback(
     async (tx: UnsignedTx): Promise<string> => {
+      if ('typedData' in tx) {
+        if (!addresses.base) throw new Error('EVM wallet is not ready');
+        const { signature } = await signTypedData(tx.typedData, { address: addresses.base, uiOptions: noWalletUi });
+        return signature;
+      }
       if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
       if (!solWallet) throw new Error('Solana wallet is not ready');
       const { signedTransaction } = await signTransaction({
@@ -68,7 +75,7 @@ export function useSigner(): Signer {
       });
       return Buffer.from(signedTransaction).toString('base64');
     },
-    [solWallet, signTransaction],
+    [solWallet, signTransaction, addresses.base, signTypedData],
   );
 
   const approve = useCallback(

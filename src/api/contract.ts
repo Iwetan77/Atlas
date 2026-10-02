@@ -46,7 +46,15 @@ export type IntentKind =
 export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' | 'settle';
 
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
+export type TypedData = {
+  domain: Record<string, string | number>;
+  types: Record<string, { name: string; type: string }[]>;
+  primaryType: string;
+  message: Record<string, unknown>;
+};
 export type UnsignedTx =
+  | { chain: 'base' | 'hyperliquid'; typedData: TypedData }
+
   | {
       // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g.
       // bridging); Monad is where MON is sold from.
@@ -97,6 +105,7 @@ export type SignedTx = { index: number; transaction: string };
 // What one user action costs to execute. However many transactions it takes, the user
 // confirms it exactly once; the app signs `transactions` in order after that single confirm.
 export type ExecutionPlan = {
+  stage?: 'validate' | 'sign';
   intentId: string;
   kind: IntentKind;
   // Pre-formatted, display-currency lines for the confirm sheet (engine owns pricing and FX).
