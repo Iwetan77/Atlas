@@ -7,6 +7,7 @@ import type { SpotPositionsState } from '@/api/positions';
 import { useMe } from '@/api/send';
 import { useAtlasAuth } from '@/auth/context';
 import { HeroBalance } from '@/components/home/hero-balance';
+import { RecentTransactions } from '@/components/home/recent-transactions';
 import { EarnCard } from '@/components/home/earn-card';
 import { YourAssets } from '@/components/home/your-assets';
 import { PendingPurchases } from '@/components/home/pending-purchases';
@@ -102,6 +103,8 @@ export function HomeContent({
       <YourAssets balance={data} positions={positions.data} stealth={stealthMode} />
 
       <EarnCard stealth={stealthMode} />
+
+      <RecentTransactions stealth={stealthMode} />
 
       {/* Only once who they are and what they hold are known: no "Pick your @handle" or "Make a
           deposit" flashing at someone who already has both. */}

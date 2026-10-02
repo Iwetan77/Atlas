@@ -30,9 +30,10 @@ export function YourAssets({
 
   return (
     <View style={styles.section}>
-      <Text variant="overline" color="textSecondary">
-        Your assets
-      </Text>
+      <View style={styles.sectionLabel}>
+        <Icon name="layers-outline" size={14} color="textSecondary" />
+        <Text variant="overline" color="textSecondary">Your assets</Text>
+      </View>
       {owned.length === 0 ? (
         <Card style={styles.empty}>
           <Icon name="trending-up" size={26} color="textSecondary" />
@@ -104,6 +105,7 @@ function AssetRow({
 }
 
 const styles = StyleSheet.create({
+  sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   section: {
     gap: spacing.sm,
   },

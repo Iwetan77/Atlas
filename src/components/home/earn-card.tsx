@@ -32,9 +32,10 @@ export function EarnCard({ stealth }: { stealth: boolean }) {
 
   return (
     <View style={styles.section}>
-      <Text variant="overline" color="textSecondary">
-        Earn
-      </Text>
+      <View style={styles.sectionLabel}>
+        <Icon name="leaf-outline" size={14} color="textSecondary" />
+        <Text variant="overline" color="textSecondary">Earn</Text>
+      </View>
       <Pressable onPress={() => router.push('/earn')} accessibilityRole="button">
         {({ pressed }) => (
           <Card style={[styles.card, pressed && styles.pressed]}>
@@ -71,6 +72,7 @@ export function EarnCard({ stealth }: { stealth: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   section: {
     gap: spacing.sm,
   },
