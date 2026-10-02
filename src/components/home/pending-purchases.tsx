@@ -45,7 +45,11 @@ export function PendingPurchases({ onFinished }: { onFinished: () => void }) {
   return <View style={{ gap: 12 }}>
     {rows.map(row => <View key={row.intentId} style={{ gap: 8 }}>
       <Text variant="bodyStrong">{row.kind === 'perp_close' ? 'Cash return waiting' : `${row.symbol} ${row.kind === 'sell' ? 'sale' : 'purchase'} waiting`}</Text>
-      <Text color="textSecondary">Finish using the funds already set aside.</Text>
+      <Text color="textSecondary">{row.kind === 'perp_close'
+        ? 'Your position closed. Finish moves its cash back to your balance.'
+        : row.kind === 'sell'
+          ? `Your ${row.symbol} sale started. Finish brings the cash to your balance.`
+          : `Already paid for. Finish turns what you received into ${row.symbol}, with no new payment.`}</Text>
       <PillButton label={busy === row.intentId ? 'Finishing…' : 'Finish'} disabled={busy !== null} onPress={() => { void finish(row); }} />
     </View>)}
     {error ? <Text color="danger">{error}</Text> : null}
