@@ -118,7 +118,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
         })
       }
       style={({ pressed }) => [styles.row, divider && styles.divider, pressed && styles.pressed]}>
-      <TokenChainLogo symbol={asset.symbol} iconUrl={asset.iconUrl} chain={asset.chain === 'base' ? 'base' : undefined} size={44} />
+      <TokenChainLogo symbol={asset.symbol} iconUrl={asset.iconUrl} chain={asset.chain === 'solana' ? undefined : asset.chain} size={44} />
       <View style={styles.rowText}>
         <Text variant="bodyStrong" numberOfLines={1}>
           {asset.name}

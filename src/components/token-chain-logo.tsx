@@ -9,6 +9,7 @@ export const BUNDLED_CHAINS: Record<string, number> = {
   base: require('@/assets/chains/base.png'),
   solana: require('@/assets/chains/solana.png'),
   hyperliquid: require('@/assets/chains/hyperliquid.png'),
+  monad: require('@/assets/chains/monad.png'),
 };
 
 // A coin's logo with the chain it lives on as a small badge in the corner (USDC with Base's logo),
