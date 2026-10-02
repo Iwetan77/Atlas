@@ -385,6 +385,33 @@ export type SendQuote = {
 // POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
 export type Bank = { code: string; name: string };
 
+// Adding money by bank transfer (Daya): a one-time Nigerian account; its naira lands as USDC.
+// POST /v1/onramp/bank/quote { amount: whole naira, currency } → BankTransferQuote (nothing opens)
+// POST /v1/onramp/bank       { amount, currency }             → BankTransfer
+// GET  /v1/onramp/bank/{id}?currency=                          → BankTransfer
+export type BankTransferQuote = {
+  pay: Money;
+  fee: Money;
+  // Daya's flat charge for sending the USDC, already taken off `receive`.
+  networkFee: string;
+  receive: Money;
+  rate: string;
+};
+export type BankTransferState = 'waiting' | 'received' | 'processing' | 'review' | 'completed' | 'failed' | 'expired';
+export type BankTransfer = {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  // The exact amount to transfer, to the kobo; anything else is sent back.
+  pay: Money;
+  receive: Money;
+  expiresAtUnixMs: number;
+  state: BankTransferState;
+  message: string | null;
+  txId: string | null;
+};
+
 // Cash links. The claim secret travels only in the URL fragment (#k=…), which browsers never send
 // to a server, so it can't leak into logs.
 // GET  /v1/cashlinks/{linkId}            (no auth: the web claim page shows it before sign-in) → CashLink

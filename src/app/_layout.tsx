@@ -86,6 +86,7 @@ function RootStack() {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deposit" />
+        <Stack.Screen name="add-bank" />
         <Stack.Screen name="earn" />
         <Stack.Screen name="transactions" />
         <Stack.Screen name="transaction/[id]" />

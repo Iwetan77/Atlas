@@ -54,9 +54,13 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
       {
         key: 'bank',
         title: 'Bank transfer',
-        subtitle: displayCurrency === 'NGN' ? 'Pay in from any Nigerian bank' : 'From your bank account',
+        subtitle: 'Pay in naira from any Nigerian bank',
         icon: 'business-outline',
-        soon: true,
+        onPress: () => {
+          onClose();
+          // Back from there brings this sheet back up (see the bank transfer screen).
+          router.push({ pathname: '/add-bank', params: { from: 'add-money' } });
+        },
       },
       {
         key: 'wallet',
@@ -83,7 +87,7 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
         soon: true,
       },
     ],
-    [displayCurrency, onClose],
+    [onClose],
   );
 
   return (
