@@ -19,9 +19,10 @@ import { colors, spacing } from '@/theme';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAccessToken } = useAtlasAuth();
+  const { getAccessToken, userId } = useAtlasAuth();
   const { displayCurrency, stealthMode } = useSettings();
-  const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
+  const [storedReceipt, setReceipt] = useState<(TransactionReceipt & { owner: string | null }) | null>(null);
+  const receipt = storedReceipt?.owner === userId ? storedReceipt : null;
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -33,13 +34,13 @@ export default function ReceiptScreen() {
       if (busy) return; busy = true;
       try {
         const next = await engineGet<TransactionReceipt>(`/v1/transactions/${encodeURIComponent(id)}?currency=${displayCurrency}`, await getAccessToken(), { timeoutMs: 15000 });
-        if (active && requestRound === retry) { setReceipt(next); setError(null); }
+        if (active && requestRound === retry) { setReceipt({ ...next, owner: userId }); setError(null); }
       } catch (e) { if (active) setError(errorMessage(e)); }
       finally { busy = false; }
     }
     void refresh(); const timer = setInterval(() => void refresh(), 10000);
     return () => { active = false; clearInterval(timer); };
-  }, [id, displayCurrency, getAccessToken, retry]));
+  }, [id, displayCurrency, getAccessToken, retry, userId]));
   const copy = async (value: string) => { await Clipboard.setStringAsync(value); setCopied(value); };
   return <Screen>
     <BackHeader title="Transaction" />

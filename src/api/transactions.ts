@@ -16,10 +16,10 @@ type Page = { transactions: TransactionReceipt[]; nextCursor: string | null };
 
 // Poll only while the screen is visible, and never let an older response replace a newer one.
 export function useTransactions(limit = 6) {
-  const { authenticated, getAccessToken } = useAtlasAuth();
+  const { authenticated, getAccessToken, userId } = useAtlasAuth();
   const { displayCurrency } = useSettings();
-  const [snapshot, setSnapshot] = useState<{ currency: string; data: TransactionReceipt[] | null; error: string | null; cursor: string | null }>({ currency: displayCurrency, data: null, error: null, cursor: null });
-  const current = authenticated && snapshot.currency === displayCurrency;
+  const [snapshot, setSnapshot] = useState<{ owner: string | null; currency: string; data: TransactionReceipt[] | null; error: string | null; cursor: string | null }>({ owner: userId, currency: displayCurrency, data: null, error: null, cursor: null });
+  const current = authenticated && snapshot.owner === userId && snapshot.currency === displayCurrency;
   const data = current ? snapshot.data : null;
   const error = current ? snapshot.error : null;
   const cursor = current ? snapshot.cursor : null;
@@ -37,12 +37,12 @@ export function useTransactions(limit = 6) {
       const page = await engineGet<Page>(`/v1/transactions?currency=${displayCurrency}&limit=${limit}`, await getAccessToken(), { timeoutMs: 15000 });
       if (!active.current || version !== epoch.current) return;
       setSnapshot((old) => {
-        const fresh = old.currency !== displayCurrency || !old.data || limit === 6;
-        return { currency: displayCurrency, data: fresh ? page.transactions : merge(page.transactions, old.data ?? []), cursor: fresh ? page.nextCursor : old.cursor, error: null };
+        const fresh = old.owner !== userId || old.currency !== displayCurrency || !old.data || limit === 6;
+        return { owner: userId, currency: displayCurrency, data: fresh ? page.transactions : merge(page.transactions, old.data ?? []), cursor: fresh ? page.nextCursor : old.cursor, error: null };
       });
-    } catch (e) { if (active.current && version === epoch.current) setSnapshot((old) => ({ ...old, currency: displayCurrency, error: errorMessage(e) })); }
+    } catch (e) { if (active.current && version === epoch.current) setSnapshot((old) => ({ ...old, owner: userId, currency: displayCurrency, data: old.owner === userId && old.currency === displayCurrency ? old.data : null, cursor: old.owner === userId && old.currency === displayCurrency ? old.cursor : null, error: errorMessage(e) })); }
     finally { busy.current = false; }
-  }, [authenticated, displayCurrency, getAccessToken, limit]);
+  }, [authenticated, displayCurrency, getAccessToken, limit, userId]);
 
   useFocusEffect(useCallback(() => {
     active.current = true;
@@ -58,10 +58,10 @@ export function useTransactions(limit = 6) {
     try {
       const page = await engineGet<Page>(`/v1/transactions?currency=${displayCurrency}&limit=${limit}&cursor=${encodeURIComponent(cursor)}`, await getAccessToken(), { timeoutMs: 15000 });
       if (!active.current || version !== epoch.current) return;
-      setSnapshot((old) => ({ currency: displayCurrency, data: merge(old.data ?? [], page.transactions), cursor: page.nextCursor, error: null }));
-    } catch (e) { if (active.current && version === epoch.current) setSnapshot((old) => ({ ...old, currency: displayCurrency, error: errorMessage(e) })); }
+      setSnapshot((old) => ({ owner: userId, currency: displayCurrency, data: merge(old.data ?? [], page.transactions), cursor: page.nextCursor, error: null }));
+    } catch (e) { if (active.current && version === epoch.current) setSnapshot((old) => ({ ...old, owner: userId, currency: displayCurrency, data: old.owner === userId && old.currency === displayCurrency ? old.data : null, cursor: old.owner === userId && old.currency === displayCurrency ? old.cursor : null, error: errorMessage(e) })); }
     finally { moreBusy.current = false; setLoadingMore(false); }
-  }, [cursor, displayCurrency, getAccessToken, limit]);
+  }, [cursor, displayCurrency, getAccessToken, limit, userId]);
   return { data, error, reload, loadMore, hasMore: !!cursor, loadingMore };
 }
 function merge(first: TransactionReceipt[], second: TransactionReceipt[]) {
