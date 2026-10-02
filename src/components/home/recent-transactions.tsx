@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useTransactions } from '@/api/transactions';
@@ -8,8 +9,12 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { spacing } from '@/theme';
 
-export function RecentTransactions({ stealth }: { stealth: boolean }) {
+// `refreshKey`: bumped by Home's pull-to-refresh to load the latest.
+export function RecentTransactions({ stealth, refreshKey = 0 }: { stealth: boolean; refreshKey?: number }) {
   const { data, error, reload } = useTransactions(6);
+  useEffect(() => {
+    if (refreshKey > 0) void reload();
+  }, [refreshKey, reload]);
   return <View style={styles.section}>
     <View style={styles.header}>
       <View style={styles.label}><Icon name="time-outline" size={14} color="textSecondary" /><Text variant="overline" color="textSecondary">Transactions</Text></View>

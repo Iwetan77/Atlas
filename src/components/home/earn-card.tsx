@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useEarn } from '@/api/earn';
@@ -10,8 +10,12 @@ import { formatMoney, HIDDEN } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
 
 // Earn on Home: the rate on offer, or what's already earning. One tap to the savings screen.
-export function EarnCard({ stealth }: { stealth: boolean }) {
+// `refreshKey`: bumped by Home's pull-to-refresh to load the latest.
+export function EarnCard({ stealth, refreshKey = 0 }: { stealth: boolean; refreshKey?: number }) {
   const { options, positions, reload } = useEarn();
+  useEffect(() => {
+    if (refreshKey > 0) reload();
+  }, [refreshKey, reload]);
   // Home stays mounted under the tabs; coming back from Savings should show the new amount.
   useFocusEffect(
     useCallback(() => {

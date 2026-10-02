@@ -23,7 +23,8 @@ export type BalanceState = {
 type Shared = { owner: string | null; data: BalanceResponse | null; error: string | null; settled: boolean };
 let shared: Shared = { owner: null, data: null, error: null, settled: false };
 let restored = false;
-let inFlight = false;
+// The running refresh, so a pull-to-refresh during a poll waits for that answer.
+let inFlight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
 function publish(next: Partial<Shared>) {
@@ -58,9 +59,9 @@ export function useBalance(): BalanceState {
   const state = useSyncExternalStore(subscribe, () => shared);
 
   const refresh = useCallback(() => {
-    if (!authenticated || !userId || inFlight) return Promise.resolve();
-    inFlight = true;
-    return getAccessToken()
+    if (!authenticated || !userId) return Promise.resolve();
+    if (inFlight) return inFlight;
+    inFlight = getAccessToken()
       .then((token) => engineGet<BalanceResponse>(`/v1/balance?currency=${displayCurrency}`, token))
       .then(
         (next) => {
@@ -74,8 +75,9 @@ export function useBalance(): BalanceState {
         },
       )
       .finally(() => {
-        inFlight = false;
+        inFlight = null;
       });
+    return inFlight;
   }, [authenticated, userId, getAccessToken, displayCurrency]);
 
   useEffect(() => {

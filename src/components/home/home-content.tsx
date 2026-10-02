@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { BalanceState } from '@/api/balance';
@@ -53,6 +53,17 @@ export function HomeContent({
   const { data } = balance;
   const hasFunds = !!data && Number(data.total.amount) > 0;
 
+  // Pulling Home down reloads everything on it; the spinner stays until the balance, assets and
+  // profile are back (history and Earn follow on their own).
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshBalance = balance.refresh;
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setRefreshKey((k) => k + 1);
+    void Promise.allSettled([refreshBalance(), reloadPositions(), reloadMe()]).finally(() => setRefreshing(false));
+  }, [refreshBalance, reloadPositions, reloadMe]);
+
   const welcome: Promo = {
     id: 'welcome',
     title: 'Welcome to Atlas',
@@ -62,7 +73,7 @@ export function HomeContent({
   };
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <View style={styles.header}>
         <Pressable
           onPress={() => router.push('/profile')}
@@ -102,9 +113,9 @@ export function HomeContent({
 
       <YourAssets balance={data} positions={positions.data} stealth={stealthMode} />
 
-      <EarnCard stealth={stealthMode} />
+      <EarnCard stealth={stealthMode} refreshKey={refreshKey} />
 
-      <RecentTransactions stealth={stealthMode} />
+      <RecentTransactions stealth={stealthMode} refreshKey={refreshKey} />
 
       {/* Only once who they are and what they hold are known: no "Pick your @handle" or "Make a
           deposit" flashing at someone who already has both. */}
