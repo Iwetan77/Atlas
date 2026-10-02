@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,9 +8,9 @@ import { executeSend, guessBanks, listBanks, listRecipients, requestSendQuote, r
 import { useLiveQuote } from '@/api/use-live-quote';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
-import { ResultView } from '@/components/result-view';
 import { BankLogo, BankPicker } from '@/components/send/bank-picker';
 import { SendReview } from '@/components/send/send-review';
+import { type DoneTransfer, TransferDone } from '@/components/send/transfer-done';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -28,7 +28,7 @@ const NUBAN_LENGTH = 10;
 // Who the money goes to, once the bank has confirmed the holder's name.
 type Payee = { bank: Bank; accountNumber: string; accountName: string };
 type Guesses = { number: string; banks: BankGuess[] | null; error: string | null };
-type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; label: string; eta: string } | { kind: 'failed'; message: string };
+type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; transfer: DoneTransfer } | { kind: 'failed'; message: string };
 
 // Off-ramp: from the one balance straight to a bank account, paid out by the engine through Daya.
 // Type the account number and Atlas finds the bank (or pick a recent or favorite); then the amount.
@@ -137,7 +137,19 @@ export default function SendToBankScreen() {
       const final = await runIntent(() => executeSend(getAccessToken, quote.quoteId));
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled')
-        setPhase({ kind: 'done', label: `${formatMoney(quote.receive)} is on its way to ${payee.accountName}`, eta: quote.eta });
+        setPhase({
+          kind: 'done',
+          transfer: {
+            intentId: final.intentId,
+            bank: payee.bank,
+            accountNumber: payee.accountNumber,
+            accountName: payee.accountName,
+            receive: quote.receive,
+            send: quote.send,
+            fee: quote.fee,
+            eta: quote.eta,
+          },
+        });
       else setPhase({ kind: 'failed', message: final.error ?? 'The withdrawal did not go through.' });
     } catch (e) {
       setPhase({ kind: 'failed', message: friendlyTxError(e) });
@@ -146,9 +158,17 @@ export default function SendToBankScreen() {
 
   if (phase.kind === 'done') {
     return (
-      <ResultView title={phase.label} subtitle={`Arrives: ${phase.eta}`}>
-        <PillButton label="Done" onPress={() => router.navigate('/')} />
-      </ResultView>
+      <TransferDone
+        transfer={phase.transfer}
+        favorite={favorite}
+        onFavorite={toggleFavorite}
+        onAnother={() => {
+          reset();
+          setAccountNumber('');
+          setPhase({ kind: 'edit' });
+          listRecipients(getAccessToken).then(setRecipients, () => {});
+        }}
+      />
     );
   }
 

@@ -27,6 +27,8 @@ export function useAssets(category: AssetCategory, query: string) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [incomplete, setIncomplete] = useState(false);
+  // A search's second part (other chains, Base coins by name) is still on its way.
+  const [more, setMore] = useState(false);
   const search = query.trim();
   const key = JSON.stringify([displayCurrency, category, search]);
   const [settledKey, setSettledKey] = useState<string | null>(null);
@@ -44,36 +46,74 @@ export function useAssets(category: AssetCategory, query: string) {
     // Submitting with the keyboard cancels the pending automatic search.
     cancel();
     const ticket = latest.current;
+    const stale = () => ticket !== latest.current;
     setLoading(true);
     setError(null);
-    try {
+    setMore(false);
+    const url = (part?: 'listed' | 'other') => {
       const params = new URLSearchParams({ currency: displayCurrency, category });
       if (search) params.set('q', search);
+      if (part) params.set('part', part);
+      return `/v1/assets?${params}`;
+    };
+    try {
       const token = await getAccessToken();
-      if (ticket !== latest.current) return;
-      let res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, {
-        timeoutMs: SEARCH_TIMEOUT_MS,
-      });
-      if (ticket !== latest.current) return;
-      // One retry for a partial empty answer, before calling it a failed search.
-      if (search && res.assets.length === 0 && res.searchComplete === false) {
-        await new Promise((resolve) => setTimeout(resolve, 750));
-        if (ticket !== latest.current) return;
-        res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, { timeoutMs: SEARCH_TIMEOUT_MS });
-        if (ticket !== latest.current) return;
+      if (stale()) return;
+      if (!search) {
+        const res = await engineGet<AssetsResponse>(url(), token, { timeoutMs: SEARCH_TIMEOUT_MS });
+        if (stale()) return;
+        setAssets(res.assets);
+        setIncomplete(false);
+        return;
       }
-      setAssets(res.assets);
-      setIncomplete(res.searchComplete === false);
-      if (search && res.assets.length === 0 && res.searchComplete === false) {
-        setError("Some results couldn't load. Try again in a moment.");
+      // A search answers in two parts: Atlas's own coins show as soon as they're found, and other
+      // chains (and Base coins by name) join the list when they arrive.
+      const other = () =>
+        engineGet<AssetsResponse>(url('other'), token, { timeoutMs: SEARCH_TIMEOUT_MS }).catch((e: unknown) => e as Error);
+      const pending = other();
+      setMore(true);
+      let listed: MarketAsset[] = [];
+      let listedError: unknown = null;
+      try {
+        listed = (await engineGet<AssetsResponse>(url('listed'), token, { timeoutMs: SEARCH_TIMEOUT_MS })).assets;
+      } catch (e) {
+        listedError = e;
+      }
+      if (stale()) return;
+      setAssets(listed);
+      setSettledKey(key);
+      setLoading(false);
+      let rest = await pending;
+      if (stale()) return;
+      // One retry when the other chains came back empty-handed, before calling it a failed search.
+      if (rest instanceof Error || (rest.assets.length === 0 && rest.searchComplete === false && listed.length === 0)) {
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        if (stale()) return;
+        rest = await other();
+        if (stale()) return;
+      }
+      const found = rest instanceof Error ? [] : rest.assets.filter((a) => !listed.some((l) => l.assetId === a.assetId));
+      const all = [...listed, ...found];
+      setAssets(all);
+      setIncomplete(rest instanceof Error || rest.searchComplete === false);
+      if (all.length === 0 && (rest instanceof Error || rest.searchComplete === false || listedError)) {
+        const cause = listedError ?? (rest instanceof Error ? rest : null);
+        setError(
+          cause instanceof EngineTimeout
+            ? 'Search is taking too long. Try again.'
+            : cause
+              ? errorMessage(cause)
+              : "Some results couldn't load. Try again in a moment.",
+        );
       }
     } catch (e) {
-      if (ticket !== latest.current) return;
+      if (stale()) return;
       setError(e instanceof EngineTimeout ? 'Search is taking too long. Try again.' : errorMessage(e));
     } finally {
-      if (ticket === latest.current) {
+      if (!stale()) {
         setSettledKey(key);
         setLoading(false);
+        setMore(false);
       }
     }
   }, [getAccessToken, displayCurrency, category, search, key, cancel]);
@@ -86,7 +126,14 @@ export function useAssets(category: AssetCategory, query: string) {
   }, [load, search, cancel]);
 
   const current = settledKey === key;
-  return { assets: current ? assets : null, error: current ? error : null, loading: loading || !current, incomplete: current && incomplete, reload: load };
+  return {
+    assets: current ? assets : null,
+    error: current ? error : null,
+    loading: loading || !current,
+    incomplete: current && incomplete,
+    searchingMore: current && more,
+    reload: load,
+  };
 }
 
 // An asset's price history for one range; switching range keeps the last chart until the new one lands.

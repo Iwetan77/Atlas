@@ -19,6 +19,7 @@ const QUICK: Record<DisplayCurrency, number[]> = {
 
 // Raw decimal string in and out ("10000.5"); shown grouped ("10,000.5") with the currency symbol.
 // `onMax`: a Max chip first (e.g. selling everything held), for the screen to fill in.
+// `percentOf`: what's held (a decimal string): 25%, 50% and 75% of it replace the fixed amounts.
 export function AmountInput({
   label,
   value,
@@ -26,6 +27,7 @@ export function AmountInput({
   currency,
   onMax,
   maxActive,
+  percentOf,
 }: {
   label: string;
   value: string;
@@ -33,7 +35,21 @@ export function AmountInput({
   currency: DisplayCurrency;
   onMax?: () => void;
   maxActive?: boolean;
+  percentOf?: string;
 }) {
+  // A share of what's held, rounded down to the cent so it never asks for more than there is.
+  const share = (pct: number) => (Math.floor(Number(percentOf) * pct) / 100).toFixed(2);
+  const maxChip = onMax ? (
+    <Pressable
+      onPress={onMax}
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!maxActive }}
+      style={[styles.chip, maxActive && styles.chipActive]}>
+      <Text variant="label" color={maxActive ? 'textOnAccent' : 'textPrimary'}>
+        Max
+      </Text>
+    </Pressable>
+  ) : null;
   return (
     <Card style={styles.card}>
       <Text variant="label" color="textSecondary">
@@ -55,22 +71,30 @@ export function AmountInput({
         />
       </View>
       <View style={styles.quick}>
-        {onMax ? (
-          <Pressable
-            onPress={onMax}
-            accessibilityRole="button"
-            accessibilityState={{ selected: !!maxActive }}
-            style={[styles.chip, maxActive && styles.chipActive]}>
-            <Text variant="label" color={maxActive ? 'textOnAccent' : 'textPrimary'}>
-              Max
-            </Text>
-          </Pressable>
-        ) : null}
-        {QUICK[currency].map((q) => (
-          <Pressable key={q} onPress={() => onChange(String(q))} style={styles.chip}>
-            <Text variant="label">{formatMoney({ amount: String(q), currency }).replace(/\.00$/, '')}</Text>
-          </Pressable>
-        ))}
+        {onMax && !percentOf ? maxChip : null}
+        {percentOf && Number(percentOf) > 0
+          ? [25, 50, 75].map((pct) => {
+              const active = !maxActive && value === share(pct);
+              return (
+                <Pressable
+                  key={pct}
+                  onPress={() => onChange(share(pct))}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.chip, active && styles.chipActive]}>
+                  <Text variant="label" color={active ? 'textOnAccent' : 'textPrimary'}>
+                    {pct}%
+                  </Text>
+                </Pressable>
+              );
+            })
+          : QUICK[currency].map((q) => (
+              <Pressable key={q} onPress={() => onChange(String(q))} style={styles.chip}>
+                <Text variant="label">{formatMoney({ amount: String(q), currency }).replace(/\.00$/, '')}</Text>
+              </Pressable>
+            ))}
+        {/* Selling: 25%, 50%, 75%, then Max; typing is the custom amount. */}
+        {onMax && percentOf ? maxChip : null}
       </View>
     </Card>
   );

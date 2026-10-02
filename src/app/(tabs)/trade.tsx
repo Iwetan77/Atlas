@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { AssetCategory, MarketAsset } from '@/api/contract';
 import { useAssets } from '@/api/markets';
@@ -25,7 +25,7 @@ const CATEGORIES: { key: AssetCategory; label: string }[] = [
 export default function TradeScreen() {
   const [category, setCategory] = useState<AssetCategory>('popular');
   const [query, setQuery] = useState('');
-  const { assets, error, loading, incomplete, reload } = useAssets(category, query);
+  const { assets, error, loading, incomplete, searchingMore, reload } = useAssets(category, query);
 
   return (
     <Screen>
@@ -59,7 +59,7 @@ export default function TradeScreen() {
       </View>
 
       {/* While a search or a chip change is loading, show that it's loading, not the old list. */}
-      {loading ? (
+      {loading || (searchingMore && !assets?.length) ? (
         <Card style={styles.list} accessibilityLabel={query.trim() ? `Searching for ${query.trim()}` : 'Loading markets'}>
           {[0, 1, 2, 3].map((i) => (
             <View key={i} style={[styles.row, i > 0 && styles.divider]}>
@@ -94,6 +94,14 @@ export default function TradeScreen() {
               <AssetRow key={a.assetId} asset={a} divider={i > 0} />
             ))}
           </Card>
+          {searchingMore ? (
+            <View style={styles.more}>
+              <ActivityIndicator size="small" color={colors.accentPink} />
+              <Text variant="caption" color="textSecondary">
+                Looking on other chains…
+              </Text>
+            </View>
+          ) : null}
         </View>
       ) : (
         <Card style={styles.state}>
@@ -158,6 +166,13 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
 }
 
 const styles = StyleSheet.create({
+  more: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
   results: {
     gap: spacing.sm,
   },

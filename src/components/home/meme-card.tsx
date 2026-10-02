@@ -31,14 +31,31 @@ export function fitSize(text: string, max: number, width = DATA_W): number {
 
 type Mood = { tag: string; says: string; up: boolean | null };
 
+// What the mascot says, by mood: short enough for its bubble.
+const SAYS = {
+  holding: ['gm', 'fresh bag', 'day one', 'wen moon', "let's see", 'locked in'],
+  moon: ["we're so back", 'lambo szn', 'send it', 'printing', 'moon mission', 'gg ez', 'called it'],
+  pumping: ['wagmi', 'up only', 'number go up', 'lfg', 'cooking', 'green candles', 'early tbh'],
+  crabbing: ['just vibing', 'hodl is cool', 'patience pays', 'sideways szn', 'still early', 'comfy', 'zen mode'],
+  diamond: ['hodl', 'not selling', 'buy the dip', 'zoom out', 'never selling', 'this is fine', "it's a sale"],
+  rekt: ["it's so over", 'ngmi', 'down bad', 'send help', 'pain', 'f in chat', 'rugged?'],
+} as const;
+
+// One line per coin, kept as the numbers move within a mood (the symbol picks it).
+function pick(lines: readonly string[], seed: string): string {
+  let hash = 0;
+  for (const c of seed) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return lines[hash % lines.length];
+}
+
 // Trojan-style: the bigger the move, the louder the card.
-export function moodFor(pct: number | null): Mood {
-  if (pct === null) return { tag: 'HOLDING', says: 'gm', up: null };
-  if (pct >= 100) return { tag: 'TO THE MOON', says: "we're so back", up: true };
-  if (pct >= 10) return { tag: 'PUMPING', says: 'wagmi', up: true };
-  if (pct > -10) return { tag: 'CRABBING', says: 'just vibing', up: null };
-  if (pct > -50) return { tag: 'DIAMOND HANDS', says: 'hodl', up: false };
-  return { tag: 'REKT', says: "it's so over", up: false };
+export function moodFor(pct: number | null, seed = ''): Mood {
+  if (pct === null) return { tag: 'HOLDING', says: pick(SAYS.holding, seed), up: null };
+  if (pct >= 100) return { tag: 'TO THE MOON', says: pick(SAYS.moon, seed), up: true };
+  if (pct >= 10) return { tag: 'PUMPING', says: pick(SAYS.pumping, seed), up: true };
+  if (pct > -10) return { tag: 'CRABBING', says: pick(SAYS.crabbing, seed), up: null };
+  if (pct > -50) return { tag: 'DIAMOND HANDS', says: pick(SAYS.diamond, seed), up: false };
+  return { tag: 'REKT', says: pick(SAYS.rekt, seed), up: false };
 }
 
 // Points of a starburst around (cx, cy).
@@ -79,7 +96,7 @@ export function MemeCard({
   const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}.png`, 'Share your bag');
 
   const pct = p.pnlPct === null ? null : Number(p.pnlPct);
-  const mood = moodFor(pct);
+  const mood = moodFor(pct, p.symbol);
   const gain: ColorToken = mood.up === false || Number(p.pnl.amount) < 0 ? 'danger' : 'success';
   const glow = mood.up === null ? colors.accentPink : mood.up ? colors.success : colors.danger;
   const s = (n: number) => n * scale;

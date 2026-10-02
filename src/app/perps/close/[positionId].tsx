@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import type { PerpCloseQuote } from '@/api/contract';
 import { StillSettling, useRunIntent } from '@/api/intents';
@@ -16,7 +16,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatPrice } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, spacing } from '@/theme';
+import { colors, radii, spacing } from '@/theme';
 
 type Phase =
   | { kind: 'review' }
@@ -31,13 +31,15 @@ export default function ClosePositionScreen() {
   const { getAccessToken } = useAtlasAuth();
   const runIntent = useRunIntent();
   const [phase, setPhase] = useState<Phase>({ kind: 'review' });
+  // How much of the position to close.
+  const [percent, setPercent] = useState(100);
 
   const request = useCallback(
     () =>
-      requestCloseQuote(getAccessToken, params.positionId).catch((e) => {
+      requestCloseQuote(getAccessToken, params.positionId, percent).catch((e) => {
         throw new Error(perpsError(e, "Closing positions isn't available yet."));
       }),
-    [getAccessToken, params.positionId],
+    [getAccessToken, params.positionId, percent],
   );
   const { quote, quoting, error, secondsLeft } = useLiveQuote(request, phase.kind === 'review');
 
@@ -78,7 +80,7 @@ export default function ClosePositionScreen() {
     return (
       <ResultView
         title={`${formatMoney(phase.quote.receive)} back in your balance`}
-        subtitle={`${params.symbol} closed with ${pnl >= 0 ? 'a profit' : 'a loss'} of ${formatMoney({
+        subtitle={`${percent < 100 ? `${percent}% of ` : ''}${params.symbol} closed with ${pnl >= 0 ? 'a profit' : 'a loss'} of ${formatMoney({
           ...phase.quote.realizedPnl,
           amount: String(Math.abs(pnl)),
         })}.`}>
@@ -94,6 +96,22 @@ export default function ClosePositionScreen() {
       <View style={styles.header}>
         <Text variant="heading">{params.symbol}</Text>
         <SideBadge side={params.side} leverage={Number(params.leverage)} />
+      </View>
+
+      <View style={styles.chips}>
+        {[25, 50, 75, 100].map((p) => (
+          <Pressable
+            key={p}
+            onPress={() => setPercent(p)}
+            disabled={phase.kind !== 'review' && phase.kind !== 'failed'}
+            accessibilityRole="button"
+            accessibilityState={{ selected: percent === p }}
+            style={[styles.chip, percent === p && styles.chipOn]}>
+            <Text variant="label" color={percent === p ? 'textOnAccent' : 'textPrimary'}>
+              {p === 100 ? 'All' : `${p}%`}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {quote ? (
@@ -128,7 +146,7 @@ export default function ClosePositionScreen() {
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
-      <PillButton label="Close position" disabled={!quote || quoting} loading={phase.kind === 'closing' || phase.kind === 'settling'} onPress={close} />
+      <PillButton label={percent < 100 ? `Close ${percent}%` : 'Close position'} disabled={!quote || quoting} loading={phase.kind === 'closing' || phase.kind === 'settling'} onPress={close} />
     </Screen>
   );
 }
@@ -160,5 +178,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  chip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSurface,
+  },
+  chipOn: {
+    backgroundColor: colors.accentPink,
   },
 });

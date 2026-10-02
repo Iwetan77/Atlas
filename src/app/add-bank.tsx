@@ -134,10 +134,17 @@ export default function AddByBankScreen() {
           {preview ? (
             <Card style={styles.card}>
               <Row label="You get about" value={formatMoney(preview.receive)} strong />
-              <Row label="Daya fee" value={formatMoney(preview.fee)} />
-              <Row label="Sending fee" value={preview.networkFee} />
-              <Row label="Rate" value={preview.rate} />
+              <Row label="Daya fee (1%, up to ₦100)" value={formatMoney(preview.fee)} />
+              {/* Daya's flat charge for sending the dollars to your wallet, whatever the amount. */}
+              <Row label="Delivery to your wallet (Daya)" value={preview.networkFee} />
+              <Row label="Daya's rate" value={preview.rate} />
             </Card>
+          ) : null}
+          {preview && preview.receive.currency === 'NGN' && Number(amount) > 0 && 1 - Number(preview.receive.amount) / Number(amount) > 0.05 ? (
+            <Text variant="caption" color="textSecondary">
+              About {Math.round((1 - Number(preview.receive.amount) / Number(amount)) * 100)}% goes to fees here. Most of it is
+              Daya’s flat delivery charge, so larger transfers lose a much smaller share.
+            </Text>
           ) : null}
           {previewError ? <Text color="danger">{previewError}</Text> : null}
           {problem ? <MoneyError message={problem} /> : null}

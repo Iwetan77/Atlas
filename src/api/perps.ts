@@ -100,9 +100,10 @@ export async function executePerpQuote(token: Token, quoteId: string): Promise<E
   return enginePost<ExecutionPlan>(`/v1/perps/quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
 }
 
-export async function requestCloseQuote(token: Token, positionId: string): Promise<PerpCloseQuote> {
+// `percent`: how much of the position to close (all of it at 100).
+export async function requestCloseQuote(token: Token, positionId: string, percent = 100): Promise<PerpCloseQuote> {
   return enginePost<PerpCloseQuote>(
-    `/v1/perps/positions/${encodeURIComponent(positionId)}/close-quote`,
+    `/v1/perps/positions/${encodeURIComponent(positionId)}/close-quote${percent < 100 ? `?percent=${percent}` : ''}`,
     await token(),
     {},
     SAFE_TO_REPLAY,

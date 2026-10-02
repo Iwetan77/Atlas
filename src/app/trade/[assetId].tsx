@@ -234,6 +234,7 @@ export default function AssetTradeScreen() {
             : undefined
         }
         maxActive={sellAll}
+        percentOf={side === 'sell' && held ? held.value.amount : undefined}
       />
 
       {quote ? (
