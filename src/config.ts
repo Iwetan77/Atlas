@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // Public, client-side config only. Server secrets (Privy app secret, Circle keys) live in the engine.
 
 export const privy = {
@@ -13,6 +15,13 @@ export const solana = {
   chainId: 'solana:mainnet',
 } as const;
 
-export const engineUrl = process.env.EXPO_PUBLIC_ENGINE_URL ?? '';
-// The hosted web app, where Atlas Links open: the engine serves it unless a separate site is set.
-export const webUrl = process.env.EXPO_PUBLIC_WEB_URL || engineUrl;
+// On the web, the engine serves the site itself (at justatlas.xyz and its onrender.com address), so
+// a page talks to the address it was opened at: no cross-site requests. Phones use the configured URL.
+const configuredEngine = process.env.EXPO_PUBLIC_ENGINE_URL ?? '';
+const servedFrom =
+  Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.protocol === 'https:'
+    ? window.location.origin
+    : null;
+export const engineUrl = servedFrom ?? configuredEngine;
+// The website, where Atlas Links open.
+export const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'https://justatlas.xyz';
