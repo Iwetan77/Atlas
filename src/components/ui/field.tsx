@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Platform, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing, type as typeScale } from '@/theme';
@@ -10,16 +10,28 @@ type Props = TextInputProps & {
 
 export function Field({ prefix, style, onFocus, onBlur, ...rest }: Props) {
   const [focused, setFocused] = useState(false);
+  const input = useRef<TextInput>(null);
   return (
-    <View style={[styles.wrap, { borderColor: focused ? colors.accentPink : colors.bgSurface }]}>
-      {typeof prefix === 'string' ? (
-        <Text variant="bodyStrong" color="textSecondary">
-          {prefix}
-        </Text>
-      ) : (
-        prefix
-      )}
+    <Pressable
+      accessible={false}
+      focusable={false}
+      disabled={rest.editable === false || rest.readOnly}
+      onPress={() => input.current?.focus()}
+      style={[styles.wrap, { borderColor: focused ? colors.accentPink : colors.bgSurface }]}>
+      {/* The icon and padding focus the same input as the text area. */}
+      {prefix ? (
+        <View pointerEvents="none">
+          {typeof prefix === 'string' ? (
+            <Text variant="bodyStrong" color="textSecondary">
+              {prefix}
+            </Text>
+          ) : (
+            prefix
+          )}
+        </View>
+      ) : null}
       <TextInput
+        ref={input}
         placeholderTextColor={colors.textDisabled}
         selectionColor={colors.accentPink}
         cursorColor={colors.accentPink}
@@ -34,7 +46,7 @@ export function Field({ prefix, style, onFocus, onBlur, ...rest }: Props) {
         }}
         {...rest}
       />
-    </View>
+    </Pressable>
   );
 }
 

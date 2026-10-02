@@ -26,17 +26,31 @@ export function useAssets(category: AssetCategory, query: string) {
   const [assets, setAssets] = useState<MarketAsset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const search = query.trim();
+  const key = JSON.stringify([displayCurrency, category, search]);
+  const [settledKey, setSettledKey] = useState<string | null>(null);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Only the latest request may update the list: a slow answer for "bon" never replaces "bonk".
   const latest = useRef(0);
 
+  const cancel = useCallback(() => {
+    if (debounce.current !== null) clearTimeout(debounce.current);
+    debounce.current = null;
+    latest.current++;
+  }, []);
+
   const load = useCallback(async () => {
-    const ticket = ++latest.current;
+    // Submitting with the keyboard cancels the pending automatic search.
+    cancel();
+    const ticket = latest.current;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ currency: displayCurrency, category });
-      if (query.trim()) params.set('q', query.trim());
-      const res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, await getAccessToken(), {
+      if (search) params.set('q', search);
+      const token = await getAccessToken();
+      if (ticket !== latest.current) return;
+      const res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, {
         timeoutMs: SEARCH_TIMEOUT_MS,
       });
       if (ticket !== latest.current) return;
@@ -45,17 +59,22 @@ export function useAssets(category: AssetCategory, query: string) {
       if (ticket !== latest.current) return;
       setError(e instanceof EngineTimeout ? 'Search is taking too long. Try again.' : errorMessage(e));
     } finally {
-      if (ticket === latest.current) setLoading(false);
+      if (ticket === latest.current) {
+        setSettledKey(key);
+        setLoading(false);
+      }
     }
-  }, [getAccessToken, displayCurrency, category, query]);
+  }, [getAccessToken, displayCurrency, category, search, key, cancel]);
 
   useEffect(() => {
     // Typing shouldn't fire a request per keystroke; the keyboard's Search key runs it at once.
-    const id = setTimeout(load, query ? 350 : 0);
-    return () => clearTimeout(id);
-  }, [load, query]);
+    debounce.current = setTimeout(load, search ? 350 : 0);
+    // Retire the old request as soon as typing changes, before the next debounce fires.
+    return cancel;
+  }, [load, search, cancel]);
 
-  return { assets, error, loading, reload: load };
+  const current = settledKey === key;
+  return { assets: current ? assets : null, error: current ? error : null, loading: loading || !current, reload: load };
 }
 
 // An asset's price history for one range; switching range keeps the last chart until the new one lands.
