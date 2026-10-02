@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { addressOrSearch } from '@/components/web-browser/address';
 import { colors, radii, spacing } from '@/theme';
+import { useDesktop } from '@/web/use-desktop';
 
 type Item = { title: string; subtitle: string; icon: IconName; tone: 'pink' | 'blue'; href?: Href };
 
@@ -22,6 +23,7 @@ const ITEMS: Item[] = [
 ];
 
 export default function MoreScreen() {
+  const desktop = useDesktop();
   const [search, setSearch] = useState('');
   // Words search DuckDuckGo; an address opens that site. Both in Atlas's browser, wallet not connected.
   const browse = () => {
@@ -60,7 +62,7 @@ export default function MoreScreen() {
             onPress={() => router.push({ pathname: '/mini/[appId]', params: { appId: app.id } })}
             accessibilityRole="button"
             accessibilityLabel={`Open ${app.name}`}
-            style={({ pressed }) => [styles.app, pressed && { opacity: 0.7 }]}>
+            style={({ pressed }) => [styles.app, desktop && { width: '16.666%' }, pressed && { opacity: 0.7 }]}>
             <View>
               <Image source={{ uri: miniAppIcon(app) }} style={styles.appIcon} contentFit="cover" />
               <ChainBadge chain={app.chain} />
@@ -81,7 +83,7 @@ export default function MoreScreen() {
             key={item.title}
             disabled={!item.href}
             onPress={() => item.href && router.push(item.href)}
-            style={({ pressed }) => [styles.cell, pressed && { backgroundColor: colors.bgSurfaceAlt }]}>
+            style={({ pressed }) => [styles.cell, desktop && { width: '30%' }, pressed && { backgroundColor: colors.bgSurfaceAlt }]}>
             <View style={styles.cellTop}>
               <IconTile icon={item.icon} tone={item.tone} size={48} />
               {item.href ? null : <SoonChip />}

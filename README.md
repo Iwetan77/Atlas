@@ -141,3 +141,14 @@ Every profile in `eas.json` points at the live engine (`EXPO_PUBLIC_ENGINE_URL`)
 | Deposit list (featured + More networks and coins), QR and status, Back to the Add money list | ✅ web |
 | Earn venues and markets (incl. Morpho's vaults), hidden balance, currency picker | ✅ web |
 | Funded mainnet flows: buy, sell, send, earn, perps, deposits | ⏳ needs a funded wallet |
+
+
+## Desktop website and phone installation
+
+Laptop/desktop browsers (at least 1024px wide, excluding iPhone/iPad/Android user agents) use an Atlas pink/slate website: public welcome and Google/email sign-in, sidebar navigation, a two-column Home dashboard, asset cards, market/order panels, Send/More grids and centred approval/funding dialogs. These reuse the same real account, balance, quotes, history and signing flows. Native and narrow mobile web retain the phone layout; mobile web adds a small installation link. Private browser session/wallet components mount after hydration so a server snapshot cannot reset sign-in.
+
+`/install` is public. iPhone shows original Atlas illustrations and Safari Share -> Add to Home Screen instructions. It installs the website as a web app, not an iOS native binary. The public web manifest and existing Atlas icon provide the standalone name/icon. No service worker caches balances, login tokens or signed requests.
+
+Android says **Coming soon** until `EXPO_PUBLIC_ANDROID_APK_URL` is a public HTTPS URL to the published APK. This value is intentionally public. Add it to the web build environment and rebuild when the APK exists; do not put secrets in `EXPO_PUBLIC_` variables. Desktop's Get Atlas link opens the same platform guide. The install strip hides in standalone mode.
+
+Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://atlas-engine-djed.onrender.com`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.

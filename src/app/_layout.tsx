@@ -4,7 +4,8 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, type ErrorBoundaryProps, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
 
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
@@ -13,6 +14,7 @@ import { AddMoneyProvider } from '@/funding/add-money';
 import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
+import { WebShell } from '@/components/web/shell';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,7 +36,13 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return <StartupError error={error} retry={retry} />;
 }
 
+const noHydrationEvents = () => () => {};
+const browserMounted = () => true;
+const serverMounted = () => false;
+
 export default function RootLayout() {
+  // Privy's browser session/wallet tree mounts after hydration, never against a server snapshot.
+  const hydrated = useSyncExternalStore(noHydrationEvents, browserMounted, serverMounted);
   const [fontsLoaded, fontError] = useFonts({
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
@@ -51,7 +59,10 @@ export default function RootLayout() {
   }, [fontsSettled]);
 
   // A font that fails to load falls back to the system face.
-  if (!fontsSettled) return null;
+  if (Platform.OS === 'web' && !hydrated) return null;
+
+  // Web font preloads/style rules can paint while the runtime cache settles.
+  if (!fontsSettled && Platform.OS !== 'web') return null;
 
   return (
     <ThemeProvider value={navTheme}>
@@ -60,7 +71,7 @@ export default function RootLayout() {
         <AtlasAuthProvider>
           <ConfirmProvider>
             <AddMoneyProvider>
-              <RootStack />
+              <WebShell><RootStack /></WebShell>
             </AddMoneyProvider>
           </ConfirmProvider>
         </AtlasAuthProvider>
@@ -79,7 +90,8 @@ function RootStack() {
   if (ready && !initError && !started) setStarted(true);
   if (ready && !initError && authenticated !== signedIn) setSignedIn(authenticated);
 
-  if (!started) return <StartupStatus error={initError} />;
+  // Public web pages and install instructions stay available while sign-in starts.
+  if (!started && Platform.OS !== 'web') return <StartupStatus error={initError} />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>
@@ -108,6 +120,7 @@ function RootStack() {
       {/* Public: someone without Atlas opens an Atlas link here and signs in on the page. Last, because
           the router falls back to the first screen it may show: signed out, that must be sign-in. */}
       <Stack.Screen name="claim/[linkId]" />
+      <Stack.Screen name="install" />
     </Stack>
   );
 }

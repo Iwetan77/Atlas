@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDesktop } from '@/web/use-desktop';
 
 import { useAtlasAuth } from '@/auth/context';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
@@ -47,6 +48,7 @@ type Method = {
 // Every way money comes in, one tap each. Whatever the route, it lands as one balance.
 function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  const desktop = useDesktop();
   const { displayCurrency, update } = useSettings();
 
   const methods: Method[] = useMemo(
@@ -92,8 +94,8 @@ function AddMoneySheet({ visible, onClose }: { visible: boolean; onClose: () => 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close">
-        <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]} onPress={() => {}}>
+      <Pressable style={[styles.backdrop, desktop && { justifyContent: 'center', padding: 32 }]} onPress={onClose} accessibilityLabel="Close">
+        <Pressable style={[styles.sheet, desktop && { borderRadius: 28, maxHeight: '85%', paddingTop: 24 }, { paddingBottom: insets.bottom + spacing.xl }]} onPress={() => {}}>
           <View style={styles.grabber} />
           <View style={styles.header}>
             <Text variant="title">Add money</Text>

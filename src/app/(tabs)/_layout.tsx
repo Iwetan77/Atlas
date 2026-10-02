@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { colors } from '@/theme';
+import { useDesktop } from '@/web/use-desktop';
 
 // MiniPay-style bottom bar: icons only, pink for the active tab.
 const TABS: { name: string; title: string; icon: IconName; iconActive: IconName }[] = [
@@ -14,6 +15,7 @@ const TABS: { name: string; title: string; icon: IconName; iconActive: IconName 
 ];
 
 export default function TabLayout() {
+  const desktop = useDesktop();
   return (
     <Tabs
       screenOptions={{
@@ -21,7 +23,7 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.accentPink,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: 72, paddingTop: 10 },
+        tabBarStyle: desktop ? { display: 'none' } : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: 72, paddingTop: 10 },
         sceneStyle: { backgroundColor: colors.bgBase },
       }}>
       {TABS.map((t) => (

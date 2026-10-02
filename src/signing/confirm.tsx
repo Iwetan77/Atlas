@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDesktop } from '@/web/use-desktop';
 
 import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract';
 import { PillButton } from '@/components/ui/pill-button';
@@ -61,6 +62,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const signer = useSigner();
   const { wallets } = useAtlasAuth();
   const insets = useSafeAreaInsets();
+  const desktop = useDesktop();
   const [pending, setPending] = useState<Pending | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'review' });
   const confirmations = useRef(0);
@@ -140,8 +142,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={confirmAndExecute}>
       {children}
       <Modal visible={!!pending} transparent animationType="slide" onRequestClose={cancel}>
-        <Pressable style={styles.backdrop} onPress={phase.kind === 'review' ? cancel : undefined}>
-          <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
+        <Pressable style={[styles.backdrop, desktop && { justifyContent: 'center', padding: 32 }]} onPress={phase.kind === 'review' ? cancel : undefined}>
+          <Pressable style={[styles.sheet, desktop && { borderRadius: 28, maxHeight: '85%', paddingTop: 24 }, { paddingBottom: insets.bottom + spacing.xl }]}>
             <View style={styles.grabber} />
             {plan ? (
               <>

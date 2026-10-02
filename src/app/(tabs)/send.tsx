@@ -7,6 +7,7 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, spacing } from '@/theme';
+import { DesktopColumns } from '@/components/web/columns';
 
 // Send hub: three ways out of the one balance.
 export default function SendScreen() {
@@ -16,6 +17,7 @@ export default function SendScreen() {
         Send to
       </Text>
 
+      <DesktopColumns>
       <SendOption
         href="/send/friend"
         tile={<IconTile icon="paper-plane-outline" />}
@@ -40,6 +42,7 @@ export default function SendScreen() {
         title="Atlas Link"
         subtitle="Just share a link with text"
       />
+      </DesktopColumns>
     </Screen>
   );
 }

@@ -20,6 +20,8 @@ import { Text } from '@/components/ui/text';
 import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
 import { colors, radii } from '@/theme';
+import { useDesktop } from '@/web/use-desktop';
+import { DesktopHome } from '@/components/web/home';
 
 // Home layout, fed by a balance source. The real screen passes the engine balance; the testnet
 // preview passes labelled sample data.
@@ -33,6 +35,7 @@ export function HomeContent({
   banner?: string;
 }) {
   const { email } = useAtlasAuth();
+  const desktop = useDesktop();
   const addMoney = useAddMoney();
   const { me, reload: reloadMe } = useMe();
   const { reload: reloadPositions } = positions;
@@ -71,6 +74,21 @@ export function HomeContent({
     art: 'planet',
     cta: { label: 'Explore', onPress: () => router.push('/trade') },
   };
+
+  if (desktop) return <Screen><DesktopHome
+    greeting={me?.displayName?.split(' ')[0] || me?.handle || 'there'} onRefresh={onRefresh} refreshing={refreshing} onDeposit={addMoney}
+    hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} showEmptyPockets={showEmptyPockets} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={() => router.push('/send/bank')} />}
+    pending={<>{banner ? <Text variant="caption" color="accentPinkTint">{banner}</Text> : null}<PendingPurchases onFinished={balance.refresh} /></>}
+    assets={<YourAssets balance={data} positions={positions.data} stealth={stealthMode} />}
+    earn={<EarnCard stealth={stealthMode} refreshKey={refreshKey} />}
+    activity={<RecentTransactions stealth={stealthMode} refreshKey={refreshKey} />}
+    nextSteps={me && data ? <NextSteps steps={[
+      { key: 'account', title: 'Create your account', subtitle: 'Your wallet is ready', done: true },
+      { key: 'handle', title: 'Pick your @handle', subtitle: 'Friends can send you money with it', done: !!me.handle, action: { label: 'Pick', onPress: () => router.push('/handle') } },
+      { key: 'deposit', title: 'Make a deposit', subtitle: "Then you're ready", done: hasFunds, action: { label: 'Deposit', onPress: addMoney } },
+    ]} /> : null}
+    promo={dismissedPromos.includes(welcome.id) ? null : <PromoBanner promo={welcome} onDismiss={() => update({ dismissedPromos: [...dismissedPromos, welcome.id] })} />}
+  /></Screen>;
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>

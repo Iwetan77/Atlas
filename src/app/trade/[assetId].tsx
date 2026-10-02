@@ -26,6 +26,7 @@ import { formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
+import { TradeLayout } from '@/components/web/trade-layout';
 
 const POSITION_POLL_MS = 10_000;
 
@@ -147,6 +148,7 @@ export default function AssetTradeScreen() {
 
   return (
     <Screen>
+      <TradeLayout market={<>
       <BackHeader />
 
       <View style={styles.assetHeader}>
@@ -192,6 +194,7 @@ export default function AssetTradeScreen() {
       ) : null}
 
       <PriceChart assetId={params.assetId} />
+      </>} ticket={<>
 
       {params.tradeable === 'no' ? (
         <View style={styles.soon}>
@@ -281,6 +284,7 @@ export default function AssetTradeScreen() {
         loading={phase.kind === 'preparing' || phase.kind === 'settling'}
         onPress={trade}
       />
+      </>} />
     </Screen>
   );
 }

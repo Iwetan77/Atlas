@@ -9,6 +9,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
+import { useDesktop } from '@/web/use-desktop';
 
 // The stocks, memes and crypto the user owns, most valuable first: a row of cards to swipe through,
 // each with its gain or loss. Tapping one opens its screen, where the position's share card lives and stays live. Cash is
@@ -22,6 +23,7 @@ export function YourAssets({
   positions: SpotPosition[] | null;
   stealth: boolean;
 }) {
+  const desktop = useDesktop();
   if (!balance) return null;
   const owned = balance.holdings
     .filter((h) => h.kind !== 'cash' && h.location !== 'perps' && Number(h.amount) > 0)
@@ -42,6 +44,8 @@ export function YourAssets({
           </Text>
           <PillButton label="Explore markets" tone="secondary" size="sm" onPress={() => router.push('/trade')} />
         </Card>
+      ) : desktop ? (
+        <View style={styles.desktopGrid}>{owned.map((h) => <AssetCard key={`${h.assetId}:${h.chain}`} holding={h} position={byAsset.get(h.assetId)} stealth={stealth} desktop />)}</View>
       ) : (
         <ScrollView
           horizontal
@@ -61,7 +65,9 @@ function AssetCard({
   holding: h,
   position,
   stealth,
+  desktop = false,
 }: {
+  desktop?: boolean;
   holding: Holding;
   position: SpotPosition | undefined;
   stealth: boolean;
@@ -86,7 +92,7 @@ function AssetCard({
       }
       accessibilityRole="button"
       accessibilityLabel={h.name}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.card, desktop && styles.desktopCard, pressed && styles.pressed]}>
       <AssetAvatar symbol={h.symbol} iconUrl={h.iconUrl ?? null} />
       <View style={styles.cardText}>
         <Text variant="bodyStrong" numberOfLines={1}>
@@ -111,6 +117,8 @@ function AssetCard({
 }
 
 const styles = StyleSheet.create({
+  desktopGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  desktopCard: { flexGrow: 1, flexBasis: 175, minWidth: 150, maxWidth: '100%' },
   sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   section: {
     gap: spacing.sm,

@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDesktop } from '@/web/use-desktop';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -40,6 +41,7 @@ export function SelectSheet<K extends string>({
   moreLabel?: string;
 }) {
   const insets = useSafeAreaInsets();
+  const desktop = useDesktop();
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   // The current choice always shows, even when it's one of the "more".
@@ -79,9 +81,9 @@ export function SelectSheet<K extends string>({
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
-        <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close">
+        <Pressable style={[styles.backdrop, desktop && { justifyContent: 'center', padding: 32 }]} onPress={close} accessibilityLabel="Close">
           {/* Taps inside the sheet stay in the sheet. */}
-          <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]} onPress={() => {}}>
+          <Pressable style={[styles.sheet, desktop && { borderRadius: 28, maxHeight: '85%', paddingTop: 24 }, { paddingBottom: insets.bottom + spacing.lg }]} onPress={() => {}}>
             <View style={styles.grabber} />
             <Text variant="heading">{title}</Text>
             <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { useAtlasAuth } from '@/auth/context';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -8,6 +8,8 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
+import { useDesktop } from '@/web/use-desktop';
+import { DesktopWelcome } from '@/components/web/welcome';
 
 // Things one balance can buy, floating over the glow: the "anything" in the tagline, made visible.
 const CHIPS: { icon: IconName; label: string; style: object }[] = [
@@ -20,10 +22,12 @@ const CHIPS: { icon: IconName; label: string; style: object }[] = [
 const ORBITS = [120, 190, 260];
 
 export default function SignInScreen() {
-  const { loginWithGoogle, googleLoading, googleError } = useAtlasAuth();
+  const { loginWithGoogle, googleLoading, googleError, ready } = useAtlasAuth();
+  const desktop = useDesktop();
+  if (desktop) return <DesktopWelcome />;
 
   return (
-    <Screen scroll={false} style={styles.screen}>
+    <Screen scroll={Platform.OS === 'web'} style={styles.screen}>
       <Text variant="title" color="accentPink">
         atlas
       </Text>
@@ -56,7 +60,7 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.actions}>
-        <PillButton label="Continue with Google" icon="logo-google" loading={googleLoading} onPress={loginWithGoogle} />
+        <PillButton label="Continue with Google" disabled={!ready} icon="logo-google" loading={googleLoading} onPress={loginWithGoogle} />
         <PillButton
           label="Continue with email"
           icon="mail-outline"

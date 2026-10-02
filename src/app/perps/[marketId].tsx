@@ -23,6 +23,7 @@ import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount } from '@
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
+import { TradeLayout } from '@/components/web/trade-layout';
 
 type Side = 'long' | 'short';
 type Phase =
@@ -121,6 +122,7 @@ export default function PerpTicketScreen() {
 
   return (
     <Screen>
+      <TradeLayout market={<>
       <BackHeader />
       <View style={styles.header}>
         <AssetAvatar symbol={params.symbol} iconUrl={params.iconUrl || null} size={52} />
@@ -134,6 +136,7 @@ export default function PerpTicketScreen() {
       </View>
 
       <PriceChart assetId={params.marketId} />
+      </>} ticket={<>
 
       <View style={styles.segment}>
         {(['long', 'short'] as Side[]).map((s) => (
@@ -233,6 +236,7 @@ export default function PerpTicketScreen() {
         loading={phase.kind === 'opening' || phase.kind === 'settling'}
         onPress={open}
       />
+      </>} />
     </Screen>
   );
 }
