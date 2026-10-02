@@ -25,7 +25,7 @@ const CATEGORIES: { key: AssetCategory; label: string }[] = [
 export default function TradeScreen() {
   const [category, setCategory] = useState<AssetCategory>('popular');
   const [query, setQuery] = useState('');
-  const { assets, error, loading, reload } = useAssets(category, query);
+  const { assets, error, loading, incomplete, reload } = useAssets(category, query);
 
   return (
     <Screen>
@@ -82,11 +82,19 @@ export default function TradeScreen() {
           </Pressable>
         </Card>
       ) : assets && assets.length > 0 ? (
-        <Card style={styles.list}>
-          {assets.map((a, i) => (
-            <AssetRow key={a.assetId} asset={a} divider={i > 0} />
-          ))}
-        </Card>
+        <View style={styles.results}>
+          {query.trim() && incomplete ? (
+            <Pressable onPress={reload} accessibilityRole="button" style={styles.retry}>
+              <Text variant="caption" color="textSecondary">{"Some results couldn't load."}</Text>
+              <Text variant="label" color="accentPinkTint">Try again</Text>
+            </Pressable>
+          ) : null}
+          <Card style={styles.list}>
+            {assets.map((a, i) => (
+              <AssetRow key={a.assetId} asset={a} divider={i > 0} />
+            ))}
+          </Card>
+        </View>
       ) : (
         <Card style={styles.state}>
           <Text color="textSecondary">
@@ -150,6 +158,16 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
 }
 
 const styles = StyleSheet.create({
+  results: {
+    gap: spacing.sm,
+  },
+  retry: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   symbolRow: {
     flexDirection: 'row',
     alignItems: 'center',

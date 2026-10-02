@@ -299,7 +299,7 @@ export type MarketAsset = {
   tradeable?: boolean;
 };
 
-export type AssetsResponse = { assets: MarketAsset[] };
+export type AssetsResponse = { assets: MarketAsset[]; searchComplete?: boolean };
 
 export type TradeSide = 'buy' | 'sell';
 

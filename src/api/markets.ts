@@ -26,6 +26,7 @@ export function useAssets(category: AssetCategory, query: string) {
   const [assets, setAssets] = useState<MarketAsset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [incomplete, setIncomplete] = useState(false);
   const search = query.trim();
   const key = JSON.stringify([displayCurrency, category, search]);
   const [settledKey, setSettledKey] = useState<string | null>(null);
@@ -50,11 +51,22 @@ export function useAssets(category: AssetCategory, query: string) {
       if (search) params.set('q', search);
       const token = await getAccessToken();
       if (ticket !== latest.current) return;
-      const res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, {
+      let res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, {
         timeoutMs: SEARCH_TIMEOUT_MS,
       });
       if (ticket !== latest.current) return;
+      // One retry for a partial empty answer, before calling it a failed search.
+      if (search && res.assets.length === 0 && res.searchComplete === false) {
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        if (ticket !== latest.current) return;
+        res = await engineGet<AssetsResponse>(`/v1/assets?${params}`, token, { timeoutMs: SEARCH_TIMEOUT_MS });
+        if (ticket !== latest.current) return;
+      }
       setAssets(res.assets);
+      setIncomplete(res.searchComplete === false);
+      if (search && res.assets.length === 0 && res.searchComplete === false) {
+        setError("Some results couldn't load. Try again in a moment.");
+      }
     } catch (e) {
       if (ticket !== latest.current) return;
       setError(e instanceof EngineTimeout ? 'Search is taking too long. Try again.' : errorMessage(e));
@@ -74,7 +86,7 @@ export function useAssets(category: AssetCategory, query: string) {
   }, [load, search, cancel]);
 
   const current = settledKey === key;
-  return { assets: current ? assets : null, error: current ? error : null, loading: loading || !current, reload: load };
+  return { assets: current ? assets : null, error: current ? error : null, loading: loading || !current, incomplete: current && incomplete, reload: load };
 }
 
 // An asset's price history for one range; switching range keeps the last chart until the new one lands.
