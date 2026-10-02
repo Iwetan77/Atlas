@@ -385,6 +385,20 @@ export type SendQuote = {
 // POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
 // `logo`: the bank's logo when the engine found one (Daya lists none).
 export type Bank = { code: string; name: string; logo?: string | null };
+// A bank this account number was found at, with the holder's name there.
+// POST /v1/offramp/guess { accountNumber } → { banks: BankGuess[] }
+export type BankGuess = Bank & { accountName: string };
+// GET /v1/offramp/recipients → { recipients }; POST { bankCode, accountNumber, favorite } → same.
+export type BankRecipient = {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  favorite: boolean;
+  // 0 when saved but never paid.
+  lastUsedAtUnixMs: number;
+  logo?: string | null;
+};
 
 // Adding money by bank transfer (Daya): a one-time Nigerian account; its naira lands as USDC.
 // POST /v1/onramp/bank/quote { amount: whole naira, currency } → BankTransferQuote (nothing opens)

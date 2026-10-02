@@ -94,7 +94,7 @@ export function BankPicker({
 }
 
 // The bank's logo, or its initials when there's none (or it won't load).
-function BankLogo({ bank, size }: { bank: Bank; size: number }) {
+export function BankLogo({ bank, size }: { bank: Bank; size: number }) {
   const initials = bank.name
     .split(/\s+/)
     .filter((w) => /^[a-z0-9]/i.test(w))

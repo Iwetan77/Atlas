@@ -101,11 +101,11 @@ export function HomeContent({
           <ProfileAvatar photo={me?.avatar} initial={(email?.[0] ?? 'A').toUpperCase()} size={40} />
         </Pressable>
         <Pressable
-          onPress={() => router.push('/deposit')}
+          onPress={() => router.push('/scan')}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Your QR code">
-          <Icon name="qr-code-outline" size={28} color="textPrimary" />
+          accessibilityLabel="Scan to pay">
+          <Icon name="scan-outline" size={28} color="textPrimary" />
         </Pressable>
       </View>
 

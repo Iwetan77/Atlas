@@ -100,6 +100,7 @@ function RootStack() {
         <Stack.Screen name="deposit" />
         <Stack.Screen name="add-bank" />
         <Stack.Screen name="browse" />
+        <Stack.Screen name="scan" />
         <Stack.Screen name="earn" />
         <Stack.Screen name="transactions" />
         <Stack.Screen name="transaction/[id]" />

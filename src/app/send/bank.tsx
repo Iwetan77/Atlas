@@ -1,17 +1,18 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import type { Bank } from '@/api/contract';
+import type { Bank, BankGuess, BankRecipient } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
-import { executeSend, listBanks, requestSendQuote, resolveAccount } from '@/api/send';
+import { executeSend, guessBanks, listBanks, listRecipients, requestSendQuote, resolveAccount, setFavorite } from '@/api/send';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { ResultView } from '@/components/result-view';
-import { BankPicker } from '@/components/send/bank-picker';
+import { BankLogo, BankPicker } from '@/components/send/bank-picker';
 import { SendReview } from '@/components/send/send-review';
 import { BackHeader } from '@/components/ui/back-header';
+import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
@@ -19,25 +20,32 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
-import { spacing } from '@/theme';
+import { colors, radii, spacing } from '@/theme';
 
 // Nigerian account numbers (NUBAN) are exactly 10 digits.
 const NUBAN_LENGTH = 10;
 
-type Account = { state: 'idle' | 'checking' } | { state: 'ok'; name: string } | { state: 'none' | 'error'; message: string };
+// Who the money goes to, once the bank has confirmed the holder's name.
+type Payee = { bank: Bank; accountNumber: string; accountName: string };
+type Guesses = { number: string; banks: BankGuess[] | null; error: string | null };
 type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; label: string; eta: string } | { kind: 'failed'; message: string };
 
 // Off-ramp: from the one balance straight to a bank account, paid out by the engine through Daya.
+// Type the account number and Atlas finds the bank (or pick a recent or favorite); then the amount.
 export default function SendToBankScreen() {
   const { getAccessToken } = useAtlasAuth();
   const runIntent = useRunIntent();
+  // From the scanner: an account number, and the bank when the scan named one.
+  const params = useLocalSearchParams<{ account?: string; bank?: string }>();
 
   const [banks, setBanks] = useState<Bank[] | null>(null);
   const [banksError, setBanksError] = useState<string | null>(null);
-  const [bank, setBank] = useState<Bank | null>(null);
-  const [accountNumber, setAccountNumber] = useState('');
-  // The last name check, tagged with the bank + number it's for. Anything newer is still being checked.
-  const [answer, setAnswer] = useState<{ key: string; account: Account } | null>(null);
+  const [recipients, setRecipients] = useState<BankRecipient[] | null>(null);
+  const [tab, setTab] = useState<'recents' | 'favorites'>('recents');
+  const [accountNumber, setAccountNumber] = useState(() => (params.account ?? '').replace(/\D/g, '').slice(0, NUBAN_LENGTH));
+  const [guesses, setGuesses] = useState<Guesses | null>(null);
+  const [manual, setManual] = useState<{ bank: Bank; result: string | null } | null>(null);
+  const [payee, setPayee] = useState<Payee | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
@@ -45,48 +53,91 @@ export default function SendToBankScreen() {
     listBanks(getAccessToken)
       .then(setBanks)
       .catch((e) => setBanksError(errorMessage(e)));
+    listRecipients(getAccessToken)
+      .then(setRecipients)
+      .catch(() => setRecipients([]));
   }, [getAccessToken]);
 
-  // Show the account holder's name before any money moves.
-  const accountKey = bank && accountNumber.length === NUBAN_LENGTH ? `${bank.code}:${accountNumber}` : null;
-  const account: Account = !accountKey ? { state: 'idle' } : answer?.key === accountKey ? answer.account : { state: 'checking' };
-
+  // Ten digits: find which banks this account is at (each confirmed with the holder's name).
+  const complete = accountNumber.length === NUBAN_LENGTH;
   useEffect(() => {
-    if (!bank || !accountKey) return;
+    if (!complete || payee) return;
     let live = true;
-    resolveAccount(getAccessToken, bank.code, accountNumber)
-      .then(
-        (name): Account => (name ? { state: 'ok', name } : { state: 'none', message: `No ${bank.name} account ${accountNumber}` }),
-        (e): Account => ({ state: 'error', message: errorMessage(e) }),
-      )
-      .then((next) => live && setAnswer({ key: accountKey, account: next }));
+    guessBanks(getAccessToken, accountNumber).then(
+      (found) => live && setGuesses({ number: accountNumber, banks: found, error: null }),
+      (e) => live && setGuesses({ number: accountNumber, banks: [], error: errorMessage(e) }),
+    );
     return () => {
       live = false;
     };
-  }, [bank, accountNumber, accountKey, getAccessToken]);
+  }, [complete, accountNumber, payee, getAccessToken]);
+  const found = guesses?.number === accountNumber ? guesses : null;
+
+  // A scan that named the bank counts as choosing it, until the number is edited.
+  const [scanned, setScanned] = useState(!!params.bank);
+  const scannedBank = scanned && params.bank && banks ? banks.find((b) => b.code === params.bank) ?? null : null;
+  const chosen = useMemo(
+    () => manual ?? (scannedBank && complete ? { bank: scannedBank, result: null } : null),
+    [manual, scannedBank, complete],
+  );
+
+  // A bank chosen by hand (or by the scan): check the holder's name there.
+  useEffect(() => {
+    if (!chosen || chosen.result !== null || !complete) return;
+    let live = true;
+    resolveAccount(getAccessToken, chosen.bank.code, accountNumber).then(
+      (name) => {
+        if (!live) return;
+        if (name) setPayee({ bank: chosen.bank, accountNumber, accountName: name });
+        else setManual({ ...chosen, result: `No ${chosen.bank.name} account ${accountNumber}` });
+      },
+      (e) => live && setManual({ ...chosen, result: errorMessage(e) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [chosen, complete, accountNumber, getAccessToken]);
 
   const value = Number(amount) || 0;
-  const ready = !!bank && account.state === 'ok';
-
   const request = useCallback(
     () =>
       requestSendQuote(getAccessToken, {
-        destination: { type: 'bank', bankCode: bank!.code, accountNumber },
+        destination: { type: 'bank', bankCode: payee!.bank.code, accountNumber: payee!.accountNumber },
         // What the bank gets, in naira; Daya's fee is added on top.
         amount: { amount: value.toFixed(2), currency: 'NGN' },
       }),
-    [getAccessToken, bank, accountNumber, value],
+    [getAccessToken, payee, value],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(ready && value > 0 ? request : null, phase.kind === 'edit');
+  const { quote, quoting, error, secondsLeft } = useLiveQuote(payee && value > 0 ? request : null, phase.kind === 'edit');
+
+  const favorite = payee
+    ? !!recipients?.find((r) => r.bankCode === payee.bank.code && r.accountNumber === payee.accountNumber)?.favorite
+    : false;
+  const toggleFavorite = () => {
+    if (!payee) return;
+    setFavorite(getAccessToken, payee.bank.code, payee.accountNumber, !favorite).then(setRecipients, () => {});
+  };
+
+  const choose = (next: Payee) => {
+    setAccountNumber(next.accountNumber);
+    setPayee(next);
+  };
+  const reset = () => {
+    setPayee(null);
+    setManual(null);
+    setScanned(false);
+    setGuesses(null);
+    setAmount('');
+  };
 
   const withdraw = async () => {
-    if (!quote || account.state !== 'ok') return;
+    if (!quote || !payee) return;
     setPhase({ kind: 'sending' });
     try {
       const final = await runIntent(() => executeSend(getAccessToken, quote.quoteId));
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled')
-        setPhase({ kind: 'done', label: `${formatMoney(quote.receive)} is on its way to ${account.name}`, eta: quote.eta });
+        setPhase({ kind: 'done', label: `${formatMoney(quote.receive)} is on its way to ${payee.accountName}`, eta: quote.eta });
       else setPhase({ kind: 'failed', message: final.error ?? 'The withdrawal did not go through.' });
     } catch (e) {
       setPhase({ kind: 'failed', message: friendlyTxError(e) });
@@ -101,53 +152,222 @@ export default function SendToBankScreen() {
     );
   }
 
+  if (payee) {
+    return (
+      <Screen>
+        <BackHeader title="Send to bank" />
+        <Card style={styles.payee}>
+          <BankLogo bank={payee.bank} size={40} />
+          <View style={styles.payeeText}>
+            <Text variant="bodyStrong" numberOfLines={1}>
+              {payee.accountName}
+            </Text>
+            <Text variant="caption" color="textSecondary" numberOfLines={1}>
+              {payee.bank.name} · {payee.accountNumber}
+            </Text>
+          </View>
+          <Pressable
+            onPress={toggleFavorite}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={favorite ? 'Remove from favorites' : 'Save to favorites'}>
+            <Icon name={favorite ? 'star' : 'star-outline'} size={22} color={favorite ? 'accentPink' : 'textSecondary'} />
+          </Pressable>
+        </Card>
+        <Pressable onPress={reset} hitSlop={8} accessibilityRole="button">
+          <Text variant="label" color="accentPinkTint">
+            Change account
+          </Text>
+        </Pressable>
+        <AmountInput label="They get" value={amount} onChange={setAmount} currency="NGN" />
+        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+        {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+        <PillButton
+          label={quote ? `Withdraw ${formatMoney(quote.send)}` : 'Withdraw'}
+          disabled={!quote || quoting}
+          loading={phase.kind === 'sending'}
+          onPress={withdraw}
+        />
+      </Screen>
+    );
+  }
+
+  const shown = (recipients ?? []).filter((r) => (tab === 'favorites' ? r.favorite : r.lastUsedAtUnixMs > 0));
+
   return (
     <Screen>
       <BackHeader title="Send to bank" />
-      <BankPicker banks={banks} value={bank} onChange={setBank} error={banksError} />
       <Field
         prefix={<Icon name="keypad-outline" size={20} color="textSecondary" />}
         placeholder="10-digit account number"
         value={accountNumber}
-        onChangeText={(t) => setAccountNumber(t.replace(/\D/g, '').slice(0, NUBAN_LENGTH))}
+        onChangeText={(t) => {
+          setAccountNumber(t.replace(/\D/g, '').slice(0, NUBAN_LENGTH));
+          setManual(null);
+          setScanned(false);
+        }}
         keyboardType="number-pad"
         maxLength={NUBAN_LENGTH}
         accessibilityLabel="Account number"
       />
-      {account.state === 'checking' ? <Text color="textSecondary">Checking account…</Text> : null}
-      {account.state === 'ok' ? (
-        <View style={styles.name}>
-          <Icon name="checkmark-circle" size={18} color="success" />
-          <Text variant="bodyStrong" color="success">
-            {account.name}
-          </Text>
-        </View>
-      ) : null}
-      {account.state === 'none' || account.state === 'error' ? (
-        <Text color={account.state === 'none' ? 'textSecondary' : 'danger'}>{account.message}</Text>
-      ) : null}
 
-      {ready ? (
+      {complete ? (
         <>
-          <AmountInput label="They get" value={amount} onChange={setAmount} currency="NGN" />
-          <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
-          {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
-          <PillButton
-            label={quote ? `Withdraw ${formatMoney(quote.send)}` : 'Withdraw'}
-            disabled={!quote || quoting}
-            loading={phase.kind === 'sending'}
-            onPress={withdraw}
+          {!found ? (
+            <View style={styles.finding}>
+              <ActivityIndicator color={colors.accentPink} />
+              <Text color="textSecondary">Finding the bank…</Text>
+            </View>
+          ) : found.banks?.length ? (
+            <Card style={styles.list}>
+              {found.banks.map((b, i) => (
+                <Row
+                  key={b.code}
+                  bank={b}
+                  title={b.accountName}
+                  subtitle={b.name}
+                  divider={i > 0}
+                  onPress={() => choose({ bank: b, accountNumber, accountName: b.accountName })}
+                />
+              ))}
+            </Card>
+          ) : (
+            <Text color="textSecondary">{found.error ?? 'We couldn’t find this account at the usual banks. Choose the bank below.'}</Text>
+          )}
+          <Text variant="label" color="textSecondary">
+            Not there? Choose the bank
+          </Text>
+          <BankPicker
+            banks={banks}
+            value={chosen?.bank ?? null}
+            onChange={(bank) => setManual({ bank, result: null })}
+            error={banksError}
           />
+          {chosen && chosen.result === null ? <Text color="textSecondary">Checking account…</Text> : null}
+          {chosen?.result ? <Text color="textSecondary">{chosen.result}</Text> : null}
         </>
-      ) : null}
+      ) : (
+        <>
+          <View style={styles.tabs}>
+            {(['recents', 'favorites'] as const).map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: tab === t }}
+                style={[styles.tab, tab === t && styles.tabOn]}>
+                <Text variant="label" color={tab === t ? 'textPrimary' : 'textSecondary'}>
+                  {t === 'recents' ? 'Recents' : 'Favorites'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {recipients === null ? (
+            <ActivityIndicator color={colors.accentPink} />
+          ) : shown.length === 0 ? (
+            <Text color="textSecondary">
+              {tab === 'favorites'
+                ? 'Tap the star on an account to keep it here.'
+                : 'Accounts you send to show up here.'}
+            </Text>
+          ) : (
+            <Card style={styles.list}>
+              {shown.map((r, i) => {
+                const bank = { code: r.bankCode, name: r.bankName, logo: r.logo };
+                return (
+                  <Row
+                    key={`${r.bankCode}:${r.accountNumber}`}
+                    bank={bank}
+                    title={r.accountName}
+                    subtitle={`${r.bankName} · ${r.accountNumber}`}
+                    divider={i > 0}
+                    onPress={() => choose({ bank, accountNumber: r.accountNumber, accountName: r.accountName })}
+                  />
+                );
+              })}
+            </Card>
+          )}
+        </>
+      )}
     </Screen>
   );
 }
 
+function Row({
+  bank,
+  title,
+  subtitle,
+  divider,
+  onPress,
+}: {
+  bank: Bank;
+  title: string;
+  subtitle: string;
+  divider: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${subtitle}`}
+      style={({ pressed }) => [styles.row, divider && styles.divider, pressed && styles.pressed]}>
+      <BankLogo bank={bank} size={36} />
+      <View style={styles.payeeText}>
+        <Text variant="bodyStrong" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text variant="caption" color="textSecondary" numberOfLines={1}>
+          {subtitle}
+        </Text>
+      </View>
+      <Icon name="chevron-forward" size={16} color="textSecondary" />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  name: {
+  payee: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.md,
+  },
+  payeeText: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  finding: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  list: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  divider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  tab: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+  },
+  tabOn: {
+    backgroundColor: colors.bgSurface,
   },
 });

@@ -14,5 +14,5 @@ export const solana = {
 } as const;
 
 export const engineUrl = process.env.EXPO_PUBLIC_ENGINE_URL ?? '';
-// The hosted web app, where Atlas Links open. Links can't be made until it's set.
-export const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? '';
+// The hosted web app, where Atlas Links open: the engine serves it unless a separate site is set.
+export const webUrl = process.env.EXPO_PUBLIC_WEB_URL || engineUrl;

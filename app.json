@@ -46,6 +46,13 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Atlas uses the camera to scan QR codes and account numbers.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

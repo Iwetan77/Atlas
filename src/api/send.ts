@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { engineGet, enginePost, EngineUnavailable, SAFE_TO_REPLAY } from '@/api/client';
 import type {
   Bank,
+  BankGuess,
+  BankRecipient,
   CashLink,
   ExecutionPlan,
   IntentStatus,
@@ -112,6 +114,26 @@ export async function resolveAccount(token: Token, bankCode: string, accountNumb
     if (e instanceof EngineUnavailable && e.status === 404) return null;
     throw e;
   }
+}
+
+// The banks an account number belongs to, each confirmed with the holder's name.
+export async function guessBanks(token: Token, accountNumber: string): Promise<BankGuess[]> {
+  return (await enginePost<{ banks: BankGuess[] }>('/v1/offramp/guess', await token(), { accountNumber }, SAFE_TO_REPLAY)).banks;
+}
+
+export async function listRecipients(token: Token): Promise<BankRecipient[]> {
+  return (await engineGet<{ recipients: BankRecipient[] }>('/v1/offramp/recipients', await token())).recipients;
+}
+
+export async function setFavorite(token: Token, bankCode: string, accountNumber: string, favorite: boolean): Promise<BankRecipient[]> {
+  return (
+    await enginePost<{ recipients: BankRecipient[] }>(
+      '/v1/offramp/recipients',
+      await token(),
+      { bankCode, accountNumber, favorite },
+      SAFE_TO_REPLAY,
+    )
+  ).recipients;
 }
 
 export async function requestSendQuote(token: Token, req: SendQuoteRequest): Promise<SendQuote> {
