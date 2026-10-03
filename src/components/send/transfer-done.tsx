@@ -16,7 +16,7 @@ export type DoneTransfer = {
   bank: Bank;
   accountNumber: string;
   accountName: string;
-  // What the bank gets, what left the balance, and Daya's fee.
+  // What the bank gets, what left the balance, and the fee.
   receive: Money;
   send: Money;
   fee: Money;

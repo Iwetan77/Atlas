@@ -31,7 +31,7 @@ type Payee = { bank: Bank; accountNumber: string; accountName: string };
 type Guesses = { number: string; banks: BankGuess[] | null; error: string | null };
 type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; transfer: DoneTransfer } | { kind: 'failed'; message: string };
 
-// Off-ramp: from the one balance straight to a bank account, paid out by the engine through Daya.
+// Off-ramp: from the one balance straight to a bank account, paid out by the engine.
 // Type the account number and Atlas finds the bank (or pick a recent or favorite); then the amount.
 export default function SendToBankScreen() {
   const { getAccessToken } = useAtlasAuth();
@@ -104,7 +104,7 @@ export default function SendToBankScreen() {
     () =>
       requestSendQuote(getAccessToken, {
         destination: { type: 'bank', bankCode: payee!.bank.code, accountNumber: payee!.accountNumber },
-        // What the bank gets, in naira; Daya's fee is added on top.
+        // What the bank gets, in naira; the fee is added on top.
         amount: { amount: value.toFixed(2), currency: 'NGN' },
       }),
     [getAccessToken, payee, value],

@@ -24,14 +24,14 @@ const PROGRESS: Record<BankTransferState, string> = {
   waiting: 'Waiting for your transfer',
   received: 'Transfer received',
   processing: 'Adding it to your balance',
-  review: 'Daya is checking this payment',
+  review: 'This payment is being checked',
   completed: 'Added to your balance',
   failed: 'This transfer didn’t go through',
   expired: 'This account has expired',
 };
 const FINAL: BankTransferState[] = ['completed', 'failed', 'expired'];
 
-// Add money from any Nigerian bank: Daya gives a one-time account for an exact amount, and what's
+// Add money from any Nigerian bank: a one-time account for an exact amount, and what's
 // paid into it lands in the balance as dollars.
 export default function AddByBankScreen() {
   const { getAccessToken } = useAtlasAuth();
@@ -56,7 +56,7 @@ export default function AddByBankScreen() {
     [from, openAddMoney],
   );
 
-  // Whole naira only: Daya's accounts take a whole-naira amount.
+  // Whole naira only: the one-time accounts take a whole-naira amount.
   const amount = String(Math.floor(Number(naira) || 0));
   const ready = Number(amount) > 0;
 
@@ -134,16 +134,16 @@ export default function AddByBankScreen() {
           {preview ? (
             <Card style={styles.card}>
               <Row label="You get about" value={formatMoney(preview.receive)} strong />
-              <Row label="Daya fee (1%, up to ₦100)" value={formatMoney(preview.fee)} />
-              {/* Daya's flat charge for sending the dollars to your wallet, whatever the amount. */}
-              <Row label="Delivery to your wallet (Daya)" value={preview.networkFee} />
-              <Row label="Daya's rate" value={preview.rate} />
+              <Row label="Fee (1%, up to ₦100)" value={formatMoney(preview.fee)} />
+              {/* A flat charge for sending the dollars to your wallet, whatever the amount. */}
+              <Row label="Delivery to your wallet" value={preview.networkFee} />
+              <Row label="Rate" value={preview.rate} />
             </Card>
           ) : null}
           {preview && preview.receive.currency === 'NGN' && Number(amount) > 0 && 1 - Number(preview.receive.amount) / Number(amount) > 0.05 ? (
             <Text variant="caption" color="textSecondary">
               About {Math.round((1 - Number(preview.receive.amount) / Number(amount)) * 100)}% goes to fees here. Most of it is
-              Daya’s flat delivery charge, so larger transfers lose a much smaller share.
+              the flat delivery charge, so larger transfers lose a much smaller share.
             </Text>
           ) : null}
           {previewError ? <Text color="danger">{previewError}</Text> : null}

@@ -23,7 +23,7 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    - **Wallet or exchange:** USDC on Solana or Base goes straight in; USDT on Tron or BNB Chain, USDC on Sui,
      SOL and 19 more networks and coins get a one-off address (with a QR and live status) and arrive as dollars.
      Each option shows its coin's logo with the chain as a badge.
-   - **Bank transfer** and **virtual account:** coming (Daya).
+   - **Bank transfer** and **virtual account:** coming.
 3. **Home** shows the one balance (hide it with the eye: amounts turn into `₦••••`), what's earning, and a
    card per coin held with its gain or loss, shareable as an image.
 4. **Trade:** Trending (the day's biggest risers, per kind), Crypto, Stocks and Memes, plus search by name or
@@ -38,7 +38,7 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    to the balance.
 7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
    take out any time.
-8. **Send** to an @handle, straight to the friend's wallet on the chain the cash is on. Bank payouts (Daya)
+8. **Send** to an @handle, straight to the friend's wallet on the chain the cash is on. Bank payouts
    and Atlas Links anyone can claim are built in the app and switch on when the engine's side is configured.
 9. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
    **Add money** button right there.

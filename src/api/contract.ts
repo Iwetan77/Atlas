@@ -157,7 +157,7 @@ export type BalanceResponse = {
 export type GasTank = { chain: Chain; symbol: string; amount: string; value: Money };
 
 // ── Deposits ────────────────────────────────────────────────────────────────────────────
-// Naira in by bank transfer: GET /v1/deposit/bank-account → the user's Daya virtual account.
+// Naira in by bank transfer: GET /v1/deposit/bank-account → the user's virtual account.
 export type BankDepositAccount = {
   bankName: string;
   accountNumber: string;
@@ -356,7 +356,7 @@ export type Recipient = { handle: string; displayName: string | null };
 // ── Send: Atlas Friends, Banks & Mobile Money, Cash Link ────────────────────────────────
 export type SendDestination =
   | { type: 'atlas'; handle: string }
-  // Nigerian bank account paid out through Daya.
+  // Nigerian bank account, paid out in naira.
   | { type: 'bank'; bankCode: string; accountNumber: string }
   // An Atlas Link: `escrow` is the address of the link's secret, made on the sender's phone.
   | { type: 'cashlink'; escrow: string; message?: string };
@@ -383,7 +383,7 @@ export type SendQuote = {
 
 // GET  /v1/offramp/banks?country=NG → { banks: Bank[] }
 // POST /v1/offramp/resolve { bankCode, accountNumber } → { accountName }   (404 no such account)
-// `logo`: the bank's logo when the engine found one (Daya lists none).
+// `logo`: the bank's logo when the engine found one.
 export type Bank = { code: string; name: string; logo?: string | null };
 // A bank this account number was found at, with the holder's name there.
 // POST /v1/offramp/guess { accountNumber } → { banks: BankGuess[] }
@@ -400,14 +400,14 @@ export type BankRecipient = {
   logo?: string | null;
 };
 
-// Adding money by bank transfer (Daya): a one-time Nigerian account; its naira lands as USDC.
+// Adding money by bank transfer: a one-time Nigerian account; its naira lands as USDC.
 // POST /v1/onramp/bank/quote { amount: whole naira, currency } → BankTransferQuote (nothing opens)
 // POST /v1/onramp/bank       { amount, currency }             → BankTransfer
 // GET  /v1/onramp/bank/{id}?currency=                          → BankTransfer
 export type BankTransferQuote = {
   pay: Money;
   fee: Money;
-  // Daya's flat charge for sending the USDC, already taken off `receive`.
+  // The flat charge for sending the USDC, already taken off `receive`.
   networkFee: string;
   receive: Money;
   rate: string;
