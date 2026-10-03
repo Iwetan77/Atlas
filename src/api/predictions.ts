@@ -20,7 +20,7 @@ export type PredictionQuote = {
   question: string; outcome: string | null; shares: string | null; pay: Money; receive: Money;
   potentialPayout: Money | null; price: Money; fee: Money; gasReserve: Money; expiresAtUnixMs: number;
 };
-export type PredictionAvailability = { configured: boolean; serverAllowed: boolean; reason: string | null };
+export type PredictionAvailability = { configured: boolean; serverAllowed: boolean; serviceCountry?: string | null; blockedBy?: 'service_region' | 'builder_setup' | null; reason: string | null };
 type Token = () => Promise<string | null>;
 
 // Check the user's own connection too. A server in an allowed country cannot override a blocked user.

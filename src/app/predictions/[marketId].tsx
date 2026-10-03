@@ -70,22 +70,30 @@ export default function PredictionDetail() {
   return <Screen>
     <BackHeader title="Your prediction" />
     {!market ? <>{loadError ? <Text color="danger">{loadError}</Text> : <ActivityIndicator color={colors.accentPink} />}</> : <>
-      <View style={styles.heading}>
+      <Card style={styles.marketHeading}>
+        <View style={styles.marketLabel}><Icon name="sparkles-outline" size={15} color="accentPinkTint" /><Text variant="overline" color="accentPinkTint">Atlas Predictions</Text></View>
+        <View style={styles.heading}>
         {market.iconUrl ? <Image source={{ uri: market.iconUrl }} style={styles.image} /> : <Icon name="analytics" color="accentPink" size={40} />}
-        <Text variant="title" style={{ flex: 1 }}>{market.question}</Text>
-      </View>
-      <View style={styles.row}>{market.outcomes.map((o) => (
+        <Text variant="heading" style={{ flex: 1 }}>{market.question}</Text>
+        </View>
+        <View style={styles.marketLabel}><Icon name="calendar-outline" size={15} color="textSecondary" /><Text variant="caption" color="textSecondary">{market.endDate ? 'Ends ' + new Date(market.endDate).toLocaleDateString() : 'Read the resolution rules below'}</Text></View>
+      </Card>
+      <Text variant="overline" color="textSecondary">Choose your outcome</Text>
+      <View style={styles.choices}>{market.outcomes.map((o) => (
         <Pressable key={o.tokenId} onPress={() => { setOutcome(o.tokenId); clear(); setResult(null); }}
           disabled={busy} accessibilityRole="button" accessibilityState={{ selected: outcome === o.tokenId }}
           style={[styles.choice, outcome === o.tokenId && styles.selected]}>
-          <Text variant="bodyStrong" color={outcome === o.tokenId ? 'accentPink' : 'textPrimary'}>{o.label}</Text>
-          <Text variant="title">{(Number(o.probability) * 100).toFixed(1)}%</Text>
+          <View style={styles.between}><Text variant="bodyStrong" color={outcome === o.tokenId ? 'accentPinkTint' : 'textPrimary'}>{o.label}</Text>
+            <View style={[styles.radio, outcome === o.tokenId && styles.radioSelected]}>{outcome === o.tokenId ? <Icon name="checkmark" size={12} color="tilePinkInk" /> : null}</View></View>
+          <Text variant="title" style={styles.probability}>{(Number(o.probability) * 100).toFixed(1)}%</Text>
           <Text variant="caption" color="textSecondary">Market probability</Text>
         </Pressable>
       ))}</View>
-      <View style={styles.row}>{(['buy', 'sell'] as const).map((s) => (
-        <PillButton key={s} label={s === 'buy' ? 'Buy' : 'Sell'} tone={side === s ? 'primary' : 'secondary'}
-          style={{ flex: 1 }} disabled={busy} onPress={() => { setSide(s); clear(); setResult(null); }} />
+      <View style={styles.tabs}>{(['buy', 'sell'] as const).map((s) => (
+        <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: side === s }}
+          style={[styles.tab, side === s && styles.tabActive]} disabled={busy} onPress={() => { setSide(s); clear(); setResult(null); }}>
+          <Text variant="bodyStrong" color={side === s ? 'accentPinkTint' : 'textSecondary'}>{s === 'buy' ? 'Buy shares' : 'Sell shares'}</Text>
+        </Pressable>
       ))}</View>
       {side === 'buy' ? <AmountInput label="You spend" value={amount} onChange={setAmount} currency={displayCurrency} /> : (
         <Card style={styles.gap}>
@@ -97,7 +105,8 @@ export default function PredictionDetail() {
               onPress={() => setShares((Math.floor(Number(holding?.shares ?? 0) * 100) / 100).toFixed(2))} /></View>
         </Card>
       )}
-      {quote ? <Card variant="outlined" style={styles.gap}>
+      {quote ? <Card style={styles.preview}>
+        <View style={styles.marketLabel}><Icon name="receipt-outline" size={16} color="accentPinkTint" /><Text variant="overline" color="textSecondary">Your preview</Text></View>
         <View style={styles.between}><Text color="textSecondary">{side === 'buy' ? 'You pay' : 'You receive'}</Text>
           <Text variant="bodyStrong">{formatMoney(side === 'buy' ? quote.pay : quote.receive)}</Text></View>
         <View style={styles.between}><Text color="textSecondary">Shares</Text><Text variant="bodyStrong">{(Number(quote.shares) / 1_000_000).toFixed(2)}</Text></View>
@@ -109,25 +118,37 @@ export default function PredictionDetail() {
       </Card> : null}
       {quoting ? <ActivityIndicator color={colors.accentPink} /> : null}
       {error ? <Text color="danger">{error}</Text> : null}
-      {!ready ? <Text color="textSecondary">{market.closed ? 'This event has closed.' : availability?.reason ?? 'Checking trading availability…'}</Text> : null}
+      {!ready ? <View style={styles.notice}><Icon name="information-circle-outline" size={20} color="accentPinkTint" /><Text variant="caption" color="textSecondary" style={{ flex: 1 }}>{market.closed ? 'This event has closed.' : availability?.reason ?? 'Checking trading availability…'}</Text></View> : null}
       {result ? <Card><Text>{result}</Text><PillButton label="View activity" size="sm" tone="secondary" onPress={() => router.push('/transactions')} /></Card> : null}
       <PillButton label={(side === 'buy' ? 'Buy ' : 'Sell ') + (market.outcomes.find((o) => o.tokenId === outcome)?.label ?? 'shares')}
         loading={busy} disabled={!quote || !ready || quoting || busy} onPress={go} />
       {busy ? <Text variant="caption" color="textSecondary">{progress}</Text> : null}
-      <Pressable onPress={() => setRules((v) => !v)} accessibilityRole="button" style={styles.between}>
+      <Pressable onPress={() => setRules((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: rules }} style={styles.rules}>
         <Text variant="bodyStrong">How this event resolves</Text><Icon name={rules ? 'chevron-up' : 'chevron-down'} color="accentPink" />
       </Pressable>
       {rules ? <Card variant="outlined"><Text color="textSecondary">{market.description || 'Resolution rules are currently unavailable.'}</Text></Card> : null}
-      <Text variant="caption" color="textSecondary">A losing prediction can become worth nothing. Only spend what you can afford to lose.</Text>
+      <View style={styles.risk}><Icon name="shield-outline" size={15} color="textSecondary" /><Text variant="caption" color="textSecondary" style={{ flex: 1 }}>A losing prediction can become worth nothing. Only spend what you can afford to lose.</Text></View>
     </>}
   </Screen>;
 }
 const styles = StyleSheet.create({
+  marketHeading: { gap: spacing.lg, backgroundColor: colors.bgTabBar, borderWidth: 1, borderColor: colors.border },
+  marketLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   heading: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  image: { width: 56, height: 56, borderRadius: radii.lg },
-  row: { flexDirection: 'row', gap: spacing.md },
+  image: { width: 56, height: 56, borderRadius: radii.md, backgroundColor: colors.bgSurface },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  choice: { flex: 1, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
-  selected: { backgroundColor: colors.accentPinkDim, borderColor: colors.accentPink },
+  choice: { flex: 1, minWidth: 140, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
+  selected: { backgroundColor: colors.accentPinkMuted, borderColor: colors.accentPinkTint },
+  radio: { width: 20, height: 20, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.textDisabled, alignItems: 'center', justifyContent: 'center' },
+  radioSelected: { backgroundColor: colors.tilePink, borderColor: colors.tilePink },
+  probability: { fontSize: 32, lineHeight: 38 },
+  tabs: { flexDirection: 'row', gap: spacing.xs, padding: spacing.xs, borderRadius: radii.pill, backgroundColor: colors.bgTabBar },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.sm, borderRadius: radii.pill },
+  tabActive: { backgroundColor: colors.bgSurface },
   gap: { gap: spacing.md },
+  preview: { gap: spacing.lg, backgroundColor: colors.bgTabBar, borderWidth: 1, borderColor: colors.border },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.bgSurface, padding: spacing.lg },
+  rules: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.lg, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  risk: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
 });

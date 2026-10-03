@@ -15,7 +15,7 @@ html, body, #root { height:100%; }
 .atlas-sidebar,.atlas-workspace-header,.atlas-public-header { display:none; }
 .atlas-route-page { min-height:0; flex:1; display:flex; flex-direction:column; width:100%; }
 .atlas-skip { position:fixed; top:-80px; left:16px; padding:12px 20px; background:var(--atlas-pink); border-radius:12px; z-index:10000; }
-.atlas-skip:focus { top:12px; }
+.atlas-skip:focus-visible { top:12px; }
 .atlas-btn { min-height:44px; border:1px solid transparent; border-radius:999px; display:inline-flex; justify-content:center; align-items:center; gap:10px; padding:11px 21px; font-family:Inter_600SemiBold,system-ui,sans-serif; font-size:13px; transition:background .18s,border-color .18s,transform .18s; }
 .atlas-btn:hover:not(:disabled) { transform:translateY(-1px); }
 .atlas-btn-quiet { background:var(--atlas-nav); border-color:var(--atlas-border); }
