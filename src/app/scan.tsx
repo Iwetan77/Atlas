@@ -113,13 +113,7 @@ export default function ScanScreen() {
           <Icon name="close" size={26} color="textPrimary" />
         </Pressable>
         <Text variant="heading">Scan to pay</Text>
-        <Pressable
-          onPress={() => router.replace('/deposit')}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Show my code">
-          <Icon name="qr-code-outline" size={24} color="textPrimary" />
-        </Pressable>
+        <View style={styles.topSpacer} />
       </View>
       <View style={styles.frame} pointerEvents="none" />
       <View style={[styles.bottom, { paddingBottom: insets.bottom + spacing.lg }]}>
@@ -146,6 +140,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     backgroundColor: colors.scrim,
+  },
+  topSpacer: {
+    width: 26,
   },
   frame: {
     alignSelf: 'center',

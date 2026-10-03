@@ -14,6 +14,7 @@ import { PendingPurchases } from '@/components/home/pending-purchases';
 import { NextSteps } from '@/components/next-steps';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { PromoBanner, type Promo } from '@/components/promo-banner';
+import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { useAddMoney } from '@/funding/add-money';
@@ -98,6 +99,13 @@ export function HomeContent({
           accessibilityLabel="Profile and settings"
           style={styles.avatarRing}>
           <ProfileAvatar photo={me?.avatar} initial={(email?.[0] ?? 'A').toUpperCase()} size={40} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/scan')}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Scan to pay">
+          <Icon name="scan-outline" size={28} color="textPrimary" />
         </Pressable>
       </View>
 
