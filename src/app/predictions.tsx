@@ -62,7 +62,7 @@ export default function Predictions() {
   };
   const heading = query ? 'Search results' : topic.query ? topic.label : 'Top markets';
   return (
-    <Screen onRefresh={() => { reload(); reloadAccount(); }}>
+    <Screen stickyTitle="Predictions" onRefresh={() => { reload(); reloadAccount(); }}>
       <BackHeader title="Predictions" />
 
       <View style={styles.hero}>

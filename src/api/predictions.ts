@@ -103,3 +103,16 @@ export function usePredictionAccount(currency: string) {
   useEffect(() => { const timer = setTimeout(() => { reload(); }, 0); return () => clearTimeout(timer); }, [reload]);
   return { account, availability, error, reload };
 }
+
+// Comments on a market, signed with each writer's @handle. GET pages newest first (30 at a time);
+// POST needs the user's own handle; only your own can be deleted.
+export type PredictionComment = { id: string; handle: string; body: string; createdAtUnixMs: number; mine: boolean };
+export async function marketComments(token: Token, marketId: string, before?: number): Promise<{ comments: PredictionComment[]; nextBefore: number | null }> {
+  return engineGet('/v1/predictions/markets/' + encodeURIComponent(marketId) + '/comments' + (before ? '?before=' + before : ''), await token());
+}
+export async function postComment(token: Token, marketId: string, body: string): Promise<PredictionComment> {
+  return enginePost('/v1/predictions/markets/' + encodeURIComponent(marketId) + '/comments', await token(), { body });
+}
+export async function deleteComment(token: Token, id: string): Promise<void> {
+  await enginePost('/v1/predictions/comments/' + encodeURIComponent(id) + '/delete', await token(), {}, SAFE_TO_REPLAY);
+}

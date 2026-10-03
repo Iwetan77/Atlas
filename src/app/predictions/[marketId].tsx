@@ -9,6 +9,7 @@ import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { MarketArt } from '@/components/predictions/market-art';
+import { MarketComments } from '@/components/predictions/comments';
 import { endsLabel, percent, volumeLabel } from '@/components/predictions/market-card';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
@@ -68,7 +69,7 @@ export default function PredictionDetail() {
     } catch (e) { setResult(e instanceof StillSettling ? 'Still processing. Check Activity; keep Atlas open to finish the next step.' : friendlyTxError(e)); }
     finally { setBusy(false); setProgress(''); }
   };
-  return <Screen>
+  return <Screen stickyTitle={market?.question ?? 'Prediction'}>
     <BackHeader title="Prediction" />
     {!market ? <>{loadError ? <Text color="danger">{loadError}</Text> : <ActivityIndicator color={colors.accentPink} />}</> : <>
       <View style={styles.marketHeading}>
@@ -136,6 +137,7 @@ export default function PredictionDetail() {
       </Pressable>
       {rules ? <Card variant="outlined"><Text color="textSecondary">{market.description || 'Resolution rules are currently unavailable.'}</Text></Card> : null}
       <View style={styles.risk}><Icon name="shield-outline" size={15} color="textSecondary" /><Text variant="caption" color="textSecondary" style={{ flex: 1 }}>A losing prediction can become worth nothing. Only spend what you can afford to lose.</Text></View>
+      <MarketComments marketId={market.marketId} />
     </>}
   </Screen>;
 }

@@ -5,6 +5,12 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { colors, radii, spacing } from '@/theme';
 
+// Back where you came from, or Home when the screen was opened directly.
+export function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
+}
+
 export function BackHeader({ title }: { title?: string }) {
   return (
     <View style={styles.row}>
@@ -13,7 +19,7 @@ export function BackHeader({ title }: { title?: string }) {
         accessibilityLabel="Back"
         hitSlop={8}
         style={({ pressed }) => [styles.back, pressed && { backgroundColor: colors.accentPinkDim }]}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+        onPress={goBack}>
         <Icon name="chevron-back" size={20} color="accentPink" />
       </Pressable>
       {title ? <Text variant="title">{title}</Text> : null}
