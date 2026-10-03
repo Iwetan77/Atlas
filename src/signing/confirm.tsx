@@ -1,3 +1,4 @@
+import { submitPredictionStep } from '@/signing/prediction';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,7 +62,7 @@ export function useConfirmAndExecute() {
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const signer = useSigner();
-  const { wallets } = useAtlasAuth();
+  const { wallets, getAccessToken } = useAtlasAuth();
   const insets = useSafeAreaInsets();
   const desktop = useDesktop();
   const [pending, setPending] = useState<Pending | null>(null);
@@ -94,7 +95,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       for (const [index, tx] of plan.transactions.entries()) {
         setPhase({ kind: 'signing', step: index + 1 });
         if ('typedData' in tx) {
-          signed.push({ index, transaction: await signer.sign(tx) });
+          signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer) : await signer.sign(tx) });
           continue;
         }
         if (tx.chain === 'privy') {

@@ -1,3 +1,4 @@
+import { submitPredictionStep } from '@/signing/prediction';
 import { predictionGeo } from '@/api/predictions';
 import { useCallback } from 'react';
 
@@ -144,7 +145,7 @@ export function useRunIntent() {
         const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
           if ('typedData' in tx) {
-            signed.push({ index, transaction: await signer.sign(tx) });
+            signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer) : await signer.sign(tx) });
             continue;
           }
           if (tx.chain === 'privy') {

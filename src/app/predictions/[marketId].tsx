@@ -49,7 +49,7 @@ export default function PredictionDetail() {
     marketId, tokenId: outcome, side, amount: { amount: side === 'buy' ? amount : holding?.value.amount ?? '0', currency: displayCurrency },
     ...(side === 'sell' ? { shares } : {}),
   }), [getAccessToken, marketId, outcome, side, amount, displayCurrency, shares, holding?.value.amount]);
-  const ready = market?.tradeable && availability?.configured && availability.serverAllowed;
+  const ready = market?.tradeable && availability?.configured && availability.deviceSubmission && availability.deviceAllowed;
   const { quote, quoting, error, clear } = useLiveQuote(
     ready && outcome && (side === 'buy' ? Number(amount) > 0 : Number(shares) > 0) ? request : null, !busy);
   const go = async () => {

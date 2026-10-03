@@ -55,7 +55,12 @@ export type TypedData = {
   message: Record<string, unknown>;
 };
 export type UnsignedTx =
-  | { chain: 'base' | 'hyperliquid' | 'polygon'; typedData: TypedData }
+  | {
+      chain: 'base' | 'hyperliquid' | 'polygon';
+      typedData: TypedData;
+      // Polymarket receives this approved action directly from the user's connection.
+      prediction?: { prepareId: string; intentId: string; expiresAtUnixMs: number };
+    }
 
   | {
       // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g.

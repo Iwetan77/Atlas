@@ -20,7 +20,7 @@ export type PredictionQuote = {
   question: string; outcome: string | null; shares: string | null; pay: Money; receive: Money;
   potentialPayout: Money | null; price: Money; fee: Money; gasReserve: Money; expiresAtUnixMs: number;
 };
-export type PredictionAvailability = { configured: boolean; serverAllowed: boolean; serviceCountry?: string | null; blockedBy?: 'service_region' | 'builder_setup' | null; reason: string | null };
+export type PredictionAvailability = { configured: boolean; serverAllowed: boolean; deviceSubmission?: boolean; deviceAllowed?: boolean; serviceCountry?: string | null; blockedBy?: 'service_region' | 'builder_setup' | null; reason: string | null };
 type Token = () => Promise<string | null>;
 
 // Check the user's own connection too. A server in an allowed country cannot override a blocked user.
@@ -64,7 +64,7 @@ export async function predictionQuote(token: Token, input: {
 }): Promise<PredictionQuote> {
   const geoAllowed = await predictionGeo();
   if (!geoAllowed) throw new Error('Predictions trading is not available in your location.');
-  return enginePost('/v1/predictions/quotes', await token(), { ...input, geoAllowed }, SAFE_TO_REPLAY);
+  return enginePost('/v1/predictions/quotes', await token(), { ...input, geoAllowed, deviceSubmission: true }, SAFE_TO_REPLAY);
 }
 export async function executePrediction(token: Token, id: string): Promise<ExecutionPlan> {
   if (!await predictionGeo()) throw new Error('Predictions trading is not available in your location.');
@@ -79,13 +79,21 @@ export function usePredictionAccount(currency: string) {
     if (!authenticated) return;
     try {
     const token = await getAccessToken();
-    const [a, ready] = await Promise.allSettled([
+    const [a, ready, location] = await Promise.allSettled([
       engineGet<PredictionAccount>('/v1/predictions/account?currency=' + currency, token, { timeoutMs: 20_000 }),
       engineGet<PredictionAvailability>('/v1/predictions/availability', token, { timeoutMs: 15_000 }),
+      predictionGeo(),
     ]);
     if (a.status === 'fulfilled') { setAccount(a.value); setError(null); }
     else setError(a.reason instanceof Error ? a.reason.message : 'Predictions balance unavailable.');
-    if (ready.status === 'fulfilled') setAvailability(ready.value);
+    if (ready.status === 'fulfilled') {
+      const deviceAllowed = location.status === 'fulfilled' && location.value;
+      const reason = !ready.value.configured ? 'Atlas Predictions is waiting for its trading credentials.'
+        : !ready.value.deviceSubmission ? 'Update Atlas to trade Predictions from your device.'
+        : location.status === 'rejected' ? 'Your trading location could not be checked. Pull to refresh.'
+        : !deviceAllowed ? 'Predictions trading is not available from your device connection.' : null;
+      setAvailability({ ...ready.value, deviceAllowed, reason });
+    }
     else setAvailability({ configured: false, serverAllowed: false, reason: 'Trading availability could not be checked. Pull to refresh.' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign in again to load Predictions.');
