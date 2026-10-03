@@ -8,6 +8,7 @@ import type {
   PerpMarket,
   PerpOpenRequest,
   PerpQuote,
+  PerpTpsl,
 } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
@@ -112,4 +113,19 @@ export async function requestCloseQuote(token: Token, positionId: string, percen
 
 export async function executeCloseQuote(token: Token, quoteId: string): Promise<ExecutionPlan> {
   return enginePost<ExecutionPlan>(`/v1/perps/close-quotes/${encodeURIComponent(quoteId)}/execute`, await token(), {}, SAFE_TO_REPLAY);
+}
+
+// Sets a position's take-profit and stop-loss (gain / loss on margin, in percent); null removes one.
+export async function setPositionTpsl(
+  token: Token,
+  positionId: string,
+  takeProfitPct: number | null,
+  stopLossPct: number | null,
+): Promise<PerpTpsl> {
+  return enginePost<PerpTpsl>(
+    `/v1/perps/positions/${encodeURIComponent(positionId)}/tpsl`,
+    await token(),
+    { takeProfitPct, stopLossPct },
+    SAFE_TO_REPLAY,
+  );
 }

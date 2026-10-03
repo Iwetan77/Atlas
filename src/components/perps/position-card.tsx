@@ -5,6 +5,7 @@ import Svg, { Circle, ClipPath, Defs, Line, LinearGradient, Pattern, Polygon, Re
 
 import type { PerpPosition } from '@/api/contract';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
+import { TpslLine } from '@/components/perps/tpsl';
 import { useShareImage } from '@/components/share/use-share-image';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
@@ -29,7 +30,16 @@ const LOGO_R = 38;
 // An open position: a share card kept to the few numbers worth bragging about, with the
 // liquidation price right under it in the app (it's not something people post, but it must
 // never be hidden from the owner).
-export function PositionCard({ position: p, handle }: { position: PerpPosition; handle: string | null }) {
+export function PositionCard({
+  position: p,
+  handle,
+  onChanged,
+}: {
+  position: PerpPosition;
+  handle: string | null;
+  // After its take-profit or stop-loss changes: the positions reload.
+  onChanged: () => void;
+}) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
   const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}-${p.side}.png`, 'Share position');
@@ -143,6 +153,7 @@ export function PositionCard({ position: p, handle }: { position: PerpPosition; 
       </View>
 
       <LiquidationPrice price={p.liquidationPrice} side={p.side} symbol={p.symbol} compact />
+      <TpslLine position={p} onChanged={onChanged} />
 
       {shareError ? (
         <Text variant="caption" color="danger">

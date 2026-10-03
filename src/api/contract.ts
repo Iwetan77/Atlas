@@ -511,11 +511,27 @@ export type PerpPosition = {
   unrealizedPnlPct: string | null;
   // When the position was opened (the share card shows "open · 56m").
   openedAtUnixMs: number;
+  // Its take-profit and stop-loss, if set: they close the whole position at market there.
+  takeProfit?: PerpTrigger | null;
+  stopLoss?: PerpTrigger | null;
 };
+// A take-profit or stop-loss: its price (USD), and the gain or loss on margin there ("50", "-25").
+export type PerpTrigger = { price: Money; pct: string };
 export type PerpAccount = { positions: PerpPosition[] };
 
-// POST /v1/perps/quotes { marketId, side, margin: Money, leverage } → PerpQuote
-export type PerpOpenRequest = { marketId: string; side: 'long' | 'short'; margin: Money; leverage: number };
+// POST /v1/perps/quotes { marketId, side, margin: Money, leverage, takeProfitPct?, stopLossPct? }
+// → PerpQuote. The percentages are a gain or loss on margin (+50 → +50%), set once it opens.
+export type PerpOpenRequest = {
+  marketId: string;
+  side: 'long' | 'short';
+  margin: Money;
+  leverage: number;
+  takeProfitPct?: number | null;
+  stopLossPct?: number | null;
+};
+// POST /v1/perps/positions/{positionId}/tpsl { takeProfitPct, stopLossPct } (null removes one)
+// → PerpTpsl, what's set now.
+export type PerpTpsl = { takeProfit: PerpTrigger | null; stopLoss: PerpTrigger | null };
 export type PerpQuote = {
   quoteId: string;
   marketId: string;
@@ -532,6 +548,9 @@ export type PerpQuote = {
   // Set when the Hyperliquid account is short: this much moves from the Atlas balance to it in the
   // same confirmation (plus Relay's few cents), then the order is placed.
   funding?: { amount: Money } | null;
+  // Where the take-profit and stop-loss would sit at this price (when asked for).
+  takeProfitPrice?: Money | null;
+  stopLossPrice?: Money | null;
   expiresAtUnixMs: number;
 };
 // POST /v1/perps/quotes/{quoteId}/execute → ExecutionPlan (kind "perp_open"). Carries zero

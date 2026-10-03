@@ -6,6 +6,7 @@ import { type ReactNode, useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
+import { useEmailSettings } from '@/api/emails';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { ProfileAvatar } from '@/components/profile-avatar';
@@ -63,6 +64,7 @@ export default function ProfileScreen() {
   );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
   const gas = useBalance().data?.gas ?? [];
+  const emails = useEmailSettings();
 
   return (
     <Screen>
@@ -180,6 +182,29 @@ export default function ProfileScreen() {
                 <Text variant="bodyStrong">{stealthMode ? hiddenMoney(tank.value.currency) : formatMoney(tank.value)}</Text>
               </View>
             ))}
+          </Card>
+        </>
+      ) : null}
+
+      {/* Only once the engine can send them, and to an account with an email. */}
+      {emails.settings?.available && emails.settings.email ? (
+        <>
+          <Text variant="overline" color="textSecondary">
+            Notifications
+          </Text>
+          <Card style={styles.group}>
+            <ToggleRow
+              icon="mail-outline"
+              title="Email me about my money"
+              subtitle={`Money in and out, trades and perps alerts, to ${emails.settings.email}`}
+              value={emails.settings.enabled}
+              onChange={emails.setEnabled}
+            />
+            {emails.error ? (
+              <Text variant="caption" color="danger" style={styles.rowError}>
+                {emails.error}
+              </Text>
+            ) : null}
           </Card>
         </>
       ) : null}
@@ -310,6 +335,9 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  rowError: {
+    paddingBottom: spacing.sm,
   },
   divider: {
     height: 1,

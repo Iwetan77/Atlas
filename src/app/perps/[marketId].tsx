@@ -10,11 +10,13 @@ import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
+import { TpslPicker } from '@/components/perps/tpsl';
 import { ResultView } from '@/components/result-view';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PriceChart } from '@/components/trade/price-chart';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -53,6 +55,13 @@ export default function PerpTicketScreen() {
   const [margin, setMargin] = useState('');
   const [leverage, setLeverage] = useState(Math.min(5, maxLeverage));
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  // Take-profit and stop-loss, as a gain or loss on margin; off unless picked.
+  const [tpslOpen, setTpslOpen] = useState(false);
+  const [takeProfitPick, setTakeProfit] = useState<number | null>(null);
+  const [stopLoss, setStopLoss] = useState<number | null>(null);
+  // A short can't make 100% per 1× (the price would reach zero): such a pick drops when the side or
+  // leverage changes under it.
+  const takeProfit = takeProfitPick !== null && (side === 'long' || takeProfitPick < 100 * leverage) ? takeProfitPick : null;
 
   const value = Number(margin) || 0;
   const request = useCallback(
@@ -62,10 +71,12 @@ export default function PerpTicketScreen() {
         side,
         leverage,
         margin: { amount: value.toFixed(2), currency: displayCurrency },
+        takeProfitPct: takeProfit,
+        stopLossPct: stopLoss,
       }).catch((e) => {
         throw new Error(perpsError(e, "Opening positions isn't available yet."));
       }),
-    [getAccessToken, params.marketId, side, leverage, value, displayCurrency],
+    [getAccessToken, params.marketId, side, leverage, value, displayCurrency, takeProfit, stopLoss],
   );
   const { quote, quoting, error, secondsLeft, clear } = useLiveQuote(value > 0 ? request : null, phase.kind === 'edit');
 
@@ -190,6 +201,46 @@ export default function PerpTicketScreen() {
         </View>
       </Card>
 
+      <Card style={styles.tpsl}>
+        <Pressable
+          onPress={() => setTpslOpen((o) => !o)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: tpslOpen }}
+          style={styles.tpslHeader}>
+          <View style={styles.headerText}>
+            <Text variant="label" color="textSecondary">
+              Take profit & stop loss
+            </Text>
+            <Text variant="bodyStrong">
+              {takeProfit === null && stopLoss === null
+                ? 'Off'
+                : [takeProfit !== null ? `+${takeProfit}%` : null, stopLoss !== null ? `−${stopLoss}%` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+            </Text>
+          </View>
+          <Icon name={tpslOpen ? 'chevron-up' : 'chevron-down'} size={18} color="textSecondary" />
+        </Pressable>
+        {tpslOpen ? (
+          <>
+            <Text variant="caption" color="textSecondary">
+              Atlas closes the whole position for you when it gains or loses this much of your margin. You can change it
+              later on the position.
+            </Text>
+            <TpslPicker
+              side={side}
+              leverage={leverage}
+              entry={Number(params.markPrice) || 0}
+              currency={displayCurrency}
+              takeProfit={takeProfit}
+              stopLoss={stopLoss}
+              onTakeProfit={setTakeProfit}
+              onStopLoss={setStopLoss}
+            />
+          </>
+        ) : null}
+      </Card>
+
       {quote ? (
         <>
           <LiquidationPrice price={quote.liquidationPrice} side={quote.side} symbol={params.symbol} />
@@ -198,6 +249,12 @@ export default function PerpTicketScreen() {
             <Row label="Position value" value={formatMoney(quote.notional)} />
             <Row label="Entry price" value={formatPrice(quote.entryPrice)} />
             <Row label="Fee" value={formatMoney(quote.fee)} />
+            {quote.takeProfitPrice && takeProfit !== null ? (
+              <Row label="Take profit" value={`+${takeProfit}% · ${formatPrice(quote.takeProfitPrice)}`} />
+            ) : null}
+            {quote.stopLossPrice && stopLoss !== null ? (
+              <Row label="Stop loss" value={`−${stopLoss}% · ${formatPrice(quote.stopLossPrice)}`} />
+            ) : null}
             {quote.funding ? (
               <>
                 <Row label="From your balance to Hyperliquid" value={formatMoney(quote.funding.amount)} />
@@ -291,6 +348,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurfaceAlt,
   },
   quote: {
+    gap: spacing.md,
+  },
+  tpsl: {
+    gap: spacing.md,
+  },
+  tpslHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
   },
   row: {

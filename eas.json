@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_ENGINE_URL": "https://atlas-engine-djed.onrender.com"
+        "EXPO_PUBLIC_ENGINE_URL": "https://justatlas.xyz"
       }
     },
     "preview": {
@@ -17,14 +17,14 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENGINE_URL": "https://atlas-engine-djed.onrender.com"
+        "EXPO_PUBLIC_ENGINE_URL": "https://justatlas.xyz"
       },
       "autoIncrement": true
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_ENGINE_URL": "https://atlas-engine-djed.onrender.com"
+        "EXPO_PUBLIC_ENGINE_URL": "https://justatlas.xyz"
       }
     }
   },

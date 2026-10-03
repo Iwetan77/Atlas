@@ -38,7 +38,7 @@ export default function PerpsScreen() {
     }, []),
   );
   const { markets, error: marketsError, reload: reloadMarkets } = usePerpMarkets();
-  const { account, error: positionsError } = usePerpPositions(focused);
+  const { account, error: positionsError, reload: reloadPositions } = usePerpPositions(focused);
   const { me } = useMe();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -84,7 +84,9 @@ export default function PerpsScreen() {
       {/* Positions live here, never on Home: each one as its share card. */}
       {view === 'positions' ? (
         account && positionCount > 0 ? (
-          account.positions.map((p) => <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} />)
+          account.positions.map((p) => (
+            <PositionCard key={p.positionId} position={p} handle={me?.handle ?? null} onChanged={reloadPositions} />
+          ))
         ) : positionsError ? (
           <Text variant="caption" color="textSecondary">
             {positionsError}
