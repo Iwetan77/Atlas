@@ -16,6 +16,7 @@ import { Field } from '@/components/ui/field';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
@@ -99,6 +100,7 @@ export default function SendToFriendScreen() {
   return (
     <Screen>
       <BackHeader title="Atlas Friends" />
+      <SpendableCard />
       <Field
         prefix="@"
         placeholder="their handle"

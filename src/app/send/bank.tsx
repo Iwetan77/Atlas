@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
@@ -176,6 +177,7 @@ export default function SendToBankScreen() {
     return (
       <Screen>
         <BackHeader title="Send to bank" />
+        <SpendableCard />
         <Card style={styles.payee}>
           <BankLogo bank={payee.bank} size={40} />
           <View style={styles.payeeText}>
@@ -217,6 +219,7 @@ export default function SendToBankScreen() {
   return (
     <Screen>
       <BackHeader title="Send to bank" />
+      <SpendableCard />
       <Field
         prefix={<Icon name="keypad-outline" size={20} color="textSecondary" />}
         placeholder="10-digit account number"

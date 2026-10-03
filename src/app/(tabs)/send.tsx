@@ -8,6 +8,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { colors, spacing } from '@/theme';
 import { DesktopColumns } from '@/components/web/columns';
+import { SpendableCard } from '@/components/send/spendable-card';
 
 // Send hub: three ways out of the one balance.
 export default function SendScreen() {
@@ -16,6 +17,7 @@ export default function SendScreen() {
       <Text variant="title" style={styles.header}>
         Send to
       </Text>
+      <SpendableCard />
 
       <DesktopColumns>
       <SendOption

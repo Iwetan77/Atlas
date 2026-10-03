@@ -16,6 +16,7 @@ import { Field } from '@/components/ui/field';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { claimUrl, keepLinkKey, newLinkKey } from '@/funding/link-key';
 import { useSettings } from '@/settings/context';
@@ -100,6 +101,7 @@ export default function CashLinkScreen() {
   return (
     <Screen>
       <BackHeader title="Atlas Link" />
+      <SpendableCard />
       <Text color="textSecondary">Send money with just a link. They open it and claim it, no app needed.</Text>
       <AmountInput label="Link amount" value={amount} onChange={setAmount} currency={displayCurrency} />
       <Field
