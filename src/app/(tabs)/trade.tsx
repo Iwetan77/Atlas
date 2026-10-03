@@ -31,6 +31,7 @@ export default function TradeScreen() {
     <Screen>
       <Text variant="title">Trade</Text>
       <Field
+        clearable
         prefix={<Icon name="search" size={20} color="textSecondary" />}
         placeholder="Search by name, or paste a token address"
         value={query}

@@ -59,6 +59,7 @@ export function BankPicker({
               </Pressable>
             </View>
             <Field
+              clearable
               prefix={<Icon name="search" size={20} color="textSecondary" />}
               placeholder="Search banks"
               value={query}

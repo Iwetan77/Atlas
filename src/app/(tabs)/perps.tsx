@@ -102,6 +102,7 @@ export default function PerpsScreen() {
       {view !== 'markets' ? null : markets ? (
         <>
           <Field
+            clearable
             prefix={<Icon name="search" size={20} color="textSecondary" />}
             placeholder="Search Bitcoin, gold, Tesla…"
             value={query}

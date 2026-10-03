@@ -4,7 +4,9 @@ html, body, #root { height:100%; }
 .atlas-shell a { color:inherit; text-decoration:none; }
 .atlas-shell button { font:inherit; color:inherit; cursor:pointer; }
 .atlas-shell button:disabled { cursor:default; opacity:.5; }
-.atlas-shell a:focus-visible, .atlas-shell button:focus-visible, .atlas-shell [role=button]:focus-visible, .atlas-shell input:focus-visible { outline:2px solid var(--atlas-pink-soft); outline-offset:4px; }
+.atlas-shell a:focus-visible, .atlas-shell button:focus-visible, .atlas-shell [role=button]:focus-visible { outline:2px solid var(--atlas-pink-soft); outline-offset:4px; }
+/* Text inputs show focus on their rounded container. */
+.atlas-shell input:focus, .atlas-shell textarea:focus { outline:none; box-shadow:none; }
 .atlas-shell h1,.atlas-shell h2,.atlas-shell h3,.atlas-shell p { margin:0; }
 .atlas-shell h1,.atlas-shell h2,.atlas-shell h3 { font-family:SpaceGrotesk_700Bold,system-ui,sans-serif; font-weight:normal; }
 .atlas-shell strong { font-family:Inter_600SemiBold,system-ui,sans-serif; font-weight:normal; }

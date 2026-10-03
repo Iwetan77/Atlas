@@ -13,6 +13,7 @@ import { colors, radii, spacing, type as typeScale } from '@/theme';
 export function WebBrowser({ url: start }: { url: string }) {
   const insets = useSafeAreaInsets();
   const web = useRef<WebView>(null);
+  const addressInput = useRef<TextInput>(null);
   const [url, setUrl] = useState(start);
   const [current, setCurrent] = useState(start);
   const [typed, setTyped] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function WebBrowser({ url: start }: { url: string }) {
         <View style={styles.address}>
           <Icon name={/^https:/i.test(current) ? 'lock-closed' : 'globe-outline'} size={14} color="textSecondary" />
           <TextInput
+            ref={addressInput}
             value={typed ?? siteOf(current)}
             onFocus={() => setTyped(current)}
             onBlur={() => setTyped(null)}
@@ -47,7 +49,14 @@ export function WebBrowser({ url: start }: { url: string }) {
             placeholderTextColor={colors.textSecondary}
             accessibilityLabel="Address"
             style={styles.input}
+            underlineColorAndroid="transparent"
           />
+          {typed ? (
+            <Pressable onPress={() => { setTyped(''); addressInput.current?.focus(); }}
+              accessibilityRole="button" accessibilityLabel="Clear search" style={styles.clear}>
+              <Icon name="close-circle" size={20} color="textSecondary" />
+            </Pressable>
+          ) : null}
           {nav.loading ? <ActivityIndicator size="small" color={colors.accentPink} /> : null}
         </View>
         <Tool icon="refresh" label="Reload" onPress={() => web.current?.reload()} />
@@ -113,8 +122,15 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: colors.bgSurface,
   },
+  clear: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: spacing.sm,
     color: colors.textPrimary,
     ...typeScale.body,

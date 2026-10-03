@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import type { DisplayCurrency } from '@/api/contract';
 import { Card } from '@/components/ui/card';
@@ -37,6 +38,7 @@ export function AmountInput({
   maxActive?: boolean;
   percentOf?: string;
 }) {
+  const [focused, setFocused] = useState(false);
   // A share of what's held, rounded down to the cent so it never asks for more than there is.
   const share = (pct: number) => (Math.floor(Number(percentOf) * pct) / 100).toFixed(2);
   const maxChip = onMax ? (
@@ -51,7 +53,7 @@ export function AmountInput({
     </Pressable>
   ) : null;
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, focused && styles.cardFocused]}>
       <Text variant="label" color="textSecondary">
         {label}
       </Text>
@@ -67,6 +69,9 @@ export function AmountInput({
           keyboardType="decimal-pad"
           style={styles.input}
           selectionColor={colors.accentPink}
+          underlineColorAndroid="transparent"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           accessibilityLabel={`${label}, in ${currency}`}
         />
       </View>
@@ -103,6 +108,11 @@ export function AmountInput({
 const styles = StyleSheet.create({
   card: {
     gap: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.bgSurface,
+  },
+  cardFocused: {
+    borderColor: colors.textDisabled,
   },
   row: {
     flexDirection: 'row',
@@ -111,9 +121,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     ...typeScale.display,
     color: colors.textPrimary,
     padding: 0,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
   quick: {
     flexDirection: 'row',
