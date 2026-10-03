@@ -198,7 +198,7 @@ export type DepositAddress = {
 export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
 
 // Withdrawing to a wallet outside Atlas: cash leaves the balance as the coin picked, sent by NEAR
-// Intents to the pasted address, less Atlas's fee (1%, taken only when it arrives).
+// Intents to the pasted address, less a 1% fee (taken only when it arrives).
 // GET /v1/withdrawals/networks → WithdrawNetworks (enabled is false until the fee account is set);
 // POST /v1/withdrawals/quote { networkId, address, amount: Money } → WithdrawQuote;
 // POST /v1/withdrawals/quote/{quoteId}/execute → ExecutionPlan (kind 'withdraw').

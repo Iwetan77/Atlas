@@ -36,7 +36,7 @@ type Phase =
 const short = (address: string) => (address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address);
 
 // Cash out of Atlas as a coin, to any wallet: pick the coin and its network, paste the address, and
-// NEAR Intents sends it there. Atlas keeps 1%, only once it arrives.
+// NEAR Intents sends it there, for a 1% fee taken only once it arrives.
 export default function WithdrawToWalletScreen() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
