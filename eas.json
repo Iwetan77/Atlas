@@ -18,7 +18,8 @@
       },
       "env": {
         "EXPO_PUBLIC_ENGINE_URL": "https://atlas-engine-djed.onrender.com"
-      }
+      },
+      "autoIncrement": true
     },
     "production": {
       "autoIncrement": true,
