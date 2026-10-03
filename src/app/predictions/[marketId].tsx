@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
@@ -9,6 +8,8 @@ import { executePrediction, predictionQuote, usePredictionAccount, type Predicti
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { MarketArt } from '@/components/predictions/market-art';
+import { endsLabel, percent, volumeLabel } from '@/components/predictions/market-card';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -68,27 +69,35 @@ export default function PredictionDetail() {
     finally { setBusy(false); setProgress(''); }
   };
   return <Screen>
-    <BackHeader title="Your prediction" />
+    <BackHeader title="Prediction" />
     {!market ? <>{loadError ? <Text color="danger">{loadError}</Text> : <ActivityIndicator color={colors.accentPink} />}</> : <>
-      <Card style={styles.marketHeading}>
-        <View style={styles.marketLabel}><Icon name="sparkles-outline" size={15} color="accentPinkTint" /><Text variant="overline" color="accentPinkTint">Atlas Predictions</Text></View>
-        <View style={styles.heading}>
-        {market.iconUrl ? <Image source={{ uri: market.iconUrl }} style={styles.image} /> : <Icon name="analytics" color="accentPink" size={40} />}
-        <Text variant="heading" style={{ flex: 1 }}>{market.question}</Text>
+      <View style={styles.marketHeading}>
+        <MarketArt uri={market.iconUrl} question={market.question} size={56} />
+        <View style={styles.headingText}>
+          <Text variant="heading">{market.question}</Text>
+          <View style={styles.metaRow}>
+            {endsLabel(market.endDate) ? <View style={styles.meta}><Icon name="calendar-outline" size={13} color="textSecondary" /><Text variant="caption" color="textSecondary">{endsLabel(market.endDate)}</Text></View> : null}
+            {volumeLabel(market.volumeUsd) ? <View style={styles.meta}><Icon name="bar-chart-outline" size={13} color="textSecondary" /><Text variant="caption" color="textSecondary">{volumeLabel(market.volumeUsd)}</Text></View> : null}
+          </View>
         </View>
-        <View style={styles.marketLabel}><Icon name="calendar-outline" size={15} color="textSecondary" /><Text variant="caption" color="textSecondary">{market.endDate ? 'Ends ' + new Date(market.endDate).toLocaleDateString() : 'Read the resolution rules below'}</Text></View>
-      </Card>
-      <Text variant="overline" color="textSecondary">Choose your outcome</Text>
-      <View style={styles.choices}>{market.outcomes.map((o) => (
-        <Pressable key={o.tokenId} onPress={() => { setOutcome(o.tokenId); clear(); setResult(null); }}
-          disabled={busy} accessibilityRole="button" accessibilityState={{ selected: outcome === o.tokenId }}
-          style={[styles.choice, outcome === o.tokenId && styles.selected]}>
-          <View style={styles.between}><Text variant="bodyStrong" color={outcome === o.tokenId ? 'accentPinkTint' : 'textPrimary'}>{o.label}</Text>
-            <View style={[styles.radio, outcome === o.tokenId && styles.radioSelected]}>{outcome === o.tokenId ? <Icon name="checkmark" size={12} color="tilePinkInk" /> : null}</View></View>
-          <Text variant="title" style={styles.probability}>{(Number(o.probability) * 100).toFixed(1)}%</Text>
-          <Text variant="caption" color="textSecondary">Market probability</Text>
-        </Pressable>
-      ))}</View>
+      </View>
+      <Text variant="label" color="textSecondary">Pick your outcome</Text>
+      <View style={styles.choices}>{market.outcomes.map((o, i) => {
+        const on = outcome === o.tokenId;
+        return (
+          <Pressable key={o.tokenId} onPress={() => { setOutcome(o.tokenId); clear(); setResult(null); }}
+            disabled={busy} accessibilityRole="button" accessibilityState={{ selected: on }}
+            style={[styles.choice, on && styles.selected]}>
+            <View style={styles.between}>
+              <Text variant="bodyStrong" color={on ? 'accentPinkTint' : 'textPrimary'} numberOfLines={1} style={styles.choiceLabel}>{o.label}</Text>
+              <View style={[styles.radio, on && styles.radioSelected]}>{on ? <Icon name="checkmark" size={12} color="tilePinkInk" /> : null}</View>
+            </View>
+            <Text variant="title" style={styles.probability}>{percent(o.probability)}</Text>
+            <View style={styles.track}><View style={[styles.fill, { width: `${Math.max(2, Math.min(100, Number(o.probability) * 100))}%`, backgroundColor: i === 0 ? colors.accentPinkTint : colors.tileBlue }]} /></View>
+            <Text variant="caption" color="textSecondary">chance, by the market</Text>
+          </Pressable>
+        );
+      })}</View>
       <View style={styles.tabs}>{(['buy', 'sell'] as const).map((s) => (
         <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: side === s }}
           style={[styles.tab, side === s && styles.tabActive]} disabled={busy} onPress={() => { setSide(s); clear(); setResult(null); }}>
@@ -106,7 +115,6 @@ export default function PredictionDetail() {
         </Card>
       )}
       {quote ? <Card style={styles.preview}>
-        <View style={styles.marketLabel}><Icon name="receipt-outline" size={16} color="accentPinkTint" /><Text variant="overline" color="textSecondary">Your preview</Text></View>
         <View style={styles.between}><Text color="textSecondary">{side === 'buy' ? 'You pay' : 'You receive'}</Text>
           <Text variant="bodyStrong">{formatMoney(side === 'buy' ? quote.pay : quote.receive)}</Text></View>
         <View style={styles.between}><Text color="textSecondary">Shares</Text><Text variant="bodyStrong">{(Number(quote.shares) / 1_000_000).toFixed(2)}</Text></View>
@@ -132,13 +140,16 @@ export default function PredictionDetail() {
   </Screen>;
 }
 const styles = StyleSheet.create({
-  marketHeading: { gap: spacing.lg, backgroundColor: colors.bgTabBar, borderWidth: 1, borderColor: colors.border },
-  marketLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  heading: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  image: { width: 56, height: 56, borderRadius: radii.md, backgroundColor: colors.bgSurface },
+  marketHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg, padding: spacing.lg, borderRadius: radii.lg, backgroundColor: colors.bgSurface },
+  headingText: { flex: 1, gap: spacing.sm },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  choiceLabel: { flexShrink: 1 },
+  track: { height: 4, borderRadius: radii.pill, overflow: 'hidden', backgroundColor: colors.bgTabBar },
+  fill: { height: '100%', borderRadius: radii.pill },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  choice: { flex: 1, minWidth: 140, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
+  choice: { flex: 1, minWidth: 140, padding: spacing.lg, gap: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: radii.lg, borderWidth: 1.5, borderColor: colors.bgSurface },
   selected: { backgroundColor: colors.accentPinkMuted, borderColor: colors.accentPinkTint },
   radio: { width: 20, height: 20, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.textDisabled, alignItems: 'center', justifyContent: 'center' },
   radioSelected: { backgroundColor: colors.tilePink, borderColor: colors.tilePink },
@@ -147,7 +158,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.sm, borderRadius: radii.pill },
   tabActive: { backgroundColor: colors.bgSurface },
   gap: { gap: spacing.md },
-  preview: { gap: spacing.lg, backgroundColor: colors.bgTabBar, borderWidth: 1, borderColor: colors.border },
+  preview: { gap: spacing.md, backgroundColor: colors.bgTabBar },
   notice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.bgSurface, padding: spacing.lg },
   rules: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.lg, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   risk: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
