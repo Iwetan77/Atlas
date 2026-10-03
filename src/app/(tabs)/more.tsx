@@ -53,9 +53,15 @@ export default function MoreScreen() {
         Mini apps
       </Text>
       <Text variant="caption" color="textSecondary">
-        Apps on Base and Solana that open inside Atlas with your wallet connected. You approve every signature.
+        Explore with your Atlas wallet that open inside Atlas with your wallet connected. You approve every signature.
       </Text>
       <View style={styles.apps}>
+        <Pressable onPress={() => router.push('/predictions')} accessibilityRole="button"
+          accessibilityLabel="Open Atlas Predictions"
+          style={({ pressed }) => [styles.app, desktop && { width: '16.666%' }, pressed && { opacity: 0.7 }]}>
+          <IconTile icon="analytics" tone="pink" size={56} />
+          <Text variant="label">Predictions</Text>
+        </Pressable>
         {MINI_APPS.map((app) => (
           <Pressable
             key={app.id}

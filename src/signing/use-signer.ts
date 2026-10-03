@@ -6,6 +6,7 @@ import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 import { numberToHex } from 'viem';
 
+import { predictionGeo } from '@/api/predictions';
 import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
@@ -58,6 +59,7 @@ export function useSigner(): Signer {
   const sign = useCallback(
     async (tx: UnsignedTx): Promise<string> => {
       if ('typedData' in tx) {
+        if (tx.chain === 'polygon' && !await predictionGeo()) throw new Error('Predictions trading is not available in your location.');
         if (!ethWallet) throw new Error('EVM wallet is not ready');
         const provider = await ethWallet.getProvider();
         return String(await provider.request({ method: 'eth_signTypedData_v4',

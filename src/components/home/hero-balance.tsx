@@ -124,7 +124,7 @@ export function HeroBalance(props: Props) {
                     </Text>
                     <Text variant="caption" color="textDisabled">
                       {h.symbol}
-                      {h.location === 'gateway_pending' ? ' · Arriving' : h.location === 'perps' ? ' · In perps' : h.location === 'earn' ? ' · Earning' : ''}
+                      {h.location === 'gateway_pending' ? ' · Arriving' : h.location === 'perps' ? ' · In perps' : h.location === 'earn' ? ' · Earning' : h.location === 'predictions' ? ' · Predictions' : ''}
                     </Text>
                     <Text variant="label" color="textOnLight">
                       {stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}

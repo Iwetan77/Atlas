@@ -102,6 +102,9 @@ function RootStack() {
         <Stack.Screen name="browse" />
         <Stack.Screen name="scan" />
         <Stack.Screen name="earn" />
+        <Stack.Screen name="predictions" />
+        <Stack.Screen name="predictions/[marketId]" />
+        <Stack.Screen name="predictions/cash" />
         <Stack.Screen name="transactions" />
         <Stack.Screen name="transaction/[id]" />
         <Stack.Screen name="mini/[appId]" />

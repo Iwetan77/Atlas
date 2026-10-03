@@ -77,7 +77,13 @@ function AssetCard({
   const unit = Number(h.amount) > 0 ? Number(h.value.amount) / Number(h.amount) : 0;
   return (
     <Pressable
-      onPress={() =>
+      onPress={() => {
+        if (h.location === 'predictions') {
+          const [, marketId, tokenId] = h.assetId.split(':');
+          if (marketId && marketId !== 'cash') router.push({ pathname: '/predictions/[marketId]', params: { marketId, tokenId } });
+          else router.push('/predictions');
+          return;
+        }
         router.push({
           pathname: '/trade/[assetId]',
           params: {
@@ -88,8 +94,8 @@ function AssetCard({
             iconUrl: h.iconUrl ?? '',
             change: '',
           },
-        })
-      }
+        });
+      }}
       accessibilityRole="button"
       accessibilityLabel={h.name}
       style={({ pressed }) => [styles.card, desktop && styles.desktopCard, pressed && styles.pressed]}>

@@ -7,6 +7,7 @@ import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { useCallback } from 'react';
 
+import { predictionGeo } from '@/api/predictions';
 import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
@@ -61,6 +62,7 @@ export function useSigner(): Signer {
   const sign = useCallback(
     async (tx: UnsignedTx): Promise<string> => {
       if ('typedData' in tx) {
+        if (tx.chain === 'polygon' && !await predictionGeo()) throw new Error('Predictions trading is not available in your location.');
         if (!addresses.base) throw new Error('EVM wallet is not ready');
         const { signature } = await signTypedData(tx.typedData, { address: addresses.base, uiOptions: noWalletUi });
         return signature;

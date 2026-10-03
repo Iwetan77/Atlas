@@ -1,3 +1,4 @@
+import { predictionGeo } from '@/api/predictions';
 import { useCallback } from 'react';
 
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
@@ -129,6 +130,9 @@ export function useRunIntent() {
       // A two-step plan (cash moved from another chain first): its last transaction is signed here,
       // covered by the one confirmation the user already gave.
       const signNext = async (status: IntentStatus) => {
+        if (status.intentId.startsWith('prediction-') && !await predictionGeo()) {
+          throw new Error('Predictions is not available in your location. Your unused cash stays in your wallet.');
+        }
         const next = await engineGet<{ transactions: UnsignedTx[] }>(
           `/v1/intents/${encodeURIComponent(status.intentId)}/next`,
           await getAccessToken(),
