@@ -11,6 +11,7 @@ import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { StartupError, StartupStatus } from '@/components/startup-status';
 import { AddMoneyProvider } from '@/funding/add-money';
+import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
@@ -71,7 +72,9 @@ export default function RootLayout() {
         <AtlasAuthProvider>
           <ConfirmProvider>
             <AddMoneyProvider>
-              <WebShell><RootStack /></WebShell>
+              <WithdrawProvider>
+                <WebShell><RootStack /></WebShell>
+              </WithdrawProvider>
             </AddMoneyProvider>
           </ConfirmProvider>
         </AtlasAuthProvider>
@@ -115,6 +118,7 @@ function RootStack() {
         <Stack.Screen name="send/friend" />
         <Stack.Screen name="send/bank" />
         <Stack.Screen name="send/link" />
+        <Stack.Screen name="send/wallet" />
         <Stack.Screen name="handle" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

@@ -38,9 +38,17 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    to the balance.
 7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
    take out any time.
-8. **Send** to an @handle, straight to the friend's wallet on the chain the cash is on. Bank payouts
-   and Atlas Links anyone can claim are built in the app and switch on when the engine's side is configured.
-9. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
+8. **Withdraw** from Home's Withdraw sheet, the mirror of Add money, each screen showing what's spendable on
+   a pink card:
+   - **Atlas Friends:** to an @handle, straight to the friend's wallet on the chain the cash is on.
+   - **Atlas Link:** a link anyone can claim on the web, no app needed.
+   - **Send to bank:** naira to any Nigerian bank account.
+   - **Withdraw to wallet:** paste any address and pick the coin: USDC on Solana or Base, USDT on Tron or BNB
+     Chain, SOL, BTC and every other coin people can deposit. NEAR Intents sends it there; Atlas keeps 1%, only
+     once it arrives. Shows Soon until the engine's fee account is set.
+9. **The bottom bar:** Home, Trade, Perps, Atlas Predictions (opens the mini app straight away; it's under More's
+   mini apps too) and More. The website's sidebar keeps a Send money page with the same four ways out.
+10. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
    **Add money** button right there.
 
 ---
