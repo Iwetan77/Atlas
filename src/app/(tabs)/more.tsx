@@ -40,6 +40,7 @@ export default function MoreScreen() {
         prefix={<Icon name="search" size={20} color="textSecondary" />}
         placeholder="Search the web or type an address"
         value={search}
+        clearable
         onChangeText={setSearch}
         onSubmitEditing={browse}
         autoCapitalize="none"
@@ -59,7 +60,12 @@ export default function MoreScreen() {
         <Pressable onPress={() => router.push('/predictions')} accessibilityRole="button"
           accessibilityLabel="Open Atlas Predictions"
           style={({ pressed }) => [styles.app, desktop && { width: '16.666%' }, pressed && { opacity: 0.7 }]}>
-          <IconTile icon="analytics" tone="pink" size={56} />
+          <View style={styles.predictionIcon}>
+            <Image source={require('../../../assets/images/icon.png')} style={styles.appIcon} contentFit="cover" accessibilityLabel="Atlas Predictions" />
+            <View style={styles.predictionBadge}>
+              <Icon name="trending-up" size={14} color="tilePinkInk" />
+            </View>
+          </View>
           <Text variant="label">Predictions</Text>
         </Pressable>
         {MINI_APPS.map((app) => (
@@ -121,6 +127,20 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceLight,
+  },
+  predictionIcon: { width: 56, height: 56 },
+  predictionBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 25,
+    height: 25,
+    borderRadius: radii.pill,
+    borderWidth: 3,
+    borderColor: colors.bgBase,
+    backgroundColor: colors.tilePink,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   grid: {
     flexDirection: 'row',

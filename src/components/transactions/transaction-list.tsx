@@ -10,7 +10,15 @@ import { formatMoney, HIDDEN } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
 
 export function TransactionLogo({ receipt: r }: { receipt: TransactionReceipt }) {
-  if (r.symbol || r.iconUrl) return <AssetAvatar symbol={r.symbol || 'USDC'} iconUrl={r.iconUrl} size={40} />;
+  const symbol = r.symbol?.trim() || (r.kind === 'deposit' ? r.title.match(/^Deposit\s+([A-Z0-9]+)/i)?.[1] : null);
+  if (symbol || r.iconUrl) {
+    return <View style={styles.assetLogo}>
+      <AssetAvatar symbol={symbol || 'USDC'} iconUrl={r.iconUrl} size={40} />
+      {r.kind === 'deposit' || r.kind === 'onramp' ? <View style={styles.incoming}>
+        <Icon name="arrow-down" color="tilePinkInk" size={12} />
+      </View> : null}
+    </View>;
+  }
   const icons: Record<string, IconName> = { deposit: 'arrow-down-outline', onramp: 'card-outline', offramp: 'business-outline', send: 'arrow-up-outline', cashlink: 'link-outline', earn_deposit: 'leaf-outline', earn_withdraw: 'leaf-outline', perp_open: 'trending-up-outline', perp_close: 'trending-down-outline' };
   return <View style={styles.logo}><Icon name={icons[r.kind] ?? 'swap-horizontal-outline'} color="accentPinkTint" size={20} /></View>;
 }
@@ -37,5 +45,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.lg },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   pressed: { opacity: 0.75 }, text: { flex: 1, gap: spacing.xs }, value: { alignItems: 'flex-end', gap: spacing.xs, maxWidth: '42%' },
+  assetLogo: { width: 40, height: 40 },
+  incoming: { position: 'absolute', right: -3, bottom: -3, width: 20, height: 20, borderRadius: radii.pill, borderWidth: 2, borderColor: colors.bgSurface, backgroundColor: colors.tilePink, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 40, height: 40, borderRadius: radii.pill, backgroundColor: colors.accentPinkDim, alignItems: 'center', justifyContent: 'center' },
 });
