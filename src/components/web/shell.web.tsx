@@ -32,7 +32,7 @@ export function WebLink({ href, children, className, ...props }: {
 }
 
 export function AtlasWordmark() {
-  return <span className="atlas-wordmark"><span className="atlas-mark" aria-hidden="true">a</span>atlas<span className="atlas-brand-dot">.</span></span>;
+  return <span className="atlas-wordmark"><img className="atlas-mark" src="/atlas-icon.png" alt="" aria-hidden="true" />atlas<span className="atlas-brand-dot">.</span></span>;
 }
 
 export function WebShell({ children }: { children: ReactNode }) {

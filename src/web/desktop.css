@@ -25,7 +25,7 @@ html, body, #root { height:100%; }
 .atlas-text-link { font-size:13px; color:var(--atlas-muted)!important; }
 .atlas-text-link:hover { color:var(--atlas-pink-soft)!important; }
 .atlas-wordmark { display:inline-flex; align-items:center; font-family:SpaceGrotesk_700Bold,system-ui,sans-serif; font-size:34px; letter-spacing:-2px; line-height:1; color:var(--atlas-text); }
-.atlas-mark { margin-right:10px; display:inline-flex; width:31px; height:34px; justify-content:center; align-items:center; background:var(--atlas-pink); border-radius:11px 11px 11px 4px; color:white; font-size:33px; letter-spacing:-1px; }
+.atlas-mark { margin-right:10px; display:inline-block; width:34px; height:34px; border-radius:9px; object-fit:cover; }
 .atlas-brand-dot { color:var(--atlas-pink); }
 .atlas-brand-link { display:inline-flex; align-items:center; width:fit-content; }
 .atlas-eyebrow { display:inline-flex; align-items:center; gap:8px; font-family:Inter_600SemiBold,system-ui,sans-serif; color:var(--atlas-muted); font-size:10px; letter-spacing:1.9px; line-height:1.6; }
@@ -79,8 +79,7 @@ html, body, #root { height:100%; }
 .atlas-orbit-one { width:115px; height:115px; opacity:.25; }
 .atlas-orbit-two { width:190px; height:190px; opacity:.2; }
 .atlas-orbit-three { width:260px; height:260px; opacity:.12; }
-.atlas-orbit-core { display:flex; align-items:center; justify-content:center; position:relative; width:77px; height:77px; border-radius:25px 25px 25px 9px; background:linear-gradient(145deg,var(--atlas-pink-soft),var(--atlas-pink) 55%,var(--atlas-pink-deep)); font-family:SpaceGrotesk_700Bold,system-ui,sans-serif; font-size:69px; box-shadow:0 0 75px color-mix(in srgb,var(--atlas-pink) 20%,transparent); }
-.atlas-orbit-core>span { position:absolute; right:9px; top:10px; font-size:17px; }
+.atlas-orbit-core { display:block; position:relative; width:92px; height:92px; border-radius:24px; object-fit:cover; box-shadow:0 0 75px color-mix(in srgb,var(--atlas-pink) 20%,transparent); }
 .atlas-orbit-token { position:absolute; display:flex; gap:9px; align-items:center; background:var(--atlas-nav); padding:11px 17px; border:1px solid var(--atlas-border); border-radius:999px; box-shadow:0 8px 24px rgba(0,0,0,.1); font-size:12px; }
 .token-sol { left:25px; top:35px; transform:rotate(-7deg); }
 .token-stocks { right:5px; top:73px; transform:rotate(7deg); }
@@ -107,7 +106,7 @@ html, body, #root { height:100%; }
 .atlas-bottom-cta p { margin-top:12px; font-size:12px; color:var(--atlas-muted); }
 .atlas-footer { max-width:1280px; margin:auto; padding:30px 40px 40px; border-top:1px solid var(--atlas-border); display:flex; align-items:center; gap:30px; }
 .atlas-footer .atlas-wordmark { font-size:24px; }
-.atlas-footer .atlas-mark { width:24px; height:26px; font-size:24px; border-radius:8px 8px 8px 3px; }
+.atlas-footer .atlas-mark { width:26px; height:26px; border-radius:7px; }
 .atlas-footer>span { color:var(--atlas-muted); font-size:11px; }
 .atlas-footer>a:last-child { margin-left:auto; font-size:11px; color:var(--atlas-pink-soft); }
 .atlas-page-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:30px; }
@@ -150,7 +149,7 @@ html, body, #root { height:100%; }
 .atlas-phone-top .atlas-mark { display:none; }
 .atlas-phone-home-line { position:absolute; bottom:9px; width:70px; height:3px; left:50%; transform:translateX(-50%); background:var(--atlas-muted); border-radius:5px; }
 .atlas-phone-welcome,.atlas-phone-menu { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; text-align:center; }
-.atlas-phone-orb,.atlas-phone-app-icon { display:flex; justify-content:center; align-items:center; font-family:SpaceGrotesk_700Bold,system-ui,sans-serif; width:59px; height:59px; background:var(--atlas-pink); border-radius:19px 19px 19px 6px; font-size:53px; }
+.atlas-phone-orb,.atlas-phone-app-icon { display:block; width:59px; height:59px; border-radius:15px; object-fit:cover; }
 .atlas-phone-welcome strong { font-family:SpaceGrotesk_700Bold,system-ui,sans-serif; font-size:19px; }
 .atlas-phone-pill { padding:10px; width:100%; border-radius:999px; background:var(--atlas-pink); font-size:9px; }
 .atlas-phone-menu>span:first-child { font-family:Inter_600SemiBold,system-ui,sans-serif; font-size:13px; }
@@ -201,7 +200,7 @@ html, body, #root { height:100%; }
   .atlas-phone-art { border-width:4px; border-radius:27px; padding:35px 8px 18px; }
   .atlas-phone-welcome,.atlas-phone-menu { gap:12px; }
   .atlas-phone-welcome strong { font-size:14px; }
-  .atlas-phone-orb { width:45px; height:45px; font-size:40px; border-radius:14px; }
+  .atlas-phone-orb { width:45px; height:45px; border-radius:12px; }
   .atlas-phone-pill,.atlas-highlight-row { font-size:7px; }
   .atlas-step-title { align-items:flex-start; }
   .atlas-step-title h2 { font-size:14px; line-height:1.5; }
@@ -223,5 +222,4 @@ html, body, #root { height:100%; }
 .atlas-option-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
 .atlas-route-page.is-desktop[data-route="/sign-in-email"] { background:radial-gradient(ellipse at 75% 25%,color-mix(in srgb,var(--atlas-pink) 7%,transparent),transparent 60%); }
 
-.atlas-phone-menu>.atlas-phone-app-icon { font-size:53px; }
 .atlas-shell.is-mobile .atlas-install-page { padding-top:max(22px,env(safe-area-inset-top)); padding-bottom:max(45px,env(safe-area-inset-bottom)); }

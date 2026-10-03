@@ -1,4 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
@@ -40,12 +40,7 @@ export default function SignInScreen() {
             style={[styles.orbit, { width: size, height: size, borderRadius: size / 2, opacity: 0.5 - i * 0.12 }]}
           />
         ))}
-        <LinearGradient
-          colors={[colors.accentPinkTint, colors.accentPink, colors.accentPinkDim]}
-          start={{ x: 0.3, y: 0.1 }}
-          end={{ x: 0.8, y: 1 }}
-          style={styles.core}
-        />
+        <Image source={require('../../assets/images/icon.png')} style={styles.core} contentFit="cover" accessibilityLabel="Atlas" />
         {CHIPS.map((c) => (
           <View key={c.label} style={[styles.chip, c.style]}>
             <Icon name={c.icon} size={16} color="accentPinkTint" />
@@ -97,9 +92,9 @@ const styles = StyleSheet.create({
     borderColor: colors.accentPink,
   },
   core: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 76,
+    height: 76,
+    borderRadius: 20,
   },
   chip: {
     position: 'absolute',
