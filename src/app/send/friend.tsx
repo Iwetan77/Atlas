@@ -21,6 +21,7 @@ import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
+import { useBackToWithdraw } from '@/funding/withdraw';
 
 type Lookup = { state: 'idle' | 'looking' } | { state: 'found'; recipient: Recipient } | { state: 'none' | 'error'; message: string };
 type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; label: string } | { kind: 'failed'; message: string };
@@ -35,6 +36,7 @@ export default function SendToFriendScreen() {
   const [answer, setAnswer] = useState<{ handle: string; lookup: Lookup } | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  useBackToWithdraw(phase.kind === 'done');
 
   const handle = normaliseHandle(raw);
   const valid = HANDLE_RE.test(handle);

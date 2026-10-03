@@ -16,6 +16,8 @@ export function TransactionLogo({ receipt: r }: { receipt: TransactionReceipt })
       <AssetAvatar symbol={symbol || 'USDC'} iconUrl={r.iconUrl} size={40} />
       {r.kind === 'deposit' || r.kind === 'onramp' ? <View style={styles.incoming}>
         <Icon name="arrow-down" color="tilePinkInk" size={12} />
+      </View> : r.kind === 'withdraw' ? <View style={styles.incoming}>
+        <Icon name="arrow-up" color="tilePinkInk" size={12} />
       </View> : null}
     </View>;
   }

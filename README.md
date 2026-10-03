@@ -38,9 +38,17 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    to the balance.
 7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
    take out any time.
-8. **Send** to an @handle, straight to the friend's wallet on the chain the cash is on. Bank payouts
-   and Atlas Links anyone can claim are built in the app and switch on when the engine's side is configured.
-9. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
+8. **Withdraw** from Home's Withdraw sheet, the mirror of Add money, each screen showing what's spendable on
+   a pink card:
+   - **Atlas Friends:** to an @handle, straight to the friend's wallet on the chain the cash is on.
+   - **Atlas Link:** a link anyone can claim on the web, no app needed.
+   - **Send to bank:** naira to any Nigerian bank account.
+   - **Withdraw to wallet:** paste any address and pick the coin: USDC on Solana or Base, USDT on Tron or BNB
+     Chain, SOL, BTC and every other coin people can deposit. NEAR Intents sends it there, for a 1% fee taken
+     only once it arrives. Shows Soon until the engine's fee account is set.
+9. **The bottom bar:** Home, Trade, Perps, Atlas Predictions (opens the mini app straight away; it's under More's
+   mini apps too) and More. The website's sidebar keeps a Send money page with the same four ways out.
+10. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
    **Add money** button right there.
 
 ---
@@ -154,6 +162,10 @@ Android says **Coming soon** until `EXPO_PUBLIC_ANDROID_APK_URL` is a public HTT
 Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://atlas-engine-djed.onrender.com`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.
 
 ### Current Android download
-Atlas Android **1.0.1 (build 2)** is published at [Download Atlas](https://github.com/Iwetan77/Atlas/releases/download/v1.0.1-beta.2/atlas-1.0.1.apk).
-The website's Android download button uses this release by default; EXPO_PUBLIC_ANDROID_APK_URL can override it.
-The APK was built from a7295dc with the preview profile and the existing signing credentials.
+The website's Android button downloads [the newest Atlas APK](https://github.com/Iwetan77/Atlas/releases/latest/download/atlas.apk): GitHub sends that link to
+the `atlas.apk` file of the newest full (not pre-) release, so publishing an update needs no website rebuild.
+EXPO_PUBLIC_ANDROID_APK_URL can override it.
+
+To publish an update: build with `npx eas-cli@latest build -p android --profile preview` (the existing EAS
+signing credentials, so phones update over the installed app; EAS raises the build number), then make a
+GitHub release `v<version>` (not a pre-release) with the APK attached as `atlas.apk`.

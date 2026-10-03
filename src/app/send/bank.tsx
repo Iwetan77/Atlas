@@ -22,6 +22,7 @@ import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing } from '@/theme';
+import { useBackToWithdraw } from '@/funding/withdraw';
 
 // Nigerian account numbers (NUBAN) are exactly 10 digits.
 const NUBAN_LENGTH = 10;
@@ -49,6 +50,7 @@ export default function SendToBankScreen() {
   const [payee, setPayee] = useState<Payee | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  useBackToWithdraw(phase.kind === 'done');
 
   useEffect(() => {
     listBanks(getAccessToken)

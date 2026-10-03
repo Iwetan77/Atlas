@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 // Cash that can leave right now: USDC in the Base and Solana wallets. Coins, savings, perps margin
 // and Arc cash count in the balance but have to be sold or moved back first.
@@ -16,7 +16,7 @@ export function spendableAmount(balance: BalanceResponse): number {
     .reduce((sum, h) => sum + Number(h.value.amount), 0);
 }
 
-// On Send and Withdraw: what can be sent, next to the whole balance.
+// On Send and Withdraw: what can be sent, next to the whole balance, on the hero card's Atlas pink.
 export function SpendableCard() {
   const { data } = useBalance();
   const { stealthMode } = useSettings();
@@ -28,28 +28,23 @@ export function SpendableCard() {
   const locked = total - spendable > 0.01;
   return (
     <View style={styles.card} accessibilityLabel={'Spendable now ' + show(spendable)}>
+      <View style={styles.wash} />
       <View style={styles.header}>
-        <View style={styles.labelGroup}>
-          <View style={styles.icon}>
-            <Icon name="wallet-outline" size={18} color="accentPinkTint" />
-          </View>
-          <Text variant="label" color="textSecondary">Spendable now</Text>
+        <View style={styles.icon}>
+          <Icon name="wallet-outline" size={18} color="accentPinkDeep" />
         </View>
-        <View style={styles.ready}>
-          <View style={styles.readyDot} />
-          <Text variant="overline" color="accentPinkTint">Ready to send</Text>
-        </View>
+        <Text variant="bodyStrong" color="textOnAccent">Spendable now</Text>
       </View>
-      <Text variant="title" style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+      <Text variant="title" color="textOnAccent" style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
         {show(spendable)}
       </Text>
       <View style={styles.footer}>
         <View style={styles.totalRow}>
-          <Text variant="caption" color="textSecondary">Your total balance</Text>
-          <Text variant="label">{show(total)}</Text>
+          <Text variant="caption" color="textOnAccent" style={styles.soft}>Your total balance</Text>
+          <Text variant="label" color="textOnAccent">{show(total)}</Text>
         </View>
         {locked ? (
-          <Text variant="caption" color="textSecondary">
+          <Text variant="caption" color="textOnAccent" style={styles.soft}>
             The rest is in your coins, savings or perps. Sell or withdraw them when you need more cash.
           </Text>
         ) : null}
@@ -62,19 +57,21 @@ const styles = StyleSheet.create({
   card: {
     gap: spacing.md,
     padding: spacing.xl,
-    borderRadius: radii.lg,
-    backgroundColor: colors.bgTabBar,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 28,
+    backgroundColor: colors.accentPink,
+    overflow: 'hidden',
+  },
+  // The hero card's decorative circle.
+  wash: {
+    position: 'absolute',
+    right: -70,
+    top: -50,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: colors.accentPinkWash,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  labelGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -82,36 +79,23 @@ const styles = StyleSheet.create({
   icon: {
     width: 34,
     height: 34,
-    borderRadius: radii.sm,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentPinkMuted,
-  },
-  ready: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentPinkMuted,
-  },
-  readyDot: {
-    width: 4,
-    height: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentPinkTint,
+    backgroundColor: colors.surfaceLight,
   },
   amount: {
     fontSize: 34,
     lineHeight: 42,
-    color: colors.textPrimary,
+  },
+  soft: {
+    opacity: 0.85,
   },
   footer: {
     gap: spacing.sm,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.onAccentSoft,
   },
   totalRow: {
     flexDirection: 'row',

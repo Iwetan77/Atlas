@@ -10,7 +10,7 @@ import { colors, spacing } from '@/theme';
 import { DesktopColumns } from '@/components/web/columns';
 import { SpendableCard } from '@/components/send/spendable-card';
 
-// Send hub: three ways out of the one balance.
+// Send hub on the website (the phone uses Home's Withdraw sheet): four ways out of the one balance.
 export default function SendScreen() {
   return (
     <Screen>
@@ -43,6 +43,12 @@ export default function SendScreen() {
         tile={<IconTile icon="logo-usd" tone="blue" />}
         title="Atlas Link"
         subtitle="Just share a link with text"
+      />
+      <SendOption
+        href="/send/wallet"
+        tile={<IconTile icon="wallet-outline" />}
+        title="Withdraw to wallet"
+        subtitle="USDC, USDT, SOL, BTC and more"
       />
       </DesktopColumns>
     </Screen>

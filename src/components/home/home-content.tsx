@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { useAddMoney } from '@/funding/add-money';
+import { useWithdraw } from '@/funding/withdraw';
 import { useSettings } from '@/settings/context';
 import { colors, radii } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
@@ -37,6 +38,7 @@ export function HomeContent({
   const { email } = useAtlasAuth();
   const desktop = useDesktop();
   const addMoney = useAddMoney();
+  const withdraw = useWithdraw();
   const { me, reload: reloadMe } = useMe();
   const { reload: reloadPositions } = positions;
   // Coming back from the handle screen should tick the step straight away; back from a trade, the
@@ -77,7 +79,7 @@ export function HomeContent({
 
   if (desktop) return <Screen><DesktopHome
     greeting={me?.displayName?.split(' ')[0] || me?.handle || 'there'} onRefresh={onRefresh} refreshing={refreshing} onDeposit={addMoney}
-    hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} showEmptyPockets={showEmptyPockets} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={() => router.push('/send/bank')} />}
+    hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} showEmptyPockets={showEmptyPockets} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={withdraw} />}
     pending={<>{banner ? <Text variant="caption" color="accentPinkTint">{banner}</Text> : null}<PendingPurchases onFinished={balance.refresh} /></>}
     assets={<YourAssets balance={data} positions={positions.data} stealth={stealthMode} />}
     earn={<EarnCard stealth={stealthMode} refreshKey={refreshKey} />}
@@ -125,7 +127,7 @@ export function HomeContent({
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
         onDeposit={addMoney}
-        onWithdraw={() => router.push('/send/bank')}
+        onWithdraw={withdraw}
       />
 
       <PendingPurchases onFinished={balance.refresh} />

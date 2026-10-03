@@ -22,6 +22,7 @@ import { claimUrl, keepLinkKey, newLinkKey } from '@/funding/link-key';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { spacing } from '@/theme';
+import { useBackToWithdraw } from '@/funding/withdraw';
 
 const MESSAGE_MAX = 80;
 
@@ -36,6 +37,7 @@ export default function CashLinkScreen() {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  useBackToWithdraw(phase.kind === 'done');
   const [copied, setCopied] = useState(false);
   // One secret per link; its address is where the money waits until someone claims it.
   const [key] = useState(newLinkKey);

@@ -38,7 +38,9 @@ export type IntentKind =
   | 'perp_open'
   | 'perp_close'
   | 'earn_deposit'
-  | 'earn_withdraw';
+  | 'earn_withdraw'
+  // Cash leaving Atlas as a coin, for a wallet address outside it.
+  | 'withdraw';
 
 // 'fund': money is moving to the venue first (perps margin into Hyperliquid, usually seconds).
 // 'sign': a two-step plan's second transaction is ready (GET /v1/intents/{id}/next → { transactions });
@@ -194,6 +196,29 @@ export type DepositAddress = {
   expiresAtUnixMs: number;
 };
 export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
+
+// Withdrawing to a wallet outside Atlas: cash leaves the balance as the coin picked, sent by NEAR
+// Intents to the pasted address, less a 1% fee (taken only when it arrives).
+// GET /v1/withdrawals/networks → WithdrawNetworks (enabled is false until the fee account is set);
+// POST /v1/withdrawals/quote { networkId, address, amount: Money } → WithdrawQuote;
+// POST /v1/withdrawals/quote/{quoteId}/execute → ExecutionPlan (kind 'withdraw').
+export type WithdrawNetworks = { enabled: boolean; feePercent: string; networks: DepositNetwork[] };
+export type WithdrawQuote = {
+  quoteId: string;
+  networkId: string;
+  label: string;
+  network: string;
+  asset: string;
+  address: string;
+  // What leaves the balance, Atlas's fee within it, and the network's fee on top (zero when none).
+  send: Money;
+  fee: Money;
+  networkFee: Money;
+  // About what the address receives, in the coin and in the display currency.
+  receive: { amount: string; symbol: string; value: Money };
+  timeEstimateSec: number | null;
+  expiresAtUnixMs: number;
+};
 // Each hop a deposit takes, with its transactions as they happen: the deposit on its own network, the
 // swap on NEAR Intents, the payout to the user's Solana wallet. `url` opens it in that chain's explorer.
 export type DepositHopTx = { hash: string; url: string | null };

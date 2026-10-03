@@ -48,6 +48,7 @@ const TITLES: Record<IntentKind, string> = {
   perp_close: 'Close position',
   earn_deposit: 'Put in savings',
   earn_withdraw: 'Take out of savings',
+  withdraw: 'Confirm withdrawal',
 };
 
 const ConfirmContext = createContext<((plan: ExecutionPlan) => Promise<ActionReport>) | null>(null);
