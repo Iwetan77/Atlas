@@ -152,3 +152,8 @@ Laptop/desktop browsers (at least 1024px wide, excluding iPhone/iPad/Android use
 Android says **Coming soon** until `EXPO_PUBLIC_ANDROID_APK_URL` is a public HTTPS URL to the published APK. This value is intentionally public. Add it to the web build environment and rebuild when the APK exists; do not put secrets in `EXPO_PUBLIC_` variables. Desktop's Get Atlas link opens the same platform guide. The install strip hides in standalone mode.
 
 Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://atlas-engine-djed.onrender.com`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.
+
+### Current Android download
+Atlas Android **1.0.1 (build 2)** is published at [Download Atlas](https://github.com/Iwetan77/Atlas/releases/download/v1.0.1-beta.2/atlas-1.0.1.apk).
+The website's Android download button uses this release by default; EXPO_PUBLIC_ANDROID_APK_URL can override it.
+The APK was built from a7295dc with the preview profile and the existing signing credentials.
