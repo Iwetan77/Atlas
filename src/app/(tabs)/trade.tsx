@@ -8,7 +8,7 @@ import { TokenChainLogo } from '@/components/token-chain-logo';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
-import { Screen } from '@/components/ui/screen';
+import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
@@ -30,34 +30,37 @@ export default function TradeScreen() {
   return (
     <Screen>
       <Text variant="title">Trade</Text>
-      <Field
-        clearable
-        prefix={<Icon name="search" size={20} color="textSecondary" />}
-        placeholder="Search by name, or paste a token address"
-        value={query}
-        onChangeText={setQuery}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-        onSubmitEditing={reload}
-      />
-      <View style={styles.chips}>
-        {CATEGORIES.map((c) => {
-          const active = c.key === category;
-          return (
-            <Pressable
-              key={c.key}
-              onPress={() => setCategory(c.key)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              style={[styles.chip, { backgroundColor: active ? colors.accentPink : colors.bgSurface }]}>
-              <Text variant="label" color={active ? 'textOnAccent' : 'textSecondary'}>
-                {c.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Search and categories stay at the top while the list scrolls. */}
+      <Pinned>
+        <Field
+          clearable
+          prefix={<Icon name="search" size={20} color="textSecondary" />}
+          placeholder="Search by name, or paste a token address"
+          value={query}
+          onChangeText={setQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          onSubmitEditing={reload}
+        />
+        <View style={styles.chips}>
+          {CATEGORIES.map((c) => {
+            const active = c.key === category;
+            return (
+              <Pressable
+                key={c.key}
+                onPress={() => setCategory(c.key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                style={[styles.chip, { backgroundColor: active ? colors.accentPink : colors.bgSurface }]}>
+                <Text variant="label" color={active ? 'textOnAccent' : 'textSecondary'}>
+                  {c.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Pinned>
 
       {/* While a search or a chip change is loading, show that it's loading, not the old list. */}
       {loading || (searchingMore && !assets?.length) ? (

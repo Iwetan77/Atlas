@@ -33,7 +33,6 @@ export function Pinned({ children }: { children: ReactNode }) {
 // Every screen keeps what you're typing in sight: a scrolling screen moves the focused field above
 // the keyboard (iOS insets for it, then scrolls it into view); a fixed one shrinks to make room.
 export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTitle, children, style, ...rest }: Props) {
-  const content = <View style={[styles.content, style]} {...rest}>{children}</View>;
   const [scrolled, setScrolled] = useState(false);
   // The pinned section: what's in it, where it sits, the title bar's height above it, and whether
   // it has reached the top.
@@ -43,10 +42,19 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   const [pinnedY, setPinnedY] = useState<number | null>(null);
   const [barHeight, setBarHeight] = useState(0);
   const [stuck, setStuck] = useState(false);
+  const [viewport, setViewport] = useState(0);
   const watching = stickyTitle !== undefined || pinned !== undefined;
+  // While pinned, the page keeps a screen's worth of room below the pinned spot: typing a search
+  // that leaves a few results can't shorten it so much that the bar (and its keyboard) goes away.
+  const room = stuck && pinnedY !== null && viewport > 0 ? { minHeight: pinnedY + viewport } : null;
+  const content = <View style={[styles.content, style, room]} {...rest}>{children}</View>;
   const scroller = scroll ? (
     <ScrollView
       contentContainerStyle={styles.scroll}
+      // Browsers re-anchor the scroll when the list above the fold changes, which threw the page back
+      // to the top as a search narrowed it (and closed the pinned search). Phones don't do this.
+      style={pinned && Platform.OS === 'web' ? ({ overflowAnchor: 'none' } as object) : undefined}
+      onLayout={pinned ? (e) => setViewport(e.nativeEvent.layout.height) : undefined}
       scrollEventThrottle={watching ? 16 : undefined}
       onScroll={
         !watching
@@ -66,7 +74,9 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
       showsVerticalScrollIndicator={false}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
-      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      // On the web "on-drag" fires on any scroll, including the one a narrowing search causes, and
+      // would drop the pinned search's cursor mid-word.
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'web' && pinned ? 'none' : 'on-drag'}
       refreshControl={
         onRefresh ? (
           <RefreshControl
