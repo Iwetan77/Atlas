@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Children, createContext, isValidElement, type ReactElement, type ReactNode, useContext, useEffect, useState } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,21 +12,55 @@ import { colors, maxContentWidth, radii, spacing } from '@/theme';
 // fades in at the top, so leaving never means scrolling back up.
 type Props = ViewProps & { scroll?: boolean; refreshing?: boolean; onRefresh?: () => void; stickyTitle?: string };
 
+// Room above the pinned copy, so it never touches the screen's edge or the title bar.
+const PINNED_GAP = spacing.sm;
+
+// Where a screen's <Pinned> section sits in the scroll (its top, in content coordinates).
+const PinnedSpot = createContext<((y: number) => void) | null>(null);
+
+// A screen's search and filters: they scroll with the page until they reach the top, then stay
+// there (a copy takes over at exactly that spot, under the slim title bar when there is one), so
+// searching never means scrolling back up. Give it as a direct child of <Screen>.
+export function Pinned({ children }: { children: ReactNode }) {
+  const report = useContext(PinnedSpot);
+  return (
+    <View style={styles.pinned} onLayout={report ? (e) => report(e.nativeEvent.layout.y) : undefined}>
+      {children}
+    </View>
+  );
+}
+
 // Every screen keeps what you're typing in sight: a scrolling screen moves the focused field above
 // the keyboard (iOS insets for it, then scrolls it into view); a fixed one shrinks to make room.
 export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTitle, children, style, ...rest }: Props) {
   const content = <View style={[styles.content, style]} {...rest}>{children}</View>;
   const [scrolled, setScrolled] = useState(false);
+  // The pinned section: what's in it, where it sits, the title bar's height above it, and whether
+  // it has reached the top.
+  const pinned = Children.toArray(children).find(
+    (c): c is ReactElement<{ children: ReactNode }> => isValidElement(c) && c.type === Pinned,
+  );
+  const [pinnedY, setPinnedY] = useState<number | null>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  const [stuck, setStuck] = useState(false);
+  const watching = stickyTitle !== undefined || pinned !== undefined;
   const scroller = scroll ? (
     <ScrollView
       contentContainerStyle={styles.scroll}
-      scrollEventThrottle={stickyTitle === undefined ? undefined : 32}
+      scrollEventThrottle={watching ? 16 : undefined}
       onScroll={
-        stickyTitle === undefined
+        !watching
           ? undefined
           : (e) => {
-              const past = e.nativeEvent.contentOffset.y > 56;
+              const y = e.nativeEvent.contentOffset.y;
+              const past = y > 56;
               if (past !== scrolled) setScrolled(past);
+              // Stuck once the section's top meets the bottom of the title bar (or the screen's top).
+              const reached =
+                pinned !== undefined &&
+                pinnedY !== null &&
+                y >= pinnedY - PINNED_GAP - (stickyTitle !== undefined && past ? barHeight : 0);
+              if (reached !== stuck) setStuck(reached);
             }
       }
       showsVerticalScrollIndicator={false}
@@ -44,15 +78,33 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
           />
         ) : undefined
       }>
-      {content}
+      <PinnedSpot.Provider value={pinned ? setPinnedY : null}>{content}</PinnedSpot.Provider>
     </ScrollView>
   ) : null;
+  const top = stickyTitle !== undefined && scrolled ? barHeight : 0;
+  // The pinned copy lines up with the page's own column (wider on the desktop website).
+  const column = StyleSheet.flatten(style);
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      {scroller && stickyTitle !== undefined ? (
+      {scroller && watching ? (
         <View style={styles.root}>
           {scroller}
-          <StickyBar title={stickyTitle} visible={scrolled} />
+          {pinned && stuck ? (
+            <View style={[styles.pinnedBar, { top }]}>
+              <View
+                style={[
+                  styles.pinnedInner,
+                  styles.pinned,
+                  column?.maxWidth !== undefined && { maxWidth: column.maxWidth },
+                  column?.paddingHorizontal !== undefined && { paddingHorizontal: column.paddingHorizontal },
+                ]}>
+                {pinned.props.children}
+              </View>
+            </View>
+          ) : null}
+          {stickyTitle !== undefined ? (
+            <StickyBar title={stickyTitle} visible={scrolled} joined={pinned !== undefined && stuck} onHeight={setBarHeight} />
+          ) : null}
         </View>
       ) : scroller ? (
         scroller
@@ -65,15 +117,27 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   );
 }
 
-function StickyBar({ title, visible }: { title: string; visible: boolean }) {
+// `joined`: the pinned search sits right under it, so the two read as one bar (one line, below both).
+function StickyBar({
+  title,
+  visible,
+  joined,
+  onHeight,
+}: {
+  title: string;
+  visible: boolean;
+  joined: boolean;
+  onHeight: (h: number) => void;
+}) {
   const [shown] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(shown, { toValue: visible ? 1 : 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [visible, shown]);
   return (
     <Animated.View
+      onLayout={(e) => onHeight(e.nativeEvent.layout.height)}
       pointerEvents={visible ? 'auto' : 'none'}
-      style={[styles.bar, { opacity: shown, transform: [{ translateY: shown.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+      style={[styles.bar, joined && styles.barJoined, { opacity: shown, transform: [{ translateY: shown.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
       <View style={styles.barInner}>
         <Pressable
           onPress={goBack}
@@ -92,6 +156,32 @@ function StickyBar({ title, visible }: { title: string; visible: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  pinned: {
+    gap: spacing.md,
+  },
+  // The pinned copy: the page's own background, a hairline and a soft shadow, so the list slides
+  // under it.
+  pinnedBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: colors.bgBase,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  pinnedInner: {
+    width: '100%',
+    maxWidth: maxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: PINNED_GAP,
+    paddingBottom: spacing.md,
+  },
   bar: {
     position: 'absolute',
     top: 0,
@@ -100,6 +190,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgBase,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+  },
+  // Same height (the pinned bar sits exactly below it), just no line.
+  barJoined: {
+    borderBottomColor: 'transparent',
   },
   barInner: {
     width: '100%',

@@ -1,1 +1,1 @@
-export { Screen } from './screen-base';
+export { Pinned, Screen } from './screen-base';

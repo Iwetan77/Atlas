@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { PillButton } from '@/components/ui/pill-button';
 import { Icon } from '@/components/ui/icon';
-import { Screen } from '@/components/ui/screen';
+import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
 import { colors, radii, spacing } from '@/theme';
@@ -101,8 +101,9 @@ export default function PerpsScreen() {
         )
       ) : null}
 
-      {view !== 'markets' ? null : markets ? (
-        <>
+      {/* Search and categories stay at the top while the list scrolls. */}
+      {view === 'markets' && markets ? (
+        <Pinned>
           <Field
             clearable
             prefix={<Icon name="search" size={20} color="textSecondary" />}
@@ -134,6 +135,11 @@ export default function PerpsScreen() {
               );
             })}
           </ScrollView>
+        </Pinned>
+      ) : null}
+
+      {view !== 'markets' ? null : markets ? (
+        <>
           {shown && shown.length > 0 ? (
             <Card style={styles.list}>
               {shown.map((m, i) => (

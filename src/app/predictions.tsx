@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
-import { Screen } from '@/components/ui/screen';
+import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
@@ -89,22 +89,28 @@ export default function Predictions() {
         ))}
       </View>
 
+      {/* Search and topics stay at the top while the markets scroll. */}
+      {tab === 'discover' ? (
+        <Pinned>
+          <Field clearable value={query} onChangeText={setQuery} placeholder="Search events, teams or topics"
+            accessibilityLabel="Search prediction markets" autoCapitalize="none"
+            prefix={<Icon name="search" color="textSecondary" />} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicsBleed} contentContainerStyle={styles.topics}>
+            {TOPICS.map((t) => {
+              const on = t.label === topic.label && !query;
+              return (
+                <Pressable key={t.label} onPress={() => { setTopic(t); setQuery(''); }}
+                  accessibilityRole="button" accessibilityState={{ selected: on }}
+                  style={({ pressed }) => [styles.chip, on && styles.chipActive, pressed && styles.pressed]}>
+                  <Text variant="label" color={on ? 'textOnAccent' : 'textSecondary'}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Pinned>
+      ) : null}
+
       {tab === 'discover' ? <>
-        <Field clearable value={query} onChangeText={setQuery} placeholder="Search events, teams or topics"
-          accessibilityLabel="Search prediction markets" autoCapitalize="none"
-          prefix={<Icon name="search" color="textSecondary" />} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topicsBleed} contentContainerStyle={styles.topics}>
-          {TOPICS.map((t) => {
-            const on = t.label === topic.label && !query;
-            return (
-              <Pressable key={t.label} onPress={() => { setTopic(t); setQuery(''); }}
-                accessibilityRole="button" accessibilityState={{ selected: on }}
-                style={({ pressed }) => [styles.chip, on && styles.chipActive, pressed && styles.pressed]}>
-                <Text variant="label" color={on ? 'textOnAccent' : 'textSecondary'}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
         <View style={styles.sectionHeading}>
           <Text variant="heading">{heading}</Text>
           {markets?.length ? <Text variant="caption" color="textSecondary">{markets.length} open</Text> : null}
