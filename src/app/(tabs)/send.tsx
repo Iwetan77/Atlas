@@ -21,12 +21,6 @@ export default function SendScreen() {
 
       <DesktopColumns>
       <SendOption
-        href="/send/friend"
-        tile={<IconTile icon="paper-plane-outline" />}
-        title="Atlas Friends"
-        subtitle="Instant & free"
-      />
-      <SendOption
         href="/send/bank"
         tile={
           <View style={styles.cluster}>
@@ -37,6 +31,12 @@ export default function SendScreen() {
         }
         title="Banks & Mobile Money"
         subtitle="Straight to your bank or wallet"
+      />
+      <SendOption
+        href="/send/friend"
+        tile={<IconTile icon="paper-plane-outline" />}
+        title="Atlas Friends"
+        subtitle="Instant & free"
       />
       <SendOption
         href="/send/link"

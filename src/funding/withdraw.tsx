@@ -62,14 +62,18 @@ function WithdrawSheet({ visible, onClose }: { visible: boolean; onClose: () => 
       router.push({ pathname, params: { from: 'withdraw' } });
     };
     return [
+      { key: 'bank', title: 'Send to bank', subtitle: 'Naira to any Nigerian bank', icon: 'business-outline', onPress: go('/send/bank') },
       { key: 'friend', title: 'Atlas Friends', subtitle: 'To any @handle, instant and free', icon: 'paper-plane-outline', onPress: go('/send/friend') },
       { key: 'link', title: 'Atlas Link', subtitle: 'Share a link anyone can claim', icon: 'link-outline', onPress: go('/send/link') },
-      { key: 'bank', title: 'Send to bank', subtitle: 'Naira to any Nigerian bank', icon: 'business-outline', onPress: go('/send/bank') },
       {
         key: 'wallet',
         title: 'Withdraw to wallet',
         subtitle: 'USDC, USDT, SOL, BTC and more',
-        icon: 'wallet-outline',
+        // The coins it pays out in, like Add money's wallet row.
+        logos: [
+          { symbol: 'USDC', url: null },
+          { symbol: 'BTC', url: null },
+        ],
         soon: walletReady === false,
         onPress: go('/send/wallet'),
       },
