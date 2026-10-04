@@ -130,20 +130,22 @@ export default function AddByBankScreen() {
       <BackHeader title="Bank transfer" />
       {!transfer ? (
         <>
-          <AmountInput label="How much are you sending?" value={naira} onChange={setNaira} currency="NGN" />
+          <AmountInput label="How much do you want to add?" value={naira} onChange={setNaira} currency="NGN" />
           {preview ? (
             <Card style={styles.card}>
-              <Row label="You get about" value={formatMoney(preview.receive)} strong />
+              {/* What's typed is what lands; the fees go on top of the transfer. */}
+              <Row label="You transfer" value={formatMoney(preview.pay)} strong />
+              <Row label="You get" value={formatMoney(preview.receive)} />
               <Row label="Fee (1%, up to ₦100)" value={formatMoney(preview.fee)} />
               {/* A flat charge for sending the dollars to your wallet, whatever the amount. */}
               <Row label="Delivery to your wallet" value={preview.networkFee} />
               <Row label="Rate" value={preview.rate} />
             </Card>
           ) : null}
-          {preview && preview.receive.currency === 'NGN' && Number(amount) > 0 && 1 - Number(preview.receive.amount) / Number(amount) > 0.05 ? (
+          {preview && preview.receive.currency === 'NGN' && Number(preview.pay.amount) > 0 && 1 - Number(preview.receive.amount) / Number(preview.pay.amount) > 0.05 ? (
             <Text variant="caption" color="textSecondary">
-              About {Math.round((1 - Number(preview.receive.amount) / Number(amount)) * 100)}% goes to fees here. Most of it is
-              the flat delivery charge, so larger transfers lose a much smaller share.
+              About {Math.round((1 - Number(preview.receive.amount) / Number(preview.pay.amount)) * 100)}% of the transfer goes to
+              fees here. Most of it is the flat delivery charge, so larger amounts pay a much smaller share.
             </Text>
           ) : null}
           {previewError ? <Text color="danger">{previewError}</Text> : null}
@@ -175,7 +177,7 @@ export default function AddByBankScreen() {
           <Text variant="bodyStrong">{transfer.bankName}</Text>
           <Text color="textSecondary">{transfer.accountName}</Text>
           <View style={styles.divider} />
-          <Row label="You get about" value={formatMoney(transfer.receive)} strong />
+          <Row label="You get" value={formatMoney(transfer.receive)} strong />
           <View style={styles.status}>
             <Icon
               name={transfer.state === 'failed' || transfer.state === 'expired' ? 'alert-circle' : 'time-outline'}

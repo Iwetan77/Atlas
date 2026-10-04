@@ -432,8 +432,10 @@ export type BankRecipient = {
 };
 
 // Adding money by bank transfer: a one-time Nigerian account; its naira lands as USDC.
-// POST /v1/onramp/bank/quote { amount: whole naira, currency } → BankTransferQuote (nothing opens)
-// POST /v1/onramp/bank       { amount, currency }             → BankTransfer
+// POST /v1/onramp/bank/quote { amount: whole naira, currency, receive: true } → BankTransferQuote
+//   (nothing opens). With `receive`, `amount` is what lands in the balance and `pay` (what to
+//   transfer) carries the fees on top; without it, `amount` is what's transferred.
+// POST /v1/onramp/bank       { amount, currency, receive: true }             → BankTransfer
 // GET  /v1/onramp/bank/{id}?currency=                          → BankTransfer
 export type BankTransferQuote = {
   pay: Money;
