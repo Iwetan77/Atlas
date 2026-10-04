@@ -58,7 +58,7 @@ export function TransferDone({
       </View>
       <View style={styles.hero}>
         <View style={styles.check}>
-          <Icon name="checkmark" size={36} color="textOnAccent" />
+          <Icon name="checkmark" size={38} color="bgDeep" />
         </View>
         <Text variant="heading">Transfer sent</Text>
         <Text variant="display">{formatMoney(t.receive)}</Text>
@@ -128,7 +128,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success,
+    // Atlas pink with a black tick, like every other "done" screen.
+    backgroundColor: colors.accentPink,
   },
   payee: {
     flexDirection: 'row',

@@ -11,7 +11,7 @@ export function ResultView({ title, subtitle, children }: { title: string; subti
   return (
     <Screen style={styles.center}>
       <View style={styles.icon}>
-        <Icon name="checkmark" size={36} color="textOnAccent" />
+        <Icon name="checkmark" size={38} color="bgDeep" />
       </View>
       <Text variant="title" style={styles.text}>
         {title}
