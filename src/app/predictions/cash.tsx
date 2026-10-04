@@ -47,12 +47,17 @@ export default function PredictionCash() {
       <Text variant="title" style={styles.balance}>{account ? formatMoney(account.cash) : '—'}</Text>
       <Text variant="caption" color="textSecondary">{account ? 'Available to return to your Atlas balance' : 'Loading available cash…'}</Text>
     </Card>
-    <Text color="textSecondary">Return unused Predictions cash to your Atlas balance. Fees are included in the preview.</Text>
+    <Text color="textSecondary">Return unused Predictions cash to your Atlas balance. What you type is what lands: the small fee comes from your Predictions cash on top, or out of it when you return everything.</Text>
     <AmountInput label="Cash to return" value={amount} onChange={setAmount} currency={displayCurrency}
       onMax={() => account && setAmount(account.cash.amount)} />
     {quote ? <Card style={styles.preview}><View style={styles.top}><Icon name="arrow-down-circle-outline" size={20} color="accentPinkTint" /><Text color="textSecondary">Back in your Atlas balance</Text></View>
       <Text variant="title">{formatMoney(quote.receive)}</Text>
-      <Text variant="caption" color="textSecondary">{formatMoney(quote.fee)} fees included</Text></Card> : null}
+      <Text variant="caption" color="textSecondary">
+        {/* More leaves Predictions cash than was typed: the fee went on top. */}
+        {Number(quote.pay.amount) - (Number(amount) || 0) > 0.005
+          ? `${formatMoney(quote.fee)} fee, taken from your Predictions cash on top`
+          : `${formatMoney(quote.fee)} fee included`}
+      </Text></Card> : null}
     {error ? <Text color="danger">{error}</Text> : null}
     {result ? <Card variant="outlined"><Text>{result}</Text></Card> : null}
     <PillButton label="Return cash" loading={busy} disabled={!quote || busy || quoting} onPress={go} />

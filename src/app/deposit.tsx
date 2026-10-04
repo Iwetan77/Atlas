@@ -102,7 +102,8 @@ export default function DepositScreen() {
       const d = await enginePost<DepositAddress>(
         '/v1/deposit/quote',
         await getAccessToken(),
-        { networkId: other.id, amount: { amount: (Number(amount) || 0).toFixed(2), currency: displayCurrency } },
+        // What's typed is what lands; the coin to send carries the fees on top.
+        { networkId: other.id, amount: { amount: (Number(amount) || 0).toFixed(2), currency: displayCurrency }, receive: true },
         SAFE_TO_REPLAY,
       );
       setDeposit(d);
@@ -148,7 +149,7 @@ export default function DepositScreen() {
 
       {other && !deposit ? (
         <Card style={styles.card}>
-          <AmountInput label="How much are you depositing?" value={amount} onChange={setAmount} currency={displayCurrency} />
+          <AmountInput label="How much do you want to add?" value={amount} onChange={setAmount} currency={displayCurrency} />
           {problem ? <MoneyError message={problem} /> : null}
           <PillButton label="Get deposit address" loading={busy} disabled={!(Number(amount) > 0)} onPress={getAddress} />
         </Card>
@@ -165,12 +166,18 @@ export default function DepositScreen() {
                 Anything from {deposit.minAmount} {deposit.asset} counts. You’ll get about {formatMoney(deposit.receive)}
                 {deposit.timeEstimateSec ? `, usually within ${Math.max(1, Math.round(deposit.timeEstimateSec / 60))} min of it arriving` : ''}.
               </Text>
-              {/* What the move costs, plainly: on small deposits the fixed fees are a big share. */}
-              {deposit.receive.currency === displayCurrency && Number(amount) > Number(deposit.receive.amount) ? (
+              {/* What the move costs, plainly: what's sent less what lands. On small deposits the fixed
+                  fees are a big share. */}
+              {deposit.sendValue && deposit.sendValue.currency === deposit.receive.currency &&
+              Number(deposit.sendValue.amount) > Number(deposit.receive.amount) ? (
                 <Text variant="caption" color="textSecondary">
-                  Fees: about {formatMoney({ amount: String(Number(amount) - Number(deposit.receive.amount)), currency: displayCurrency })}
-                  {Number(amount) > 0 && (Number(amount) - Number(deposit.receive.amount)) / Number(amount) > 0.05
-                    ? '. They’re mostly fixed, so bigger deposits lose a smaller share.'
+                  Fees, included in what you send: about{' '}
+                  {formatMoney({
+                    amount: String(Number(deposit.sendValue.amount) - Number(deposit.receive.amount)),
+                    currency: deposit.receive.currency,
+                  })}
+                  {(Number(deposit.sendValue.amount) - Number(deposit.receive.amount)) / Number(deposit.sendValue.amount) > 0.05
+                    ? '. They’re mostly fixed, so bigger deposits pay a smaller share.'
                     : ''}
                 </Text>
               ) : null}

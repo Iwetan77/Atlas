@@ -174,7 +174,7 @@ export type BankDepositAccount = {
 
 // Deposits from other networks (USDT on Tron, USDC on Arbitrum…), turned into USDC in the balance
 // by 1Click. GET /v1/deposit/networks → { networks: DepositNetwork[] };
-// POST /v1/deposit/quote { networkId, amount: Money } → DepositAddress;
+// POST /v1/deposit/quote { networkId, amount: Money, receive?: true } → DepositAddress;
 // GET /v1/deposit/status?address=&memo= → { state: DepositState, journey }.
 export type DepositNetwork = {
   id: string;
@@ -193,9 +193,12 @@ export type DepositAddress = {
   network: string;
   label: string;
   asset: string;
-  // Send about this much; anything from minAmount up is converted.
+  // Send about this much; anything from minAmount up is converted. Asked with `receive: true`, the
+  // amount typed is what lands and sendAmount carries the fees on top.
   sendAmount: string;
   minAmount: string;
+  // What the coin sent is worth (older engines leave it out).
+  sendValue?: Money;
   receive: Money;
   timeEstimateSec: number | null;
   expiresAtUnixMs: number;
