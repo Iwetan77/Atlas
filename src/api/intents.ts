@@ -32,6 +32,7 @@ export async function submitIntent(token: Token, intentId: string, body: IntentS
     return await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(intentId)}/signed`, await token(), body, {
       timeoutMs: SUBMIT_TIMEOUT_MS,
       retries: 3,
+      pinAuthorization: body.pinAuthorization,
     });
   } catch (e) {
     if (!(e instanceof EngineTimeout || e instanceof EngineUnreachable)) throw e;
@@ -73,6 +74,7 @@ export async function waitForIntent(
         const key = stepKey(status.intentId, status.stage);
         status = await enginePost<IntentStatus>(`/v1/intents/${encodeURIComponent(status.intentId)}/signed`, await token(), unseen, {
           timeoutMs: SUBMIT_TIMEOUT_MS,
+          pinAuthorization: unseen.pinAuthorization,
         });
         // An actual HTTP acknowledgement consumes this report, even when the next step is also 'sign'.
         reported.delete(key);
@@ -125,8 +127,8 @@ export function useRunIntent() {
       }
       onSettling?.();
       const initialStage = plan.stage ?? 'validate';
-      reported.set(stepKey(plan.intentId, initialStage), { sent: report.sent, signed: report.signed });
-      const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed });
+      reported.set(stepKey(plan.intentId, initialStage), { sent: report.sent, signed: report.signed, pinAuthorization: report.pinAuthorization });
+      const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed, pinAuthorization: report.pinAuthorization });
       if (!first.reportPending) reported.delete(stepKey(plan.intentId, initialStage));
       // A two-step plan (cash moved from another chain first): its last transaction is signed here,
       // covered by the one confirmation the user already gave.
@@ -137,7 +139,7 @@ export function useRunIntent() {
         const next = await engineGet<{ transactions: UnsignedTx[] }>(
           `/v1/intents/${encodeURIComponent(status.intentId)}/next`,
           await getAccessToken(),
-          { timeoutMs: POLL_REQUEST_TIMEOUT_MS },
+          { timeoutMs: POLL_REQUEST_TIMEOUT_MS, pinAuthorization: report.pinAuthorization },
         );
         // Same rules as the confirm sheet: Solana transactions the engine lands are signed; the rest
         // (Base, after cash arrived from Solana) are sent, each mined before the next.
@@ -145,7 +147,7 @@ export function useRunIntent() {
         const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
           if ('typedData' in tx) {
-            signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer) : await signer.sign(tx) });
+            signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer, report.pinAuthorization) : await signer.sign(tx) });
             continue;
           }
           if (tx.chain === 'privy') {
@@ -160,8 +162,8 @@ export function useRunIntent() {
           await waitForTx(result, tx);
           sent.push(result);
         }
-        reported.set(stepKey(status.intentId, 'sign'), { sent, signed });
-        const answer = await submitIntent(getAccessToken, status.intentId, { sent, signed });
+        reported.set(stepKey(status.intentId, 'sign'), { sent, signed, pinAuthorization: report.pinAuthorization });
+        const answer = await submitIntent(getAccessToken, status.intentId, { sent, signed, pinAuthorization: report.pinAuthorization });
         if (!answer.reportPending) reported.delete(stepKey(status.intentId, 'sign'));
         return answer;
       };

@@ -3,6 +3,8 @@ import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Bank } from '@/api/contract';
+import { Image } from 'expo-image';
+import { bundledBankLogo } from '@/components/send/bank-logos';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -96,6 +98,8 @@ export function BankPicker({
 
 // The bank's logo, or its initials when there's none (or it won't load).
 export function BankLogo({ bank, size }: { bank: Bank; size: number }) {
+  const bundled = bundledBankLogo(bank);
+  if (bundled) return <Image source={bundled} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="contain" accessibilityLabel={bank.name + ' logo'} />;
   const initials = bank.name
     .split(/\s+/)
     .filter((w) => /^[a-z0-9]/i.test(w))

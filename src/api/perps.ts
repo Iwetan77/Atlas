@@ -121,11 +121,12 @@ export async function setPositionTpsl(
   positionId: string,
   takeProfitPct: number | null,
   stopLossPct: number | null,
+  pinAuthorization: string,
 ): Promise<PerpTpsl> {
   return enginePost<PerpTpsl>(
     `/v1/perps/positions/${encodeURIComponent(positionId)}/tpsl`,
     await token(),
     { takeProfitPct, stopLossPct },
-    SAFE_TO_REPLAY,
+    { pinAuthorization },
   );
 }

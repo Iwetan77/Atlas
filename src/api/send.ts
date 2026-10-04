@@ -154,6 +154,6 @@ export async function setAvatar(token: Token, image: string | null): Promise<str
   return (await enginePost<{ avatar: string | null }>('/v1/me/avatar', await token(), { image })).avatar;
 }
 
-export async function claimCashLink(token: Token, linkId: string, secret: string): Promise<IntentStatus> {
-  return enginePost<IntentStatus>(`/v1/cashlinks/${encodeURIComponent(linkId)}/claim`, await token(), { secret });
+export async function claimCashLink(token: Token, linkId: string, secret: string, pinAuthorization: string): Promise<IntentStatus> {
+  return enginePost<IntentStatus>(`/v1/cashlinks/${encodeURIComponent(linkId)}/claim`, await token(), { secret }, { pinAuthorization });
 }

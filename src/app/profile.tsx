@@ -119,6 +119,13 @@ export default function ProfileScreen() {
         </View>
       </Card>
 
+      <Text variant="overline" color="textSecondary">Security</Text>
+      <Card style={styles.group}>
+        <Pressable onPress={() => router.push('/payment-pin')} accessibilityRole="button">
+          <RowLabel icon="lock-closed-outline" title="Payment PIN" subtitle="Change the four digits that protect your money" />
+        </Pressable>
+      </Card>
+
       <Text variant="overline" color="textSecondary">
         Display
       </Text>

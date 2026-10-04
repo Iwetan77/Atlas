@@ -181,3 +181,20 @@ EXPO_PUBLIC_ANDROID_APK_URL can override it.
 To publish an update: build with `npx eas-cli@latest build -p android --profile preview` (the existing EAS
 signing credentials, so phones update over the installed app; EAS raises the build number), then make a
 GitHub release `v<version>` (not a pre-release) with the APK attached as `atlas.apk`.
+
+## Payment PIN and share cards
+
+After sign-in, every account sets a four-digit payment PIN; new accounts choose their handle in the
+same setup. Reviews keep the amount, recipient and fee visible and ask for the PIN instead of another
+Confirm button. One approval covers the saved payment's later steps. Profile → Payment PIN changes
+it using the current PIN. PINs and payment approvals are never stored in AsyncStorage or logs.
+
+The engine checks the PIN and limits wrong attempts in persistent storage. Older clients are stopped
+before receiving a spending plan and must update. A forgotten PIN cannot be overwritten from a
+normal login: account recovery needs a separately verified process before a reset is added.
+
+Share on a position or coin card opens an image preview with Download image and, when supported,
+Share image. Web captures only the card, with bounded image loading and capture time; the system
+share call follows a fresh tap so Safari permits it. Android Download image lets the user choose a
+folder; iPhone browsers download the PNG. Bank logos are bundled for common Nigerian banks,
+including OPay and MoMo, so they do not depend on a remote logo service.

@@ -4,6 +4,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Pattern, Polygon, Rect, Stop }
 
 import type { SpotPosition } from '@/api/contract';
 import { useShareImage } from '@/components/share/use-share-image';
+import { ShareImageSheet } from '@/components/share/share-image-sheet';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
@@ -93,7 +94,7 @@ export function MemeCard({
 }) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
-  const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}.png`, 'Share your bag');
+  const { share, sharing, shareError, menu } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}.png`, 'Share your bag');
 
   const pct = p.pnlPct === null ? null : Number(p.pnlPct);
   const mood = moodFor(pct, p.symbol);
@@ -219,6 +220,7 @@ export function MemeCard({
           </Text>
         ) : null}
       </View>
+      <ShareImageSheet options={menu} />
       {shareError ? (
         <Text variant="caption" color="danger">
           {shareError}

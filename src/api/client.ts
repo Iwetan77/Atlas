@@ -28,7 +28,7 @@ export class EngineUnreachable extends EngineUnavailable {
 // timeoutMs: give up waiting after this long (the call may still complete on the engine).
 // retries: how many times to resend after EngineUnreachable. Only for calls the engine can safely
 // receive twice; GETs default to 2, POSTs to 0.
-type Options = { auth?: boolean; timeoutMs?: number; retries?: number };
+type Options = { auth?: boolean; timeoutMs?: number; retries?: number; pinAuthorization?: string };
 
 // For POSTs the engine answers a second time without acting twice (quotes, plans, confirmations).
 export const SAFE_TO_REPLAY: Options = { retries: 2 };
@@ -42,13 +42,13 @@ async function engineRequest<T>(
   path: string,
   accessToken: string | null,
   body?: unknown,
-  { auth = true, timeoutMs, retries = method === 'GET' ? 2 : 0 }: Options = {},
+  { auth = true, timeoutMs, retries = method === 'GET' ? 2 : 0, pinAuthorization }: Options = {},
 ): Promise<T> {
   if (!engineUrl) throw new EngineUnavailable('Engine URL is not configured');
   if (auth && !accessToken) throw new EngineUnavailable('Not signed in');
   for (let attempt = 0; ; attempt++) {
     try {
-      return await engineAttempt<T>(method, path, accessToken, body, auth, timeoutMs);
+      return await engineAttempt<T>(method, path, accessToken, body, auth, timeoutMs, pinAuthorization);
     } catch (e) {
       if (!(e instanceof EngineUnreachable) || attempt >= retries) throw e;
       await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)]));
@@ -63,6 +63,7 @@ async function engineAttempt<T>(
   body: unknown,
   auth: boolean,
   timeoutMs: number | undefined,
+  pinAuthorization: string | undefined,
 ): Promise<T> {
   const abort = timeoutMs ? new AbortController() : null;
   const timer = abort ? setTimeout(() => abort.abort(), timeoutMs) : null;
@@ -72,6 +73,8 @@ async function engineAttempt<T>(
       headers: {
         ...(auth ? { Authorization: `Bearer ${accessToken}` } : {}),
         Accept: 'application/json',
+        'x-atlas-payment-pin': '1',
+        ...(pinAuthorization ? { 'x-atlas-pin-authorization': pinAuthorization } : {}),
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),

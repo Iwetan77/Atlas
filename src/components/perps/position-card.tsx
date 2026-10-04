@@ -7,6 +7,7 @@ import type { PerpPosition } from '@/api/contract';
 import { LiquidationPrice } from '@/components/perps/liquidation-price';
 import { TpslLine } from '@/components/perps/tpsl';
 import { useShareImage } from '@/components/share/use-share-image';
+import { ShareImageSheet } from '@/components/share/share-image-sheet';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
@@ -42,7 +43,7 @@ export function PositionCard({
 }) {
   const card = useRef<View>(null);
   const [scale, setScale] = useState(1);
-  const { share, sharing, shareError } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}-${p.side}.png`, 'Share position');
+  const { share, sharing, shareError, menu } = useShareImage(card, W / H, `atlas-${p.symbol.toLowerCase()}-${p.side}.png`, 'Share position');
 
   const up = Number(p.unrealizedPnl.amount) >= 0;
   // Venues don't always report PnL % or margin; fall back to numbers they do report.
@@ -155,6 +156,7 @@ export function PositionCard({
       <LiquidationPrice price={p.liquidationPrice} side={p.side} symbol={p.symbol} compact />
       <TpslLine position={p} onChanged={onChanged} />
 
+      <ShareImageSheet options={menu} />
       {shareError ? (
         <Text variant="caption" color="danger">
           {shareError}

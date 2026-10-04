@@ -13,6 +13,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
+import { usePaymentPin, PinCancelled } from '@/security/pin-provider';
 import { colors, spacing } from '@/theme';
 
 // The link secret rides in the URL fragment (#k=…) on the web; a native deep link passes ?k=.
@@ -39,6 +40,7 @@ type Phase = { kind: 'view' } | { kind: 'claiming' } | { kind: 'done'; amount: s
 export default function ClaimScreen() {
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
   const secret = useLinkSecret(linkId);
+  const paymentPin = usePaymentPin();
   const { authenticated, getAccessToken, loginWithGoogle, googleLoading, emailLogin } = useAtlasAuth();
 
   const [link, setLink] = useState<CashLink | null>(null);
@@ -56,7 +58,10 @@ export default function ClaimScreen() {
     if (!link) return;
     setPhase({ kind: 'claiming' });
     try {
-      const first = await claimCashLink(getAccessToken, link.linkId, secret);
+      const grant = await paymentPin.request({ title: 'Receive your money',
+        action: { type: 'cashlink', linkId: link.linkId, secret },
+        summary: [{ label: 'You receive', value: formatMoney(link.amount) }] });
+      const first = await claimCashLink(getAccessToken, link.linkId, secret, grant.authorization);
       const final = await waitForIntent(getAccessToken, first);
       setPhase(
         final.state === 'filled'
@@ -64,7 +69,7 @@ export default function ClaimScreen() {
           : { kind: 'failed', message: final.error ?? 'This link could not be claimed.' },
       );
     } catch (e) {
-      setPhase({ kind: 'failed', message: errorMessage(e) });
+      setPhase(e instanceof PinCancelled ? { kind: 'view' } : { kind: 'failed', message: errorMessage(e) });
     }
   };
 

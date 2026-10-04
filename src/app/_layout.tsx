@@ -13,6 +13,7 @@ import { StartupError, StartupStatus } from '@/components/startup-status';
 import { AddMoneyProvider } from '@/funding/add-money';
 import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
+import { PinProvider } from '@/security/pin-provider';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
 import { WebShell } from '@/components/web/shell';
@@ -70,6 +71,7 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <SettingsProvider>
         <AtlasAuthProvider>
+          <PinProvider>
           <ConfirmProvider>
             <AddMoneyProvider>
               <WithdrawProvider>
@@ -77,6 +79,7 @@ export default function RootLayout() {
               </WithdrawProvider>
             </AddMoneyProvider>
           </ConfirmProvider>
+          </PinProvider>
         </AtlasAuthProvider>
       </SettingsProvider>
     </ThemeProvider>
@@ -120,6 +123,7 @@ function RootStack() {
         <Stack.Screen name="send/link" />
         <Stack.Screen name="send/wallet" />
         <Stack.Screen name="handle" />
+        <Stack.Screen name="payment-pin" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />

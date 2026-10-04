@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { DisplayCurrency, PerpPosition, PerpTrigger } from '@/api/contract';
@@ -9,6 +9,8 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
+import { authorizePin } from '@/api/pin';
+import { PinPad } from '@/security/pin-pad';
 import { colors, maxContentWidth, radii, spacing } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
@@ -186,31 +188,44 @@ function TpslSheet({ position: p, onClose, onSaved }: { position: PerpPosition; 
   const insets = useSafeAreaInsets();
   const desktop = useDesktop();
   const { getAccessToken } = useAtlasAuth();
+  const active = useRef(true);
+  const busy = useRef(false);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  const dismiss = () => { if (!busy.current) onClose(); };
+  const [pinStep, setPinStep] = useState(false);
+  const [pinReset, setPinReset] = useState(0);
   const [takeProfit, setTakeProfit] = useState<number | null>(pctOf(p.takeProfit));
   const [stopLoss, setStopLoss] = useState<number | null>(pctOf(p.stopLoss));
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const unchanged = takeProfit === pctOf(p.takeProfit) && stopLoss === pctOf(p.stopLoss);
 
-  const save = async () => {
+  const save = async (pin: string) => {
+    if (busy.current) return;
+    busy.current = true;
     setSaving(true);
     setProblem(null);
     try {
-      await setPositionTpsl(getAccessToken, p.positionId, takeProfit, stopLoss);
-      onSaved();
+      const grant = await authorizePin(getAccessToken, pin,
+        { type: 'tpsl', positionId: p.positionId, takeProfitPct: takeProfit, stopLossPct: stopLoss });
+      if (!active.current) return;
+      await setPositionTpsl(getAccessToken, p.positionId, takeProfit, stopLoss, grant.authorization);
+      if (active.current) onSaved();
     } catch (e) {
-      setProblem(errorMessage(e));
+      if (active.current) { setProblem(errorMessage(e)); setPinReset((n) => n+1); }
     } finally {
-      setSaving(false);
+      busy.current = false;
+      if (active.current) setSaving(false);
     }
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, desktop && styles.backdropDesktop]} onPress={onClose} accessibilityLabel="Close">
+    <Modal visible transparent animationType="slide" onRequestClose={dismiss}>
+      <Pressable style={[styles.backdrop, desktop && styles.backdropDesktop]} onPress={dismiss} accessibilityLabel="Close">
         <Pressable
           style={[styles.sheet, desktop && styles.sheetDesktop, { paddingBottom: insets.bottom + spacing.xl }]}
           onPress={() => {}}>
+          <ScrollView contentContainerStyle={{ gap: spacing.lg }}>
           <View style={styles.grabber} />
           <View style={styles.sheetHeader}>
             <Text variant="title">Take profit & stop loss</Text>
@@ -219,7 +234,7 @@ function TpslSheet({ position: p, onClose, onSaved }: { position: PerpPosition; 
               position closes for you.
             </Text>
           </View>
-          <TpslPicker
+          {!pinStep ? <TpslPicker
             side={p.side}
             leverage={p.leverage}
             entry={Number(p.entryPrice.amount)}
@@ -228,9 +243,16 @@ function TpslSheet({ position: p, onClose, onSaved }: { position: PerpPosition; 
             stopLoss={stopLoss}
             onTakeProfit={setTakeProfit}
             onStopLoss={setStopLoss}
-          />
+          /> : null}
+          {pinStep ? <><View style={{ gap: spacing.sm }}>
+            <Text variant="bodyStrong">Take profit: {takeProfit === null ? 'Off' : '+' + takeProfit + '%'}</Text>
+            <Text variant="bodyStrong">Stop loss: {stopLoss === null ? 'Off' : '−' + stopLoss + '%'}</Text>
+          </View><Text color="textSecondary">Enter your payment PIN to save these limits.</Text>
+            <PinPad resetKey={pinReset} disabled={saving} onComplete={save} /></> : null}
           {problem ? <Text color="danger">{problem}</Text> : null}
-          <PillButton label="Save" loading={saving} disabled={unchanged} onPress={save} />
+          {!pinStep ? <PillButton label="Save" disabled={unchanged} onPress={() => setPinStep(true)} /> : null}
+          <PillButton label="Cancel" tone="secondary" disabled={saving} onPress={dismiss} />
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -304,6 +326,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   sheet: {
+    maxHeight: '92%',
     width: '100%',
     maxWidth: maxContentWidth,
     alignSelf: 'center',

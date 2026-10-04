@@ -6,7 +6,7 @@ import { useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/ex
 import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -23,6 +23,9 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { evmClient, MaybeSent, solanaConnection } from '@/signing/chains';
 import { friendlyTxError } from '@/signing/errors';
+import { consumePin, type PinAction } from '@/api/pin';
+import { PinPad } from '@/security/pin-pad';
+import { authorizePin } from '@/api/pin';
 import { colors, maxContentWidth, radii, spacing } from '@/theme';
 
 type Request = { id: number; method: string; params: any };
@@ -36,10 +39,15 @@ const SOLANA_SIGN = new Set(['solana:signMessage', 'solana:signTransaction', 'so
 
 export function MiniBrowser({ app }: { app: MiniApp }) {
   const insets = useSafeAreaInsets();
-  const { wallets } = useAtlasAuth();
+  const { wallets, getAccessToken } = useAtlasAuth();
+  const [pinReset, setPinReset] = useState(0);
+  const processing = useRef(false);
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
   const web = useRef<WebView>(null);
+  const activeRequest = useRef<Request | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; activeRequest.current = null; }; }, []);
   const [asking, setAsking] = useState<Request | null>(null);
   const [review, setReview] = useState<Review | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,6 +62,7 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
   };
 
   const close = () => {
+    activeRequest.current = null;
     setAsking(null);
     setReview(null);
     setProblem(null);
@@ -68,6 +77,8 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
     if (method === 'standard:disconnect') return reply(id, null);
     if (!SOLANA_SIGN.has(method)) return reply(id, null, { code: 4200, message: `${method} isn't supported in Atlas mini apps` });
     if (!owner) return reply(id, null, { code: 4001, message: 'Your Solana wallet is still being set up' });
+    if (activeRequest.current) return reply(id, null, { code: 4001, message: 'Finish the current request first' });
+    activeRequest.current = request; setPinReset((n) => n+1);
     setProblem(null);
     setAsking(request);
     if (method === 'solana:signMessage') return;
@@ -109,7 +120,10 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
       if (READ_METHODS.has(method)) {
         return reply(id, await baseClient.request({ method, params } as any));
       }
-      if (SIGN_METHODS.has(method)) return setAsking(request);
+      if (SIGN_METHODS.has(method)) {
+        if (activeRequest.current) return reply(id, null, { code: 4001, message: 'Finish the current request first' });
+        activeRequest.current = request; setPinReset((n) => n+1); return setAsking(request);
+      }
       reply(id, null, { code: 4200, message: `${method} isn't supported in Atlas mini apps` });
     } catch (e) {
       reply(id, null, { code: -32603, message: e instanceof Error ? e.message : String(e) });
@@ -151,17 +165,23 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
     }
   };
 
-  const decide = async (approve: boolean) => {
+  const decide = async (approve: boolean, pin?: string) => {
     const request = asking;
-    if (!request) return;
+    if (!request || processing.current) return;
     if (!approve) {
       reply(request.id, null, { code: 4001, message: 'The user rejected the request' });
       close();
       return;
     }
-    setBusy(true);
-    setProblem(null);
+    if (!pin) return;
+    processing.current = true; setBusy(true); setProblem(null);
     try {
+      const action: PinAction = { type: 'wallet', origin: 'https://' + app.origin,
+        request: { method: request.method, params: request.params } };
+      const grant = await authorizePin(getAccessToken, pin, action);
+      if (!mounted.current || activeRequest.current !== request) return;
+      await consumePin(getAccessToken, grant.authorization, action);
+      if (!mounted.current || activeRequest.current !== request) return;
       if (onSolana) {
         await approveSolana(request);
         close();
@@ -181,11 +201,12 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
         result = await provider.request({ method: request.method, params: request.params } as any);
       }
       reply(request.id, result);
-      setAsking(null);
+      close();
     } catch (e) {
-      setProblem(e instanceof MaybeSent ? e.message : friendlyTxError(e));
+      if (mounted.current) setProblem(e instanceof MaybeSent ? e.message : friendlyTxError(e));
     } finally {
-      setBusy(false);
+      processing.current = false;
+      if (mounted.current) { setBusy(false); setPinReset((n) => n+1); }
     }
   };
 
@@ -236,7 +257,9 @@ export function MiniBrowser({ app }: { app: MiniApp }) {
               <PillButton label="Close" tone="secondary" onPress={() => decide(false)} />
             ) : (
               <>
-                <PillButton label="Approve" loading={busy} disabled={checking} onPress={() => decide(true)} />
+                <Text color="textSecondary">Enter your payment PIN to approve.</Text>
+                <PinPad resetKey={pinReset} disabled={checking || busy} onComplete={(pin) => void decide(true, pin)} />
+                {busy ? <ActivityIndicator color={colors.accentPink} /> : null}
                 <PillButton label="Reject" tone="secondary" disabled={busy} onPress={() => decide(false)} />
               </>
             )}

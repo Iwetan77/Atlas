@@ -9,7 +9,7 @@ type TypedStep = Extract<UnsignedTx, { typedData: unknown }>;
 const submissions = new Map<string, Promise<string>>();
 
 // Share an in-flight or completed report; tapping twice never signs or posts another order.
-export function submitPredictionStep(tx: TypedStep, token: Token, signer: Signer): Promise<string> {
+export function submitPredictionStep(tx: TypedStep, token: Token, signer: Signer, pinAuthorization: string): Promise<string> {
   const step = tx.prediction;
   if (!step || tx.chain !== 'polygon' || !step.intentId.startsWith('prediction-')) {
     return Promise.reject(new Error('Predictions plan unavailable.'));
@@ -22,7 +22,7 @@ export function submitPredictionStep(tx: TypedStep, token: Token, signer: Signer
     const signature = await signer.sign(tx);
     const envelope = await enginePost<DeviceEnvelope>(
       '/v1/predictions/intents/' + encodeURIComponent(step.intentId) + '/device',
-      await token(), { prepareId: step.prepareId, signature, geoAllowed: true }, SAFE_TO_REPLAY,
+      await token(), { prepareId: step.prepareId, signature, geoAllowed: true }, { ...SAFE_TO_REPLAY, pinAuthorization },
     );
     const results = await runDeviceRequests(envelope);
     // Credentials in an auth result are user-specific. They only go to the authenticated engine, never logs.

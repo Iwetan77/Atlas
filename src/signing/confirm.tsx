@@ -1,9 +1,11 @@
 import { submitPredictionStep } from '@/signing/prediction';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesktop } from '@/web/use-desktop';
 
+import { authorizePin } from '@/api/pin';
+import { PinPad } from '@/security/pin-pad';
 import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
@@ -17,6 +19,7 @@ import { colors, maxContentWidth, radii, spacing } from '@/theme';
 // What one user action actually cost, so the one-confirmation rule can be checked, not assumed.
 export type ActionReport = {
   intentId: string;
+  pinAuthorization: string;
   transactions: number;
   confirmations: number;
   walletPrompts: number;
@@ -38,18 +41,18 @@ type Pending = {
   reject: (e: Error) => void;
 };
 
-type Phase = { kind: 'review' } | { kind: 'signing'; step: number } | { kind: 'error'; message: string };
+type Phase = { kind: 'review' } | { kind: 'pin' } | { kind: 'signing'; step: number } | { kind: 'error'; message: string };
 
 const TITLES: Record<IntentKind, string> = {
-  buy: 'Confirm purchase',
-  sell: 'Confirm sale',
-  send: 'Confirm send',
-  off_ramp: 'Confirm withdrawal',
-  perp_open: 'Confirm position',
+  buy: 'Review purchase',
+  sell: 'Review sale',
+  send: 'Review send',
+  off_ramp: 'Review withdrawal',
+  perp_open: 'Review position',
   perp_close: 'Close position',
   earn_deposit: 'Put in savings',
   earn_withdraw: 'Take out of savings',
-  withdraw: 'Confirm withdrawal',
+  withdraw: 'Review withdrawal',
 };
 
 const ConfirmContext = createContext<((plan: ExecutionPlan) => Promise<ActionReport>) | null>(null);
@@ -68,24 +71,48 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<Pending | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'review' });
   const confirmations = useRef(0);
+  const busy = useRef(false);
+  const mounted = useRef(true);
+  const currentReview = useRef<Pending | null>(null);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; currentReview.current?.reject(new ActionCancelled()); currentReview.current = null; }; }, []);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinReset, setPinReset] = useState(0);
 
   const confirmAndExecute = useCallback((plan: ExecutionPlan) => {
     return new Promise<ActionReport>((resolve, reject) => {
+      if (currentReview.current) { reject(new Error("Finish the current payment first.")); return; }
       confirmations.current = 0;
       setPhase({ kind: 'review' });
-      setPending({ plan, resolve, reject });
+      setPinError(null); setPinReset((n) => n+1); busy.current = false;
+      const next = { plan, resolve, reject }; currentReview.current = next; setPending(next);
     });
   }, []);
 
-  const close = () => setPending(null);
+  const close = () => { busy.current = false; currentReview.current = null; setPending(null); };
 
   const cancel = () => {
+    if (busy.current) return;
     pending?.reject(new ActionCancelled());
     close();
   };
 
-  const confirm = async () => {
-    if (!pending || phase.kind === 'signing') return;
+  const confirm = async (pin: string) => {
+    if (!pending || busy.current || phase.kind !== 'review') return;
+    busy.current = true;
+    const mine = pending;
+    if (Date.now() >= mine.plan.expiresAtUnixMs) {
+      busy.current = false; setPinError('This quote expired. Go back and try again.'); setPinReset((n) => n+1); return;
+    }
+    setPhase({ kind: 'pin' }); setPinError(null);
+    let pinAuthorization: string;
+    try {
+      const grant = await authorizePin(getAccessToken, pin, { type: 'intent', intentId: mine.plan.intentId });
+      if (!mounted.current || currentReview.current !== mine) return;
+      if (Date.now() >= mine.plan.expiresAtUnixMs) throw new Error('This quote expired. Go back and try again.');
+      pinAuthorization = grant.authorization;
+    } catch (e) {
+      busy.current = false; setPhase({ kind: 'review' }); setPinError(friendlyTxError(e)); setPinReset((n) => n+1); return;
+    }
     const { plan } = pending;
     confirmations.current += 1;
     const stopWatching = watchWalletPrompts();
@@ -95,7 +122,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       for (const [index, tx] of plan.transactions.entries()) {
         setPhase({ kind: 'signing', step: index + 1 });
         if ('typedData' in tx) {
-          signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer) : await signer.sign(tx) });
+          signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer, pinAuthorization) : await signer.sign(tx) });
           continue;
         }
         if (tx.chain === 'privy') {
@@ -112,6 +139,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       }
       pending.resolve({
         intentId: plan.intentId,
+        pinAuthorization,
         transactions: plan.transactions.length,
         confirmations: confirmations.current,
         walletPrompts: stopWatching(),
@@ -146,6 +174,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       <Modal visible={!!pending} transparent animationType="slide" onRequestClose={cancel}>
         <Pressable style={[styles.backdrop, desktop && { justifyContent: 'center', padding: 32 }]} onPress={phase.kind === 'review' ? cancel : undefined}>
           <Pressable style={[styles.sheet, desktop && { borderRadius: 28, maxHeight: '85%', paddingTop: 24 }, { paddingBottom: insets.bottom + spacing.xl }]}>
+            <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
             <View style={styles.grabber} />
             {plan ? (
               <>
@@ -162,10 +191,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 {phase.kind === 'review' ? (
                   <View style={styles.actions}>
                     {expired ? <Text color="danger">This quote expired. Go back and try again.</Text> : null}
-                    <PillButton label="Confirm" disabled={expired || !signer.ready} onPress={confirm} />
+                    <Text color="textSecondary">Enter your four-digit payment PIN to approve.</Text>
+                    <PinPad onComplete={confirm} disabled={expired || !signer.ready} resetKey={pinReset} />
+                    {pinError ? <Text color="danger" accessibilityRole="alert">{pinError}</Text> : null}
                     <PillButton label="Cancel" tone="secondary" onPress={cancel} />
                   </View>
                 ) : null}
+
+                {phase.kind === 'pin' ? <View style={styles.progress}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Checking your PIN…</Text></View> : null}
 
                 {phase.kind === 'signing' ? (
                   <View style={styles.progress}>
@@ -186,6 +219,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 ) : null}
               </>
             ) : null}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -208,8 +242,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     padding: spacing.xl,
     paddingTop: spacing.md,
-    gap: spacing.xl,
+    maxHeight: '94%',
   },
+  sheetContent: { gap: spacing.lg },
   grabber: {
     alignSelf: 'center',
     width: 40,

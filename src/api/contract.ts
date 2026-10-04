@@ -362,7 +362,7 @@ export type Quote = {
 // POST /v1/quotes/{quoteId}/execute → ExecutionPlan (fresh venue order for the user's wallet).
 // After the one confirmation: POST /v1/intents/{intentId}/signed with what the app signed/sent,
 // then GET /v1/intents/{intentId} until it settles.
-export type IntentSubmission = { sent: SentTx[]; signed: SignedTx[] };
+export type IntentSubmission = { sent: SentTx[]; signed: SignedTx[]; pinAuthorization: string };
 
 export type IntentStatus = {
   intentId: string;
