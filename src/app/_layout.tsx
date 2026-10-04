@@ -17,6 +17,7 @@ import { PinProvider } from '@/security/pin-provider';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors } from '@/theme';
 import { WebShell } from '@/components/web/shell';
+import { useKeyboardScroll } from '@/web/use-keyboard-scroll';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,6 +44,7 @@ const browserMounted = () => true;
 const serverMounted = () => false;
 
 export default function RootLayout() {
+  useKeyboardScroll();
   // Privy's browser session/wallet tree mounts after hydration, never against a server snapshot.
   const hydrated = useSyncExternalStore(noHydrationEvents, browserMounted, serverMounted);
   const [fontsLoaded, fontError] = useFonts({
