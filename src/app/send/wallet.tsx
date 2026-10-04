@@ -36,7 +36,7 @@ type Phase =
 const short = (address: string) => (address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address);
 
 // Cash out of Atlas as a coin, to any wallet: pick the coin and its network, paste the address, and
-// NEAR Intents sends it there, for a 1% fee taken only once it arrives.
+// NEAR Intents sends the requested amount there. Fees are added to what leaves the balance.
 export default function WithdrawToWalletScreen() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
@@ -155,8 +155,8 @@ export default function WithdrawToWalletScreen() {
               </Text>
             </Pressable>
           </View>
-          <AmountInput label="How much?" value={amount} onChange={setAmount} currency={displayCurrency} />
-          <WithdrawReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} feePercent={list.feePercent} />
+          <AmountInput label="Amount they receive" value={amount} onChange={setAmount} currency={displayCurrency} />
+          <WithdrawReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
           {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
           <PillButton
             label="Withdraw"
@@ -180,23 +180,26 @@ function WithdrawReview({
   quoting,
   error,
   secondsLeft,
-  feePercent,
 }: {
   quote: WithdrawQuote | null;
   quoting: boolean;
   error: string | null;
   secondsLeft: number;
-  feePercent: string;
 }) {
   if (quote) {
     const minutes = quote.timeEstimateSec ? Math.max(1, Math.round(quote.timeEstimateSec / 60)) : null;
     return (
       <Card variant="outlined" style={styles.review}>
         <Row label="To" value={short(quote.address)} />
-        <Row label="They get about" value={`${formatTokenNumber(quote.receive.amount)} ${quote.receive.symbol}`} strong />
-        <Row label={`Fee (${feePercent}%)`} value={formatMoney(quote.fee)} />
-        {Number(quote.networkFee.amount) > 0 ? <Row label="Network fee" value={formatMoney(quote.networkFee)} /> : null}
+        <Row label="They receive" value={formatMoney(quote.receive.value)} strong />
+        <Row label="In coins" value={`${formatTokenNumber(quote.receive.amount)} ${quote.receive.symbol}`} strong />
+        <Row label="Fee" value={formatMoney(quote.fee)} />
+        <Row label="Total from cash" value={formatMoney(quote.send)} strong />
+        {Number(quote.networkFee.amount) > 0 ? <Row label="Network fee estimate" value={formatMoney(quote.networkFee)} /> : null}
         {minutes ? <Row label="Arrives" value={`In about ${minutes} min`} /> : null}
+        <Text variant="caption" color="textSecondary">
+          Fees are added on top. Any unused price buffer goes back to your balance.
+        </Text>
         <Text variant="caption" color="textSecondary">
           {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
         </Text>

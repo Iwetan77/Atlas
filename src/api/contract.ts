@@ -203,7 +203,7 @@ export type DepositAddress = {
 export type DepositState = 'waiting' | 'processing' | 'done' | 'incomplete' | 'refunded' | 'failed';
 
 // Withdrawing to a wallet outside Atlas: cash leaves the balance as the coin picked, sent by NEAR
-// Intents to the pasted address, less a 1% fee (taken only when it arrives).
+// Intents to the pasted address. The entered amount is the payout; fees are added on top.
 // GET /v1/withdrawals/networks → WithdrawNetworks (enabled is false until the fee account is set);
 // POST /v1/withdrawals/quote { networkId, address, amount: Money } → WithdrawQuote;
 // POST /v1/withdrawals/quote/{quoteId}/execute → ExecutionPlan (kind 'withdraw').
@@ -215,11 +215,12 @@ export type WithdrawQuote = {
   network: string;
   asset: string;
   address: string;
-  // What leaves the balance, Atlas's fee within it, and the network's fee on top (zero when none).
+  // Full cash debit, including the route fee and price buffer. The fee is added to the payout.
+  // networkFee estimates the separate wallet transfer cost, paid in its native coin.
   send: Money;
   fee: Money;
   networkFee: Money;
-  // About what the address receives, in the coin and in the display currency.
+  // Exact quoted coin payout; value is the amount entered in the display currency.
   receive: { amount: string; symbol: string; value: Money };
   timeEstimateSec: number | null;
   expiresAtUnixMs: number;
