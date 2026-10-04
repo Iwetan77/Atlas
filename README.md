@@ -2,11 +2,11 @@
 
 **Your money, one balance, anything on-chain.** Atlas is a money app for people whose salary loses value
 while it sits in the bank, Nigerians first. Add naira-worth of dollars once, then buy memes, tokenized
-stocks and crypto, open perps, earn yield and pay friends, all from one balance shown in your own currency,
+stocks and crypto, open perps, explore predictions, earn yield and pay friends, all from one balance shown in your own currency,
 with **one tap to confirm** and no chain names, bridges or gas to think about.
 
 - **Engine (API):** [Iwetan77/Atlas-Engine](https://github.com/Iwetan77/Atlas-Engine), live at
-  https://atlas-engine-djed.onrender.com
+  https://justatlas.xyz
 - **This repo:** the client. React Native + Expo (managed workflow), TypeScript, one codebase for iOS,
   Android and web.
 
@@ -22,8 +22,10 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
 2. **Add money** from the Add money sheet:
    - **Wallet or exchange:** USDC on Solana or Base goes straight in; USDT on Tron or BNB Chain, USDC on Sui,
      SOL and 19 more networks and coins get a one-off address (with a QR and live status) and arrive as dollars.
-     Each option shows its coin's logo with the chain as a badge.
-   - **Bank transfer** and **virtual account:** coming.
+     Each option shows its coin's logo with the chain as a badge. Type what you want to land in your balance;
+     the quote adds fees on top and shows the full amount to send.
+   - **Bank transfer:** a one-time Nigerian bank account for the exact transfer. Type the amount you want
+     in your balance; Fee and delivery costs go on top, with the total shown before you transfer.
 3. **Home** shows the one balance (hide it with the eye: amounts turn into `₦••••`), what's earning, and a
    card per coin held with its gain or loss, shareable as an image.
 4. **Trade:** Trending (the day's biggest risers, per kind), Crypto, Stocks and Memes, plus search by name or
@@ -35,19 +37,23 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    inside that same confirm.
 6. **Perps** on Hyperliquid: crypto, stocks, commodities, indices and currencies, long or short with leverage,
    margin from the balance, liquidation price shown before opening, one tap to close, and the money comes back
-   to the balance.
+   to the balance. Pick take-profit and stop-loss when opening, or edit them on a position later.
 7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
    take out any time.
 8. **Withdraw** from Home's Withdraw sheet, the mirror of Add money, each screen showing what's spendable on
    a pink card:
    - **Atlas Friends:** to an @handle, straight to the friend's wallet on the chain the cash is on.
    - **Atlas Link:** a link anyone can claim on the web, no app needed.
-   - **Send to bank:** naira to any Nigerian bank account.
+   - **Send to bank:** naira to any Nigerian bank account. Typing an account number suggests matching
+     recent recipients with their bank logo, name and account number; recents refresh on returning.
    - **Withdraw to wallet:** paste any address and pick the coin: USDC on Solana or Base, USDT on Tron or BNB
-     Chain, SOL, BTC and every other coin people can deposit. NEAR Intents sends it there, for a 1% fee taken
-     only once it arrives. Shows Soon until the engine's fee account is set.
+     Chain, SOL, BTC and other supported deposit coins. The amount entered is what the recipient gets;
+     fees go on top, and the review shows the full cash debit and any estimated wallet network fee.
+     Availability and minimum amounts come from the live route.
 9. **The bottom bar:** Home, Trade, Perps, Atlas Predictions (opens the mini app straight away; it's under More's
-   mini apps too) and More. The website's sidebar keeps a Send money page with the same four ways out.
+   mini apps too) and More. Predictions shows live Polymarket events, fee-inclusive minimum spend, outcome
+   shares, resolved winnings and cash return. Returning cash lands the amount entered, with fees added on top.
+   The desktop sidebar and Home dashboard also link straight to Predictions and Send money.
 10. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
    **Add money** button right there.
 
@@ -70,11 +76,14 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
 - **The app never holds keys or secrets.** Wallets are Privy's embedded wallets, owned by the user; the Privy
   app secret lives only in the engine.
 - **One confirm, then only what was confirmed.** The confirm sheet shows the plan in plain words; the app
-  signs exactly the engine's plan (plain transactions only, never typed data) and nothing else.
+  signs exactly the engine's plan: transactions, pinned EVM typed data, or one-use Privy device approvals.
+  The bridge passes device approvals to Privy; it never signs a user's wallet using their login token.
 - **No wallet pop-ups.** Privy's own UIs are off, so the confirm sheet is the only prompt the user answers.
 - **Base transactions are relayed, not re-built:** the app hands the planned transaction to the engine,
   which sends it only if it matches the plan byte for byte.
 - **Gas is the user's own**, topped up from their USDC when needed; the app never asks Privy to sponsor it.
+  Deposits do not automatically collect a Solana gas reserve each time. Swaps first check whether the
+  existing SOL can pay their fees and account rent. The gas tank's displayed value uses live SOL and FX prices.
 - **Unverified coins say so**, with the address, before any money moves.
 
 ---
@@ -86,12 +95,12 @@ flowchart LR
   U[User] --> APP[Atlas app<br/>Expo: iOS · Android · web]
   APP -->|sign-in, wallets, signing| PRIVY[Privy]
   APP -->|quote → plan → signed → status| ENGINE[Atlas Engine<br/>Render]
-  ENGINE --> VENUES[Jupiter · 1Click · Relay · Hyperliquid · CoW · Morpho · Aave …]
+  ENGINE --> VENUES[Jupiter · 1Click · Cetus · Ref · Relay · Hyperliquid · Polymarket · CoW · Morpho · Aave …]
 ```
 
 ```
-src/app            Screens (Expo Router): tabs (Home, Trade, Perps, Send, More), trade/[assetId],
-                   perps/[marketId], earn, deposit, send/*, profile, sign-in, claim/[linkId]
+src/app            Screens (Expo Router): tabs (Home, Trade, Perps, Predictions, More), trade/[assetId],
+                   perps/[marketId], predictions/*, earn, deposit, send/*, profile, sign-in, claim/[linkId]
 src/api            Engine client and the typed contract (contract.ts); intents.ts runs every action
 src/signing        Confirm sheet, signers (native and web), chain helpers
 src/auth           Privy provider (native and web), session state
@@ -103,7 +112,10 @@ src/format         Money, currency list and flags
 **Every action in one breath:** `getPlan()` (quote → execute) → the confirm sheet → sign or send each
 transaction → `POST /v1/intents/{id}/signed` → poll `GET /v1/intents/{id}`; when the engine says the second
 step is ready (cash or gas landed), `GET /next`, sign, report, and keep polling until filled or failed
-(`src/api/intents.ts`).
+(`src/api/intents.ts`). If the app closes before a later signature, Home's pending-purchase card
+lets the user finish from their own wallet without paying for the purchase again. Activity shows the
+last six actions on Home, with the full history, statuses and transaction IDs under See more.
+Money emails go to the sign-in address; Profile can turn them off.
 
 ---
 
@@ -148,18 +160,18 @@ Every profile in `eas.json` points at the live engine (`EXPO_PUBLIC_ENGINE_URL`)
 | Confirm sheet → sign → settle, two-step plans (cash or gas first), stalls and retries | ✅ against a stand-in engine that follows `contract.ts` |
 | Deposit list (featured + More networks and coins), QR and status, Back to the Add money list | ✅ web |
 | Earn venues and markets (incl. Morpho's vaults), hidden balance, currency picker | ✅ web |
-| Funded mainnet flows: buy, sell, send, earn, perps, deposits | ⏳ needs a funded wallet |
+| Complete funded coverage across every venue and route | Not established by unit tests or unsigned dry runs; verify each funded path separately |
 
 
 ## Desktop website and phone installation
 
-Laptop/desktop browsers (at least 1024px wide, excluding iPhone/iPad/Android user agents) use an Atlas pink/slate website: public welcome and Google/email sign-in, sidebar navigation, a two-column Home dashboard, asset cards, market/order panels, Send/More grids and centred approval/funding dialogs. These reuse the same real account, balance, quotes, history and signing flows. Native and narrow mobile web retain the phone layout; mobile web adds a small installation link. Private browser session/wallet components mount after hydration so a server snapshot cannot reset sign-in.
+Laptop/desktop browsers (at least 1024px wide, excluding iPhone/iPad/Android user agents) use an Atlas pink/slate website: public welcome and Google/email sign-in, sidebar navigation, a two-column Home dashboard with a Predictions shortcut, asset cards, market/order panels, Send/More grids and centred approval/funding dialogs. These reuse the same real account, balance, quotes, history and signing flows. Native and narrow mobile web retain the phone layout; mobile web adds a small installation link. Private browser session/wallet components mount after hydration so a server snapshot cannot reset sign-in.
 
 `/install` is public. iPhone shows original Atlas illustrations and Safari Share -> Add to Home Screen instructions. It installs the website as a web app, not an iOS native binary. The public web manifest and existing Atlas icon provide the standalone name/icon. No service worker caches balances, login tokens or signed requests.
 
-Android says **Coming soon** until `EXPO_PUBLIC_ANDROID_APK_URL` is a public HTTPS URL to the published APK. This value is intentionally public. Add it to the web build environment and rebuild when the APK exists; do not put secrets in `EXPO_PUBLIC_` variables. Desktop's Get Atlas link opens the same platform guide. The install strip hides in standalone mode.
+Android downloads the latest signed APK from GitHub Releases. `EXPO_PUBLIC_ANDROID_APK_URL` can override that public link; it is not a secret. Keep the same EAS signing credentials so an update installs over the previous app. Desktop's Get Atlas link opens the same platform guide. The install strip hides in standalone mode.
 
-Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://atlas-engine-djed.onrender.com`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.
+Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://justatlas.xyz`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.
 
 ### Current Android download
 The website's Android button downloads [the newest Atlas APK](https://github.com/Iwetan77/Atlas/releases/latest/download/atlas.apk): GitHub sends that link to

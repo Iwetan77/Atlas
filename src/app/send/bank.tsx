@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
@@ -56,10 +56,17 @@ export default function SendToBankScreen() {
     listBanks(getAccessToken)
       .then(setBanks)
       .catch((e) => setBanksError(errorMessage(e)));
-    listRecipients(getAccessToken)
-      .then(setRecipients)
-      .catch(() => setRecipients([]));
   }, [getAccessToken]);
+
+  // Refresh on return; matching the loaded recents stays instant while typing.
+  useFocusEffect(useCallback(() => {
+    let live = true;
+    listRecipients(getAccessToken).then(
+      (next) => { if (live) setRecipients(next); },
+      () => { if (live) setRecipients((previous) => previous ?? []); },
+    );
+    return () => { live = false; };
+  }, [getAccessToken]));
 
   // Ten digits: find which banks this account is at (each confirmed with the holder's name).
   const complete = accountNumber.length === NUBAN_LENGTH;
@@ -217,6 +224,12 @@ export default function SendToBankScreen() {
   }
 
   const shown = (recipients ?? []).filter((r) => (tab === 'favorites' ? r.favorite : r.lastUsedAtUnixMs > 0));
+  const matches = accountNumber
+    ? (recipients ?? [])
+      .filter((r) => (r.lastUsedAtUnixMs > 0 || r.favorite) && r.accountNumber.startsWith(accountNumber))
+      .sort((a, b) => b.lastUsedAtUnixMs - a.lastUsedAtUnixMs)
+      .slice(0, 5)
+    : [];
 
   return (
     <Screen>
@@ -235,6 +248,31 @@ export default function SendToBankScreen() {
         maxLength={NUBAN_LENGTH}
         accessibilityLabel="Account number"
       />
+
+      {matches.length > 0 ? (
+        <View style={styles.suggestions}>
+          <View style={styles.suggestionHeading}>
+            <Icon name="time-outline" size={16} color="accentPinkTint" />
+            <Text variant="label" color="accentPinkTint">Sent here before</Text>
+            <Text variant="caption" color="textSecondary">Tap to choose</Text>
+          </View>
+          <Card style={styles.list}>
+            {matches.map((r, i) => {
+              const bank = { code: r.bankCode, name: r.bankName, logo: r.logo };
+              return (
+                <Row
+                  key={`${r.bankCode}:${r.accountNumber}`}
+                  bank={bank}
+                  title={r.accountName}
+                  subtitle={`${r.bankName} · ${r.accountNumber}`}
+                  divider={i > 0}
+                  onPress={() => choose({ bank, accountNumber: r.accountNumber, accountName: r.accountName })}
+                />
+              );
+            })}
+          </Card>
+        </View>
+      ) : null}
 
       {complete ? (
         <>
@@ -271,7 +309,7 @@ export default function SendToBankScreen() {
           {chosen && chosen.result === null ? <Text color="textSecondary">Checking account…</Text> : null}
           {chosen?.result ? <Text color="textSecondary">{chosen.result}</Text> : null}
         </>
-      ) : (
+      ) : !accountNumber ? (
         <>
           <View style={styles.tabs}>
             {(['recents', 'favorites'] as const).map((t) => (
@@ -313,7 +351,13 @@ export default function SendToBankScreen() {
             </Card>
           )}
         </>
-      )}
+      ) : recipients === null ? (
+        <ActivityIndicator color={colors.accentPink} />
+      ) : matches.length === 0 ? (
+        <Text variant="caption" color="textSecondary">
+          No recent account starts with {accountNumber}. Keep typing the 10-digit account number.
+        </Text>
+      ) : null}
     </Screen>
   );
 }
@@ -382,6 +426,15 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  suggestions: {
+    gap: spacing.sm,
+  },
+  suggestionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   tabs: {
     flexDirection: 'row',

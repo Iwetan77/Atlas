@@ -12,6 +12,7 @@ const NAV: { href: Href; label: string; icon: IconName; match: string[] }[] = [
   { href: '/', label: 'Overview', icon: 'home-outline', match: ['/'] },
   { href: '/trade', label: 'Explore & trade', icon: 'trending-up-outline', match: ['/trade'] },
   { href: '/perps', label: 'Perpetuals', icon: 'pulse-outline', match: ['/perps'] },
+  { href: '/predictions', label: 'Predictions', icon: 'stats-chart-outline', match: ['/predictions', '/predictions-tab'] },
   { href: '/send', label: 'Send money', icon: 'paper-plane-outline', match: ['/send'] },
   { href: '/earn', label: 'Earn', icon: 'leaf-outline', match: ['/earn'] },
   { href: '/transactions', label: 'Activity', icon: 'time-outline', match: ['/transactions', '/transaction'] },

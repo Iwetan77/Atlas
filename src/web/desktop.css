@@ -83,7 +83,8 @@ html, body, #root { height:100%; }
 .atlas-orbit-three { width:260px; height:260px; opacity:.12; }
 .atlas-orbit-core { display:block; position:relative; width:92px; height:92px; border-radius:24px; object-fit:cover; box-shadow:0 0 75px color-mix(in srgb,var(--atlas-pink) 20%,transparent); }
 .atlas-orbit-token { position:absolute; display:flex; gap:9px; align-items:center; background:var(--atlas-nav); padding:11px 17px; border:1px solid var(--atlas-border); border-radius:999px; box-shadow:0 8px 24px rgba(0,0,0,.1); font-size:12px; }
-.token-sol { left:25px; top:35px; transform:rotate(-7deg); }
+.token-predictions { left:50%; top:-8px; transform:translateX(-50%) rotate(-4deg); }
+.token-sol { left:25px; top:43px; transform:rotate(-7deg); }
 .token-stocks { right:5px; top:73px; transform:rotate(7deg); }
 .token-naira { left:40px; bottom:31px; transform:rotate(5deg); font-size:21px; color:var(--atlas-pink-soft); }
 .token-naira span { font-size:11px; color:var(--atlas-text); }
