@@ -88,6 +88,7 @@ function AssetCard({
           pathname: '/trade/[assetId]',
           params: {
             assetId: h.assetId,
+            kind: h.kind,
             symbol: h.symbol,
             name: h.name,
             price: String(unit),

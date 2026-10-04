@@ -4,6 +4,7 @@ import { engineGet, enginePost, EngineTimeout, SAFE_TO_REPLAY } from '@/api/clie
 import type {
   AssetCategory,
   AssetChart,
+  AssetStats,
   AssetsResponse,
   ChartRange,
   ExecutionPlan,
@@ -164,6 +165,33 @@ export function useAssetChart(assetId: string, range: ChartRange) {
 
   const current = chart && chart.range === range && chart.currency === displayCurrency ? chart : null;
   return { chart: current ?? chart, loading: !current && error?.key !== key, error: error?.key === key ? error.message : null };
+}
+
+// Optional display data is independent of quotes and is refreshed while this asset is open.
+export function useAssetStats(assetId: string) {
+  const { getAccessToken } = useAtlasAuth();
+  const { displayCurrency } = useSettings();
+  const key = JSON.stringify([assetId, displayCurrency]);
+  const [answer, setAnswer] = useState<{ key: string; stats: AssetStats | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      try {
+        const token = await getAccessToken();
+        if (!live) return;
+        const stats = await engineGet<AssetStats>(
+          '/v1/assets/' + encodeURIComponent(assetId) + '/stats?currency=' + displayCurrency, token,
+          { timeoutMs: 10_000 },
+        );
+        if (live && stats.assetId === assetId &&
+          (!stats.marketCap || stats.marketCap.currency === displayCurrency)) setAnswer({ key, stats });
+      } catch { if (live) setAnswer({ key, stats: null }); }
+    };
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => { live = false; clearInterval(timer); };
+  }, [assetId, displayCurrency, getAccessToken, key]);
+  return { stats: answer?.key === key ? answer.stats : null, loading: answer?.key !== key };
 }
 
 export async function requestQuote(token: Token, req: QuoteRequest): Promise<Quote> {

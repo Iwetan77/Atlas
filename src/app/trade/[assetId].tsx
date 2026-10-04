@@ -14,6 +14,7 @@ import { AmountInput } from '@/components/amount-input';
 import { MemeCard } from '@/components/home/meme-card';
 import { MoneyError } from '@/components/money-error';
 import { ResultView } from '@/components/result-view';
+import { AssetMarketStats } from '@/components/trade/asset-market-stats';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { PriceChart } from '@/components/trade/price-chart';
 import { BackHeader } from '@/components/ui/back-header';
@@ -47,6 +48,7 @@ export default function AssetTradeScreen() {
     change: string;
     verified: string;
     tradeable: string;
+    kind: string;
   }>();
   // A Base coin's id is "base:<address>": the warning shows the address itself.
   const address = params.assetId.replace(/^base:/, '');
@@ -194,6 +196,7 @@ export default function AssetTradeScreen() {
       ) : null}
 
       <PriceChart assetId={params.assetId} />
+      {params.kind !== 'stock' ? <AssetMarketStats assetId={params.assetId} /> : null}
       </>} ticket={<>
 
       {params.tradeable === 'no' ? (

@@ -127,6 +127,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
           pathname: '/trade/[assetId]',
           params: {
             assetId: asset.assetId,
+            kind: asset.kind,
             symbol: asset.symbol,
             name: asset.name,
             price: asset.price.amount,

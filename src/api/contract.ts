@@ -311,6 +311,9 @@ export type AssetChart = {
   points: [number, number][];
 };
 
+// GET /v1/assets/{assetId}/stats?currency=NGN. Null means circulating market cap is unavailable.
+export type AssetStats = { assetId: string; marketCap: Money | null; asOfUnixMs: number };
+
 // GET /v1/assets?currency=NGN&category=popular&q=tesla → { assets: MarketAsset[] }
 export type MarketAsset = {
   assetId: string;
