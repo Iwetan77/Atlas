@@ -1,40 +1,81 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 import { engineGet } from '@/api/client';
 import type { SpotPosition, SpotPositions } from '@/api/contract';
-import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { errorMessage, useAtlasAuth, withTimeout } from '@/auth/context';
 import { useSettings } from '@/settings/context';
 
 export type SpotPositionsState = {
   data: SpotPosition[] | null;
   error: string | null;
+  loading: boolean;
   reload: () => Promise<void>;
 };
 
-// Entry, what went in and live gain or loss for each spot holding bought through Atlas.
+type Snapshot = Omit<SpotPositionsState, 'reload'>;
+const EMPTY: Snapshot = { data: null, error: null, loading: false };
+const listeners = new Set<() => void>();
+const snapshots = new Map<string, Snapshot>();
+const requests = new Map<string, Promise<void>>();
+let owner: string | null = null;
+let generation = 0;
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+function notify() { listeners.forEach((listener) => listener()); }
+function setOwner(next: string | null) {
+  if (owner === next) return;
+  owner = next;
+  generation++;
+  snapshots.clear();
+  requests.clear();
+  notify();
+}
+
+// Home, Trade and theme remounts share the last successful P&L, scoped to the user and currency.
+// An unavailable refresh keeps it; a successful empty answer removes sold positions.
 export function useSpotPositions(): SpotPositionsState {
-  const { authenticated, getAccessToken } = useAtlasAuth();
+  const { authenticated, userId, getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
-  const [data, setData] = useState<SpotPosition[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const state = useSyncExternalStore(
+    subscribe,
+    () => authenticated && userId === owner ? snapshots.get(displayCurrency) ?? EMPTY : EMPTY,
+    () => EMPTY,
+  );
 
   const reload = useCallback(() => {
-    if (!authenticated) return Promise.resolve();
-    return getAccessToken()
-      .then((token) => engineGet<SpotPositions>(`/v1/positions/spot?currency=${displayCurrency}`, token))
+    setOwner(authenticated ? userId : null);
+    if (!authenticated || !userId) return Promise.resolve();
+    const pending = requests.get(displayCurrency);
+    if (pending) return pending;
+    const mine = generation;
+    snapshots.set(displayCurrency, { ...(snapshots.get(displayCurrency) ?? EMPTY), loading: true });
+    notify();
+    const request = withTimeout(
+      getAccessToken().then((token) => engineGet<SpotPositions>(
+        `/v1/positions/spot?currency=${displayCurrency}`, token, { timeoutMs: 25_000, retries: 0 },
+      )),
+      30_000, 'Your profit and loss',
+    )
       .then(
         (next) => {
-          setData(next.positions);
-          setError(null);
+          if (mine !== generation) return;
+          snapshots.set(displayCurrency, { data: next.positions, error: null, loading: false });
+          notify();
         },
-        // Keep the last good cards; the holdings list still shows everything without them.
-        (e) => setError(errorMessage(e)),
-      );
-  }, [authenticated, getAccessToken, displayCurrency]);
+        (e) => {
+          if (mine !== generation) return;
+          snapshots.set(displayCurrency, { ...(snapshots.get(displayCurrency) ?? EMPTY), error: errorMessage(e), loading: false });
+          notify();
+        },
+      )
+      .finally(() => { if (mine === generation) requests.delete(displayCurrency); });
+    requests.set(displayCurrency, request);
+    return request;
+  }, [authenticated, userId, getAccessToken, displayCurrency]);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  return { data, error, reload };
+  useEffect(() => { void reload(); }, [reload]);
+  return { ...state, reload };
 }

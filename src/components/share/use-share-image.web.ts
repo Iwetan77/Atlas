@@ -21,28 +21,45 @@ export async function captureCard(node: HTMLElement, aspect: number): Promise<Bl
     const doc = frame.contentDocument;
     if (!doc) throw new Error('Capture could not start');
     doc.open(); doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0"></body></html>'); doc.close();
-    const clone = node.cloneNode(true) as HTMLElement;
-    const from = [node, ...node.querySelectorAll('*')];
-    const to = [clone, ...clone.querySelectorAll('*')];
-    from.forEach((source, i) => {
-      const target = to[i] as HTMLElement | SVGElement;
-      const computed = getComputedStyle(source);
-      for (const key of Array.from(computed)) target.style.setProperty(key, computed.getPropertyValue(key));
-      if (source instanceof HTMLImageElement && target instanceof HTMLImageElement) {
-        target.loading = 'eager'; target.crossOrigin = 'anonymous'; target.src = source.currentSrc || source.src;
-        target.removeAttribute('srcset');
-      }
-    });
-    Object.assign(clone.style, { position: 'relative', left: '0', top: '0', margin: '0',
-      width: rect.width + 'px', height: rect.height + 'px', transform: 'none' });
-    const fonts = doc.createElement('style');
-    for (const sheet of Array.from(document.styleSheets)) {
-      try {
-        for (const rule of Array.from(sheet.cssRules)) if (rule.type === CSSRule.FONT_FACE_RULE) fonts.textContent += rule.cssText;
-      } catch { /* External CSS is not needed; the card's computed styles are already copied. */ }
-    }
-    doc.head.appendChild(fonts); doc.body.appendChild(clone);
     const render = async () => {
+      // Embed decoded logos so the canvas renderer cannot silently skip a remote image.
+      await Promise.all(Array.from(node.querySelectorAll('img')).map((img) => img.decode()));
+      const clone = node.cloneNode(true) as HTMLElement;
+      const from = [node, ...node.querySelectorAll('*')];
+      const to = [clone, ...clone.querySelectorAll('*')];
+      await Promise.all(from.map(async (source, i) => {
+        const target = to[i] as HTMLElement | SVGElement;
+        const computed = getComputedStyle(source);
+        for (const key of Array.from(computed)) target.style.setProperty(key, computed.getPropertyValue(key));
+        if (source instanceof HTMLImageElement && target instanceof HTMLImageElement) {
+          const image = new Image();
+          image.crossOrigin = 'anonymous';
+          image.src = source.currentSrc || source.src;
+          await image.decode();
+          const raster = doc.createElement('canvas');
+          const scale = Math.min(1, 2048 / Math.max(image.naturalWidth, image.naturalHeight));
+          raster.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          raster.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const context = raster.getContext('2d');
+          if (!context) throw new Error('Logo could not be drawn');
+          context.drawImage(image, 0, 0, raster.width, raster.height);
+          target.loading = 'eager';
+          target.removeAttribute('crossorigin');
+          target.removeAttribute('srcset');
+          target.src = raster.toDataURL('image/png');
+          await target.decode();
+        }
+      }));
+      Object.assign(clone.style, { position: 'relative', left: '0', top: '0', margin: '0',
+        width: rect.width + 'px', height: rect.height + 'px', transform: 'none' });
+      const fonts = doc.createElement('style');
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          for (const rule of Array.from(sheet.cssRules)) if (rule.type === CSSRule.FONT_FACE_RULE) fonts.textContent += rule.cssText;
+        } catch { /* External CSS is not needed; the card's computed styles are already copied. */ }
+      }
+      doc.head.appendChild(fonts); doc.body.appendChild(clone);
+      await doc.fonts.ready;
       const canvas = await html2canvas(clone, { backgroundColor: null, useCORS: true, allowTaint: false,
         logging: false, imageTimeout: 4_000, scale: 1080 / rect.width,
         width: rect.width, height: rect.width / aspect, windowWidth: Math.ceil(rect.width), windowHeight: Math.ceil(rect.height) });
