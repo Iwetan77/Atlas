@@ -34,12 +34,13 @@ export function writeDeviceValue(key: string, value: string | null) {
 
 export const readDeviceValue = read;
 
-// Read once per run: the state the app started in.
+// Read once per run: the state the app started in, until someone signs out.
 const startedSignedIn = read(SIGNED_IN) === '1';
+let signedOut = false;
 let signingOut = false;
 
 export function startedWithSession(): boolean {
-  return startedSignedIn;
+  return startedSignedIn && !signedOut;
 }
 
 export function rememberSignedIn(on: boolean) {
@@ -49,6 +50,7 @@ export function rememberSignedIn(on: boolean) {
 // Sign out was tapped: show the welcome screen at once instead of waiting out a session blip.
 export function markSigningOut() {
   signingOut = true;
+  signedOut = true;
   rememberSignedIn(false);
 }
 

@@ -135,6 +135,7 @@ function RootStack() {
     if (!ready || initError) return;
     if (authenticated) {
       rememberSignedIn(true);
+      takeSigningOut();
       return;
     }
     if (!signedIn) return;
