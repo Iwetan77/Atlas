@@ -72,7 +72,10 @@ function AssetCard({
   position: SpotPosition | undefined;
   stealth: boolean;
 }) {
-  const pct = position?.pnlPct == null ? null : Number(position.pnlPct);
+  // The balance carries each coin's gain or loss itself; the positions list is the fallback for an
+  // engine that doesn't send it yet.
+  const raw = h.pnlPct ?? position?.pnlPct;
+  const pct = raw == null || !Number.isFinite(Number(raw)) ? null : Number(raw);
   // The asset screen shows a unit price; for a holding that's its value per token.
   const unit = Number(h.amount) > 0 ? Number(h.value.amount) / Number(h.amount) : 0;
   return (

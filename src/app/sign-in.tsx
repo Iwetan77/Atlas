@@ -17,6 +17,7 @@ const CHIPS: { icon: IconName; label: string; style: object }[] = [
   { icon: 'trending-up', label: 'TSLA', style: { top: 70, right: 4 } },
   { icon: 'flame-outline', label: 'Memes', style: { top: 138, left: 28 } },
   { icon: 'planet-outline', label: 'SOL', style: { top: 180, right: 36 } },
+  { icon: 'stats-chart-outline', label: 'Predictions', style: { bottom: 4, left: 12 } },
 ];
 
 const ORBITS = [120, 190, 260];
@@ -51,7 +52,7 @@ export default function SignInScreen() {
 
       <View style={styles.copy}>
         <Text variant="display">One balance.{'\n'}Spend it on anything.</Text>
-        <Text color="textSecondary">Fund it in naira. Buy stocks, memes and crypto. Cash out to your bank.</Text>
+        <Text color="textSecondary">Fund it in naira. Buy stocks, memes and crypto, or call what happens next with Predictions. Cash out to your bank.</Text>
       </View>
 
       <View style={styles.actions}>

@@ -147,6 +147,8 @@ export type Holding = {
   location?: 'wallet' | 'gateway' | 'gateway_pending' | 'perps' | 'earn' | 'predictions';
   // Logo for listed assets (engine catalog); absent for cash.
   iconUrl?: string | null;
+  // Gain or loss on what Atlas bought of this coin, in percent ("12.34"), from the same read as `value`.
+  pnlPct?: string | null;
 };
 
 export type BalanceResponse = {
