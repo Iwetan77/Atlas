@@ -11,6 +11,7 @@ import {
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
+import { markSigningOut } from '@/auth/device-session';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy } from '@/config';
@@ -92,7 +93,10 @@ function AuthBridge({ children }: { children: ReactNode }) {
       },
       googleLoading: oauth.state.status === 'loading',
       googleError: oauth.state.status === 'error' ? errorMessage(oauth.state.error) : null,
-      logout,
+      logout: async () => {
+        markSigningOut();
+        await logout();
+      },
       getAccessToken: () => getAccessToken(),
     };
   }, [user, isReady, privyError, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);

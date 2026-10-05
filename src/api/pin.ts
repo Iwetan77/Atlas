@@ -20,3 +20,7 @@ export const authorizePin = async (token: Token, pin: string, action: PinAction)
 
 export const consumePin = async (token: Token, authorization: string, action: PinAction) =>
   enginePost('/v1/me/pin/consume', await token(), { authorization, action }, { timeoutMs: 15_000 });
+
+// The lock screen: checks the PIN (same tries and lockouts) without approving any payment.
+export const unlockWithPin = async (token: Token, pin: string) =>
+  enginePost<{ unlocked: boolean }>('/v1/me/pin/verify', await token(), { pin }, { timeoutMs: 20_000 });

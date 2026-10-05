@@ -1,7 +1,7 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, router, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { Appearance, Platform } from 'react-native';
 
 import { useAtlasAuth } from '@/auth/context';
+import { markWelcomeShown, rememberSignedIn, startedWithSession, takeSigningOut } from '@/auth/device-session';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { StartupError, StartupStatus } from '@/components/startup-status';
 import { AddMoneyProvider } from '@/funding/add-money';
@@ -108,18 +109,52 @@ export default function RootLayout() {
   );
 }
 
+// How long a device that was signed in waits for its saved session before showing the welcome
+// screen, and how long a signed-in session may blip (Privy re-checking it, a network error) before
+// it counts as signed out.
+const RESTORE_MS = 5_000;
+const BLIP_MS = 3_000;
+
 function RootStack() {
   const { ready, authenticated, initError } = useAtlasAuth();
+  const pathname = usePathname();
   // Once started, the navigator stays mounted and sign-in only changes while Privy is settled. A
-  // passing blip (Privy re-checking the session, a network error) that tore it down or flipped the
-  // guard would land the user back on Home mid-task.
+  // passing blip that tore it down or flipped the guard would land the user back on the welcome
+  // screen mid-task, so only a lasting sign-out (or tapping Sign out) does.
   const [started, setStarted] = useState(false);
   const [signedIn, setSignedIn] = useState(authenticated);
+  const [waited, setWaited] = useState(!startedWithSession());
   if (ready && !initError && !started) setStarted(true);
-  if (ready && !initError && authenticated !== signedIn) setSignedIn(authenticated);
+  if (ready && !initError && authenticated && !signedIn) setSignedIn(true);
+  useEffect(() => {
+    if (waited) return;
+    const id = setTimeout(() => setWaited(true), RESTORE_MS);
+    return () => clearTimeout(id);
+  }, [waited]);
+  useEffect(() => {
+    if (!ready || initError) return;
+    if (authenticated) {
+      rememberSignedIn(true);
+      return;
+    }
+    if (!signedIn) return;
+    const id = setTimeout(() => {
+      rememberSignedIn(false);
+      setSignedIn(false);
+    }, takeSigningOut() ? 0 : BLIP_MS);
+    return () => clearTimeout(id);
+  }, [ready, initError, authenticated, signedIn]);
 
-  // Public web pages and install instructions stay available while sign-in starts.
-  if (!started && Platform.OS !== 'web') return <StartupStatus error={initError} />;
+  // Someone who was signed in sees the Atlas logo until their session is back (then the lock),
+  // never the welcome screen. A first visit to the website shows the welcome page at once, and the
+  // public pages (install instructions, Atlas Links) never wait on sign-in.
+  const publicPage = Platform.OS === 'web' && /^\/(install|claim)(\/|$)/.test(pathname);
+  const restoring = started ? !authenticated && !signedIn && !waited : Platform.OS !== 'web' || startedWithSession();
+  const showStack = publicPage || !restoring;
+  useEffect(() => {
+    if (showStack && !signedIn && !publicPage) markWelcomeShown();
+  }, [showStack, signedIn, publicPage]);
+  if (!showStack) return <StartupStatus error={initError} />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bgBase } }}>

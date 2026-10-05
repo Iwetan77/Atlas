@@ -6,8 +6,10 @@ import { engineGet } from '@/api/client';
 import type { Me } from '@/api/contract';
 import { authorizePin, pinStatus, type PinAction, type PinAuthorization } from '@/api/pin';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { readDeviceValue, writeDeviceValue } from '@/auth/device-session';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
+import { AppLock } from '@/security/app-lock';
 import { PinPad } from '@/security/pin-pad';
 import { PinSetup } from '@/security/pin-setup';
 import { colors, radii, spacing, themedStyles } from '@/theme';
@@ -21,6 +23,10 @@ export function usePaymentPin() {
   if (!value) throw new Error('Payment PIN provider is missing');
   return value;
 }
+const readyKey = (userId: string) => `atlas.pinReady.${userId.replace(/[^A-Za-z0-9._-]/g, '_')}`;
+function pinReadyHere(userId: string) { return readDeviceValue(readyKey(userId)) === '1'; }
+function rememberPinReady(userId: string, ready: boolean) { writeDeviceValue(readyKey(userId), ready ? '1' : null); }
+
 export function PinProvider({ children }: { children: ReactNode }) {
   const { userId } = useAtlasAuth();
   return <PinSession key={userId ?? 'signed-out'}>{children}</PinSession>;
@@ -34,6 +40,8 @@ function PinSession({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
   const [reset, setReset] = useState(0);
+  // The PIN was just chosen: no need to ask for it again to open the app.
+  const [justSetUp, setJustSetUp] = useState(false);
   const mounted = useRef(true);
   const active = useRef<Waiting | null>(null);
   const generation = useRef(0);
@@ -73,7 +81,12 @@ function PinSession({ children }: { children: ReactNode }) {
     finally { setChecking(false); }
   };
   const mine = account?.owner === userId ? account : null;
-  const setup = authenticated && (!mine?.configured || !mine.handle);
+  // Set up on this device before: open straight to the lock while the engine confirms it.
+  const ready = mine ? mine.configured && !!mine.handle : !!userId && pinReadyHere(userId);
+  const setup = authenticated && !ready;
+  useEffect(() => {
+    if (mine && userId) rememberPinReady(userId, mine.configured && !!mine.handle);
+  }, [mine, userId]);
   return (
     <Context.Provider value={{ request, reload }}>
       {setup ? !mine ? (
@@ -82,7 +95,9 @@ function PinSession({ children }: { children: ReactNode }) {
           {problem ? <><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
             : <ActivityIndicator color={colors.accentPink} />}
         </View>
-      ) : <PinSetup handle={mine.handle} onDone={() => void reload()} /> : children}
+      ) : <PinSetup handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
+        <AppLock active={authenticated} startLocked={!justSetUp} userId={userId} handle={mine?.handle ?? null}>{children}</AppLock>
+      )}
       <Modal visible={!!waiting} transparent animationType="slide" onRequestClose={cancel}>
         <View style={styles.backdrop}>
           <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>

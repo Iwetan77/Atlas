@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Pressable, Share, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
@@ -20,6 +20,7 @@ import { SelectSheet } from '@/components/ui/select-sheet';
 import { Text } from '@/components/ui/text';
 import { CURRENCIES } from '@/format/currencies';
 import { currencySymbol, formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
+import { biometricsOn, biometry, disableBiometrics, enableBiometrics, type Biometry } from '@/security/biometrics';
 import { useSettings } from '@/settings/context';
 import { colors, radii, setTheme, spacing, subscribeTheme, themedStyles, themeName } from '@/theme';
 
@@ -125,6 +126,7 @@ export default function ProfileScreen() {
         <Pressable onPress={() => router.push('/payment-pin')} accessibilityRole="button">
           <RowLabel icon="lock-closed-outline" title="Payment PIN" subtitle="Change the four digits that protect your money" />
         </Pressable>
+        <BiometricRow />
       </Card>
 
       <Text variant="overline" color="textSecondary">
@@ -255,6 +257,39 @@ function RowLabel({ icon, title, subtitle }: { icon: IconName; title: string; su
         </Text>
       </View>
     </View>
+  );
+}
+
+// Face ID, Touch ID or a fingerprint instead of the PIN to open Atlas, on this device. Only shown
+// when the device has one set up.
+function BiometricRow() {
+  const { userId } = useAtlasAuth();
+  const [bio, setBio] = useState<Biometry | null>(null);
+  const [on, setOn] = useState(() => !!userId && biometricsOn(userId));
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void biometry().then((b) => { if (live) setBio(b); });
+    return () => { live = false; };
+  }, []);
+  if (!userId || !bio?.available) return null;
+  const change = async (next: boolean) => {
+    if (busy) return;
+    if (!next) {
+      disableBiometrics(userId);
+      setOn(false);
+      return;
+    }
+    setBusy(true);
+    setOn(await enableBiometrics(userId, bio.label));
+    setBusy(false);
+  };
+  return (
+    <>
+      <Divider />
+      <ToggleRow icon={bio.icon} title={`Open with ${bio.label}`} subtitle="Instead of typing your PIN to open Atlas"
+        value={on} onChange={(next) => void change(next)} />
+    </>
   );
 }
 

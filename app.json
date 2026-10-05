@@ -37,6 +37,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Atlas uses Face ID to open the app."
+        }
+      ],
       "expo-web-browser",
       "expo-sharing",
       [

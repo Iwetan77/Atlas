@@ -12,6 +12,7 @@ import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
+import { markSigningOut } from '@/auth/device-session';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
@@ -122,7 +123,10 @@ function AuthBridge({ children }: { children: ReactNode }) {
       loginWithGoogle: () => oauth.initOAuth({ provider: 'google' }),
       googleLoading: oauth.loading,
       googleError: oauth.state.status === 'error' ? errorMessage(oauth.state.error) : null,
-      logout,
+      logout: async () => {
+        markSigningOut();
+        await logout();
+      },
       getAccessToken,
     }),
     [
