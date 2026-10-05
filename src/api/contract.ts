@@ -285,7 +285,12 @@ export type SpotPosition = {
   // When this run of holding began; a full sell ends it.
   openedAtUnixMs: number;
 };
-export type SpotPositions = { positions: SpotPosition[]; asOfUnixMs: number };
+export type SpotPositions = {
+  positions: SpotPosition[];
+  // A failed coin read keeps its last good P&L; a successful zero balance removes it.
+  unavailableAssetIds?: string[];
+  asOfUnixMs: number;
+};
 
 // POST /v1/earn/quotes → EarnQuote; POST /v1/earn/quotes/{id}/execute → ExecutionPlan.
 export type EarnAction = 'deposit' | 'withdraw';

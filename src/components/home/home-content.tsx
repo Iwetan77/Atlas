@@ -81,7 +81,7 @@ export function HomeContent({
     greeting={me?.displayName?.split(' ')[0] || me?.handle || 'there'} onRefresh={onRefresh} refreshing={refreshing} onDeposit={addMoney}
     hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} showEmptyPockets={showEmptyPockets} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={withdraw} />}
     pending={<>{banner ? <Text variant="caption" color="accentPinkTint">{banner}</Text> : null}<PendingPurchases onFinished={balance.refresh} /></>}
-    assets={<YourAssets balance={data} positions={positions.data} positionsError={positions.error} onRefreshPositions={reloadPositions} stealth={stealthMode} />}
+    assets={<YourAssets balance={data} positions={positions.data} stealth={stealthMode} />}
     earn={<EarnCard stealth={stealthMode} refreshKey={refreshKey} />}
     activity={<RecentTransactions stealth={stealthMode} refreshKey={refreshKey} />}
     nextSteps={me && data ? <NextSteps steps={[
@@ -132,7 +132,7 @@ export function HomeContent({
 
       <PendingPurchases onFinished={balance.refresh} />
 
-      <YourAssets balance={data} positions={positions.data} positionsError={positions.error} onRefreshPositions={reloadPositions} stealth={stealthMode} />
+      <YourAssets balance={data} positions={positions.data} stealth={stealthMode} />
 
       <EarnCard stealth={stealthMode} refreshKey={refreshKey} />
 

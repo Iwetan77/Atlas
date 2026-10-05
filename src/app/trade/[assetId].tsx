@@ -66,7 +66,7 @@ export default function AssetTradeScreen() {
 
   // What they hold of this coin, as its share card, kept live while the screen is open.
   const { me } = useMe();
-  const { data: positions, error: positionError, loading: positionLoading, reload: reloadPositions } = useSpotPositions();
+  const { data: positions, reload: reloadPositions } = useSpotPositions();
   const position = positions?.find((p) => p.assetId === params.assetId && Number(p.amount) > 0);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -184,15 +184,6 @@ export default function AssetTradeScreen() {
           />
         </View>
       ) : null}
-      {held && (positionError || (!positions && positionLoading)) ? (
-        <View style={styles.position}>
-          <Text variant="caption" color="textSecondary">
-            {positionError ? "Profit and loss couldn't be updated." : 'Loading your profit and loss…'}
-          </Text>
-          {positionError ? <PillButton label="Refresh profit and loss" tone="secondary" size="sm" onPress={refreshPosition} loading={refreshing} /> : null}
-        </View>
-      ) : null}
-
       {params.verified === 'no' ? (
         <View style={styles.warning}>
           <Icon name="warning-outline" size={18} color="danger" />

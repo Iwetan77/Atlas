@@ -18,14 +18,10 @@ export function YourAssets({
   balance,
   positions,
   stealth,
-  positionsError,
-  onRefreshPositions,
 }: {
   balance: BalanceResponse | null;
   positions: SpotPosition[] | null;
   stealth: boolean;
-  positionsError?: string | null;
-  onRefreshPositions?: () => void;
 }) {
   const desktop = useDesktop();
   if (!balance) return null;
@@ -40,11 +36,6 @@ export function YourAssets({
         <Icon name="layers-outline" size={14} color="textSecondary" />
         <Text variant="overline" color="textSecondary">Your assets</Text>
       </View>
-      {positionsError && owned.length > 0 ? (
-        <Pressable onPress={onRefreshPositions} accessibilityRole="button" accessibilityLabel="Refresh profit and loss">
-          <Text variant="caption" color="textSecondary">{"Profit and loss couldn't be updated. Tap to retry."}</Text>
-        </Pressable>
-      ) : null}
       {owned.length === 0 ? (
         <Card style={styles.empty}>
           <Icon name="trending-up" size={26} color="textSecondary" />

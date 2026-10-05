@@ -62,7 +62,12 @@ export function useSpotPositions(): SpotPositionsState {
       .then(
         (next) => {
           if (mine !== generation) return;
-          snapshots.set(displayCurrency, { data: next.positions, error: null, loading: false });
+          const unavailable = new Set(next.unavailableAssetIds ?? []);
+          const received = new Set(next.positions.map((p) => p.assetId));
+          const retained = (snapshots.get(displayCurrency)?.data ?? []).filter(
+            (p) => unavailable.has(p.assetId) && !received.has(p.assetId),
+          );
+          snapshots.set(displayCurrency, { data: [...next.positions, ...retained], error: null, loading: false });
           notify();
         },
         (e) => {
