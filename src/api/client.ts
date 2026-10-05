@@ -82,8 +82,14 @@ async function engineAttempt<T>(
     });
     if (!res.ok) {
       // The engine answers errors with a short plain-text (or JSON string) reason; surface it.
-      const text = (await res.text().catch(() => '')).replace(/^"|"$/g, '').slice(0, 160);
-      throw new EngineUnavailable(text || `Engine returned ${res.status}`, res.status);
+      // A web page instead (the host's own error or maintenance page) is never shown as text.
+      const raw = await res.text().catch(() => '');
+      const page = /^\s*</.test(raw) || /text\/html/i.test(res.headers.get('content-type') ?? '');
+      const text = page ? '' : raw.replace(/^"|"$/g, '').slice(0, 160);
+      throw new EngineUnavailable(
+        text || (page ? "Atlas can't reach its server right now. Try again in a moment, or update the app." : `Engine returned ${res.status}`),
+        res.status,
+      );
     }
     return (await res.json()) as T;
   } catch (e) {

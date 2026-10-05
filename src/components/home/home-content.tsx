@@ -19,6 +19,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { useAddMoney } from '@/funding/add-money';
 import { useWithdraw } from '@/funding/withdraw';
+import { UpdateBanner } from '@/components/update-prompt';
 import { useSettings } from '@/settings/context';
 import { colors, radii, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
@@ -116,6 +117,8 @@ export function HomeContent({
           {banner}
         </Text>
       ) : null}
+
+      <UpdateBanner />
 
       <HeroBalance
         balance={data}

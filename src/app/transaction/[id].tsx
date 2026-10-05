@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { engineGet } from '@/api/client';
 import { receiptDate, receiptState, type TransactionReceipt } from '@/api/transactions';
@@ -52,7 +52,7 @@ export default function ReceiptScreen() {
         <Text variant="label" color={receipt.state === 'filled' ? 'success' : receipt.state === 'failed' ? 'danger' : 'accentPinkTint'}>{receiptState(receipt)}</Text>
         <Text variant="caption" color="textSecondary">{receiptDate(receipt.createdAtUnixMs)}</Text>
       </Card>
-      {receipt.state === 'pending' ? <Text variant="caption" color="textSecondary">{receipt.stage === 'sign' ? 'This action is waiting for your approval. Return Home to finish it.' : receipt.stage === 'validate' ? 'This plan is waiting for confirmation.' : 'Your transfer is still being checked. This page will update as it settles.'}</Text> : null}
+      {receipt.state === 'pending' ? <Text variant="caption" color="textSecondary">{receipt.stage === 'sign' ? 'This action is waiting for your approval. Return Home to finish it.' : receipt.stage === 'validate' ? 'This plan is waiting for confirmation.' : receipt.kind === 'offramp' ? 'Your money is on its way to the bank. This page updates when the bank is paid.' : 'Your transfer is still being checked. This page will update as it settles.'}</Text> : null}
       {receipt.error ? <Card variant="outlined"><Text color="danger" variant="caption">{receipt.error}</Text></Card> : null}
       {receipt.summary.length ? <Card style={styles.details}><Text variant="overline" color="textSecondary">Your confirmation</Text>{receipt.summary.map((line, n) => <View style={styles.line} key={`${line.label}:${n}`}><Text variant="caption" color="textSecondary" style={styles.flex}>{line.label}</Text><Text variant="label" style={styles.summaryValue}>{stealthMode ? HIDDEN : line.value}</Text></View>)}</Card> : null}
       <Card style={styles.details}>
@@ -63,4 +63,6 @@ export default function ReceiptScreen() {
     </> : !error ? <Text color="textSecondary">Loading transaction…</Text> : null}
   </Screen>;
 }
-const styles = themedStyles(() => ({ hero: { alignItems: 'center', gap: spacing.md }, details: { gap: spacing.lg }, line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }, flex: { flex: 1 }, summaryValue: { flex: 1, textAlign: 'right' }, hash: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md } }));
+// Long words (hashes, references, account names) wrap inside the card instead of running past it.
+const wrap = Platform.select({ web: { overflowWrap: 'anywhere', wordBreak: 'break-word' } as object, default: {} });
+const styles = themedStyles(() => ({ hero: { alignItems: 'center', gap: spacing.md }, details: { gap: spacing.lg }, line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }, flex: { flex: 1, minWidth: 0, ...wrap }, summaryValue: { flex: 1, minWidth: 0, textAlign: 'right', ...wrap }, hash: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md } }));

@@ -12,6 +12,7 @@ import { useAtlasAuth } from '@/auth/context';
 import { markWelcomeShown, rememberSignedIn, startedWithSession, takeSigningOut } from '@/auth/device-session';
 import { AtlasAuthProvider } from '@/auth/provider';
 import { StartupError, StartupStatus } from '@/components/startup-status';
+import { UpdateGate } from '@/components/update-prompt';
 import { AddMoneyProvider } from '@/funding/add-money';
 import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
@@ -99,6 +100,7 @@ export default function RootLayout() {
             <AddMoneyProvider>
               <WithdrawProvider>
                 <WebShell key={theme}><RootStack /></WebShell>
+                <UpdateGate />
               </WithdrawProvider>
             </AddMoneyProvider>
           </ConfirmProvider>
