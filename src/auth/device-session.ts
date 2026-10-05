@@ -34,8 +34,21 @@ export function writeDeviceValue(key: string, value: string | null) {
 
 export const readDeviceValue = read;
 
+// A login the browser already holds (Privy keeps its tokens in local storage, or marks a cookie
+// session), so even the first start after an update opens to the logo, not the welcome screen.
+function browserSession(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  try {
+    const kept = ['privy:refresh_token', 'privy:token', 'privy:pat', 'privy:id_token']
+      .some((key) => { const v = window.localStorage?.getItem(key); return !!v && v !== 'null' && v !== '""'; });
+    return kept || /(^|;\s*)privy-session=/.test(document.cookie);
+  } catch {
+    return false;
+  }
+}
+
 // Read once per run: the state the app started in, until someone signs out.
-const startedSignedIn = read(SIGNED_IN) === '1';
+const startedSignedIn = read(SIGNED_IN) === '1' || browserSession();
 let signedOut = false;
 let signingOut = false;
 

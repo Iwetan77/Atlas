@@ -113,7 +113,7 @@ function LockScreen({ userId, handle, onUnlock }: { userId: string; handle: stri
 
   return (
     // The Android back button can't dismiss it.
-    <Modal visible animationType="fade" onRequestClose={() => {}} statusBarTranslucent>
+    <Modal visible animationType="none" onRequestClose={() => {}} statusBarTranslucent>
       <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.wrap}>

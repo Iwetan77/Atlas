@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { engineGet } from '@/api/client';
@@ -91,8 +91,8 @@ function PinSession({ children }: { children: ReactNode }) {
     <Context.Provider value={{ request, reload }}>
       {setup ? !mine ? (
         <View style={styles.loading}>
-          <Text variant="heading">Securing your Atlas account</Text>
-          {problem ? <><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
+          <Image source={require('../../assets/images/icon.png')} style={styles.logo} accessibilityLabel="Atlas" />
+          {problem ? <><Text variant="heading">Securing your Atlas account</Text><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
             : <ActivityIndicator color={colors.accentPink} />}
         </View>
       ) : <PinSetup handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
@@ -120,6 +120,7 @@ function PinSession({ children }: { children: ReactNode }) {
 }
 const styles = themedStyles(() => ({
   loading: { flex: 1, backgroundColor: colors.bgBase, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
+  logo: { width: 88, height: 88, borderRadius: 24 },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
   sheet: { width: '100%', maxWidth: 440, maxHeight: '92%', alignSelf: 'center', borderRadius: radii.lg, backgroundColor: colors.bgSurface },
   content: { padding: spacing.xl, gap: spacing.lg },
