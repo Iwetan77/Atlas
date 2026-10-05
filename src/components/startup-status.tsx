@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, themedStyles } from '@/theme';
 
 const SLOW_MS = 12_000;
 
@@ -57,7 +57,7 @@ export function StartupError({ error, retry }: { error: Error; retry: () => Prom
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     flex: 1,
     alignItems: 'center',
@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
-});
+}));

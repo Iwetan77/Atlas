@@ -1,10 +1,10 @@
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export type ShareImageOptions = {
   visible: boolean;
@@ -39,10 +39,10 @@ export function ShareImageSheet({ options }: { options: ShareImageOptions }) {
     </Pressable>
   </Modal>;
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
   sheet: { alignSelf: 'center', width: '100%', maxWidth: 440, maxHeight: '92%', borderRadius: radii.lg, backgroundColor: colors.bgSurface },
   content: { padding: spacing.xl, gap: spacing.md },
   preview: { width: '100%', aspectRatio: 1.5, borderRadius: radii.md },
   progress: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-});
+}));

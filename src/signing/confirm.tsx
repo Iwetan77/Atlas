@@ -1,6 +1,6 @@
 import { submitPredictionStep } from '@/signing/prediction';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesktop } from '@/web/use-desktop';
 
@@ -14,7 +14,7 @@ import { sendOnce, waitForTx } from '@/signing/chains';
 import { friendlyTxError } from '@/signing/errors';
 import { useSigner } from '@/signing/use-signer';
 import { watchWalletPrompts } from '@/signing/wallet-prompts';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 
 // What one user action actually cost, so the one-confirmation rule can be checked, not assumed.
 export type ActionReport = {
@@ -227,7 +227,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -269,4 +269,4 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.md,
   },
-});
+}));

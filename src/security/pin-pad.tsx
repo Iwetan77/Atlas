@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Platform, Pressable, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { usePinKeyboard } from '@/security/pin-keyboard';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // Digits stay in this mounted keypad only: never device storage, receipts or logs.
 type Props = {
@@ -52,7 +52,7 @@ function PinPadEntry({ onComplete, disabled = false, label = 'Payment PIN' }: Pr
     </View>
   );
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   pad: { alignItems: 'center', gap: 20, width: '100%' },
   dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   slot: { width: 50, height: 54, borderRadius: radii.md, backgroundColor: colors.bgTabBar,
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
   pressed: { backgroundColor: colors.accentPinkMuted, borderColor: colors.accentPinkTint },
   number: { fontSize: 25, lineHeight: 32 },
   disabled: { opacity: 0.4 },
-});
+}));

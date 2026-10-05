@@ -2,28 +2,29 @@ import { ActivityIndicator, Pressable, StyleSheet, type PressableProps } from 'r
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing, type ColorToken } from '@/theme';
+import { colors, radii, spacing, type ColorToken, type Palette } from '@/theme';
 
 type Tone = 'primary' | 'secondary' | 'success';
 
 type Props = Omit<PressableProps, 'children'> & {
   label: string;
-  // primary: pink with white text. secondary: MiniPay's white pill with dark text.
+  // primary: pink with white text. secondary: MiniPay's white pill with dark text (dark pill, white text in light mode).
   tone?: Tone;
   size?: 'md' | 'sm';
   icon?: IconName;
   loading?: boolean;
 };
 
-const TONES: Record<Tone, { bg: string; pressed: string; fg: ColorToken }> = {
-  primary: { bg: colors.accentPink, pressed: colors.accentPinkDeep, fg: 'textOnAccent' },
-  secondary: { bg: colors.surfaceLight, pressed: colors.textSecondary, fg: 'textOnLight' },
+// Read when drawn, so the buttons follow the theme.
+const TONES: Record<Tone, (c: Palette) => { bg: string; pressed: string; fg: ColorToken }> = {
+  primary: (c) => ({ bg: c.accentPink, pressed: c.accentPinkDeep, fg: 'textOnAccent' }),
+  secondary: (c) => ({ bg: c.buttonSecondary, pressed: c.textSecondary, fg: 'buttonSecondaryText' }),
   // A finished action ("Copied"): green, so it reads as done at a glance.
-  success: { bg: colors.success, pressed: colors.success, fg: 'textOnLight' },
+  success: (c) => ({ bg: c.success, pressed: c.success, fg: 'textOnLight' }),
 };
 
 export function PillButton({ label, tone = 'primary', size = 'md', icon, disabled, loading, style, ...rest }: Props) {
-  const t = TONES[tone];
+  const t = TONES[tone](colors);
   const inactive = disabled || loading;
   return (
     <Pressable

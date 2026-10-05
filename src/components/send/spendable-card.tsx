@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import type { BalanceResponse } from '@/api/contract';
@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, themedStyles } from '@/theme';
 
 // Cash that can leave right now: USDC in the Base and Solana wallets. Coins, savings, perps margin
 // and Arc cash count in the balance but have to be sold or moved back first.
@@ -53,7 +53,7 @@ export function SpendableCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     gap: spacing.md,
     padding: spacing.xl,
@@ -104,4 +104,4 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
-});
+}));

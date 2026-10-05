@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { engineGet } from '@/api/client';
@@ -10,7 +10,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { PinPad } from '@/security/pin-pad';
 import { PinSetup } from '@/security/pin-setup';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export class PinCancelled extends Error { constructor() { super('Cancelled'); } }
 type Request = { action: PinAction; title: string; summary?: { label: string; value: string }[] };
@@ -103,10 +103,10 @@ function PinSession({ children }: { children: ReactNode }) {
     </Context.Provider>
   );
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: { flex: 1, backgroundColor: colors.bgBase, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
   sheet: { width: '100%', maxWidth: 440, maxHeight: '92%', alignSelf: 'center', borderRadius: radii.lg, backgroundColor: colors.bgSurface },
   content: { padding: spacing.xl, gap: spacing.lg },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-});
+}));

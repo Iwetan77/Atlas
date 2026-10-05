@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, themedStyles } from '@/theme';
 
 // Full-screen outcome of a money action: what happened, in one line, and where to go next.
 export function ResultView({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
@@ -26,7 +26,7 @@ export function ResultView({ title, subtitle, children }: { title: string; subti
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   center: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -48,4 +48,4 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.lg,
   },
-});
+}));

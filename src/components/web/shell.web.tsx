@@ -18,13 +18,14 @@ const NAV: { href: Href; label: string; icon: IconName; match: string[] }[] = [
   { href: '/transactions', label: 'Activity', icon: 'time-outline', match: ['/transactions', '/transaction'] },
   { href: '/more', label: 'More to explore', icon: 'grid-outline', match: ['/more', '/mini', '/browse'] },
 ];
-const tokens = {
+// Read on each draw, so the website's own panels follow the theme too.
+const tokens = () => ({
   '--atlas-bg': colors.bgBase, '--atlas-panel': colors.bgSurface, '--atlas-panel-alt': colors.bgSurfaceAlt,
   '--atlas-nav': colors.bgTabBar, '--atlas-pink': colors.accentPink, '--atlas-pink-soft': colors.accentPinkTint,
   '--atlas-pink-deep': colors.accentPinkDeep, '--atlas-pink-dim': colors.accentPinkDim,
   '--atlas-text': colors.textPrimary, '--atlas-muted': colors.textSecondary, '--atlas-border': colors.border,
   '--atlas-success': colors.success,
-} as CSSProperties;
+}) as CSSProperties;
 
 export function WebLink({ href, children, className, ...props }: {
   href: Href; children: ReactNode; className?: string;
@@ -46,7 +47,7 @@ export function WebShell({ children }: { children: ReactNode }) {
   const publicPage = !authenticated || path === '/install' || path.startsWith('/claim');
   const active = NAV.find((n) => n.match.some((m) => m === '/' ? path === '/' : path === m || path.startsWith(`${m}/`)));
   const title = active?.label ?? (path === '/profile' ? 'Your account' : path === '/deposit' || path === '/add-bank' ? 'Add money' : 'Your Atlas');
-  return <div className={`atlas-shell ${desktop ? 'is-desktop' : 'is-mobile'} ${publicPage ? 'is-public' : 'is-account'}`} style={tokens}>
+  return <div className={`atlas-shell ${desktop ? 'is-desktop' : 'is-mobile'} ${publicPage ? 'is-public' : 'is-account'}`} style={tokens()}>
     <a className="atlas-skip" href="#atlas-main">Skip to content</a>
     <aside className="atlas-sidebar" aria-label="Main navigation">
       <WebLink href="/" className="atlas-brand-link" aria-label="Atlas home"><AtlasWordmark /></WebLink>

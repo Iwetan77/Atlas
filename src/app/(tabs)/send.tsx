@@ -1,12 +1,12 @@
 import { router, type Href } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { IconTile } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, themedStyles } from '@/theme';
 import { DesktopColumns } from '@/components/web/columns';
 import { SpendableCard } from '@/components/send/spendable-card';
 
@@ -26,7 +26,7 @@ export default function SendScreen() {
           <View style={styles.cluster}>
             <ClusterIcon icon="business-outline" bg={colors.tileBlue} ink="tileBlueInk" />
             <ClusterIcon icon="phone-portrait-outline" bg={colors.tilePink} ink="tilePinkInk" offset />
-            <ClusterIcon icon="card-outline" bg={colors.surfaceLight} ink="textOnLight" offset />
+            <ClusterIcon icon="card-outline" bg={colors.tileNeutral} ink="textOnLight" offset />
           </View>
         }
         title="Banks & Mobile Money"
@@ -92,7 +92,7 @@ function ClusterIcon({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   header: {
     marginBottom: spacing.sm,
   },
@@ -124,4 +124,4 @@ const styles = StyleSheet.create({
   clusterOffset: {
     marginLeft: -14,
   },
-});
+}));

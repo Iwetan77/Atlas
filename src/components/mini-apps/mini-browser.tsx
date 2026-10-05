@@ -7,7 +7,7 @@ import { getBase58Decoder } from '@solana/kit';
 import { Buffer } from 'buffer';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { formatEther, hexToString, isHex, numberToHex } from 'viem';
@@ -26,7 +26,7 @@ import { friendlyTxError } from '@/signing/errors';
 import { consumePin, type PinAction } from '@/api/pin';
 import { PinPad } from '@/security/pin-pad';
 import { authorizePin } from '@/api/pin';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 
 type Request = { id: number; method: string; params: any };
 type RpcError = { code: number; message: string };
@@ -401,7 +401,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -460,4 +460,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-});
+}));

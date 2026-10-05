@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AssetAvatar } from '@/components/trade/asset-avatar';
-import { colors } from '@/theme';
+import { colors, themedStyles } from '@/theme';
 
 // Chains whose logos ship with the app, so the badge never waits on the network.
 export const BUNDLED_CHAINS: Record<string, number> = {
@@ -53,7 +53,7 @@ export function ChainBadge({ chain, size = 20 }: { chain: string; size?: number 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   badge: {
     position: 'absolute',
     right: -3,
@@ -62,4 +62,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.bgSurface,
   },
-});
+}));

@@ -1,10 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export type Step = {
   key: string;
@@ -58,7 +58,7 @@ export function NextSteps({ steps }: { steps: Step[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     gap: spacing.md,
     paddingVertical: spacing.lg,
@@ -117,4 +117,4 @@ const styles = StyleSheet.create({
   struck: {
     textDecorationLine: 'line-through',
   },
-});
+}));

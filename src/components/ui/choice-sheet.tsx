@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
 export type Choice = {
@@ -91,7 +91,7 @@ export function ChoiceSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -162,4 +162,4 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: colors.accentPinkDim,
   },
-});
+}));

@@ -1,13 +1,13 @@
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { AssetStats, Money } from '@/api/contract';
 import { useAssetStats } from '@/api/markets';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatCompactMoney, formatMoney } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export function AssetMarketStats({ assetId }: { assetId: string }) {
   const { stats, loading } = useAssetStats(assetId);
@@ -90,7 +90,7 @@ function Address({ token, loading }: { token?: AssetStats['tokenAddress']; loadi
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md,
     gap: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentPinkMuted, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   addressText: { flexShrink: 1 },
   pressed: { opacity: 0.7 },
-});
+}));

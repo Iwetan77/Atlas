@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, TextInput, View } from 'react-native';
 
 import type { DisplayCurrency } from '@/api/contract';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { currencySymbol, formatMoney, groupDigits } from '@/format/money';
-import { colors, radii, spacing, type as typeScale } from '@/theme';
+import { colors, radii, spacing, type as typeScale, themedStyles } from '@/theme';
 
 // Quick picks per display currency, roughly the same spend everywhere.
 const QUICK: Record<DisplayCurrency, number[]> = {
@@ -105,7 +105,7 @@ export function AmountInput({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     gap: spacing.md,
     borderWidth: 1.5,
@@ -140,4 +140,4 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: colors.accentPink,
   },
-});
+}));

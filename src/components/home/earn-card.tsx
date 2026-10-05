@@ -1,13 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { useEarn } from '@/api/earn';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, HIDDEN } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // Earn on Home: the rate on offer, or what's already earning. One tap to the savings screen.
 // `refreshKey`: bumped by Home's pull-to-refresh to load the latest.
@@ -75,7 +75,7 @@ export function EarnCard({ stealth, refreshKey = 0 }: { stealth: boolean; refres
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   section: {
     gap: spacing.sm,
@@ -100,4 +100,4 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xxs,
   },
-});
+}));

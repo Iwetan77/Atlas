@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { MINI_APPS, miniAppIcon } from '@/components/mini-apps/catalog';
 import { ChainBadge } from '@/components/token-chain-logo';
@@ -11,7 +11,7 @@ import { IconTile, SoonChip } from '@/components/ui/icon-tile';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { addressOrSearch } from '@/components/web-browser/address';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
 type Item = { title: string; subtitle: string; icon: IconName; tone: 'pink' | 'blue'; href?: Href };
@@ -111,7 +111,7 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   apps: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -161,4 +161,4 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: spacing.sm,
   },
-});
+}));

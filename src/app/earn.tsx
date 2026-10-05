@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import type { EarnAction, EarnOption, EarnQuote } from '@/api/contract';
 import { executeEarnQuote, requestEarnQuote, useEarn } from '@/api/earn';
@@ -20,7 +20,7 @@ import { MoneyError } from '@/components/money-error';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Phase =
   | { kind: 'edit' }
@@ -263,7 +263,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   // Two to a row, however many venues there are, so names never wrap mid-word.
   venues: {
     flexDirection: 'row',
@@ -326,4 +326,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-});
+}));

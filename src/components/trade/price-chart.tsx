@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
+import { type LayoutChangeEvent, Pressable, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import type { ChartRange } from '@/api/contract';
 import { useAssetChart } from '@/api/markets';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 const RANGES: { key: ChartRange; label: string; span: string }[] = [
   { key: '1D', label: '1D', span: 'today' },
@@ -100,7 +100,7 @@ function paths(points: [number, number][], width: number, height: number) {
   return { line, area: `${line} L${width},${height} L0,${height} Z` };
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     gap: spacing.sm,
   },
@@ -132,4 +132,4 @@ const styles = StyleSheet.create({
   rangeActive: {
     backgroundColor: colors.accentPink,
   },
-});
+}));

@@ -17,7 +17,7 @@ import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
 // One scrollable row of topics; each is a search on Polymarket (All is today's busiest markets).
@@ -196,7 +196,7 @@ export default function Predictions() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   // The Home balance card's Atlas pink, with its decorative circle.
   hero: { gap: spacing.md, padding: spacing.xl, borderRadius: 28, backgroundColor: colors.accentPink, overflow: 'hidden' },
   wash: { position: 'absolute', right: -60, top: -70, width: 220, height: 220, borderRadius: 110, backgroundColor: colors.accentPinkWash },
@@ -236,4 +236,4 @@ const styles = StyleSheet.create({
   risk: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   flex: { flex: 1 },
   historyLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
-});
+}));

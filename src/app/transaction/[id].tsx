@@ -15,7 +15,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney, HIDDEN } from '@/format/money';
 import { useSettings } from '@/settings/context';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, themedStyles } from '@/theme';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,4 +63,4 @@ export default function ReceiptScreen() {
     </> : !error ? <Text color="textSecondary">Loading transaction…</Text> : null}
   </Screen>;
 }
-const styles = StyleSheet.create({ hero: { alignItems: 'center', gap: spacing.md }, details: { gap: spacing.lg }, line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }, flex: { flex: 1 }, summaryValue: { flex: 1, textAlign: 'right' }, hash: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md } });
+const styles = themedStyles(() => ({ hero: { alignItems: 'center', gap: spacing.md }, details: { gap: spacing.lg }, line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }, flex: { flex: 1 }, summaryValue: { flex: 1, textAlign: 'right' }, hash: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md } }));

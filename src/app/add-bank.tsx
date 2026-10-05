@@ -18,7 +18,7 @@ import { Text } from '@/components/ui/text';
 import { formatExactMoney, formatMoney } from '@/format/money';
 import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 const PROGRESS: Record<BankTransferState, string> = {
   waiting: 'Waiting for your transfer',
@@ -229,7 +229,7 @@ function CopyLine({ value, big, copied, onCopy }: { value: string; big?: boolean
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     gap: spacing.md,
   },
@@ -261,4 +261,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-});
+}));

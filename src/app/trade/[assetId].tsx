@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import type { IntentStage, Quote, TradeSide } from '@/api/contract';
@@ -26,7 +26,7 @@ import { Text } from '@/components/ui/text';
 import { formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { TradeLayout } from '@/components/web/trade-layout';
 
 const POSITION_POLL_MS = 10_000;
@@ -311,7 +311,7 @@ function Busy({ text }: { text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   position: {
     gap: spacing.sm,
   },
@@ -379,4 +379,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-});
+}));

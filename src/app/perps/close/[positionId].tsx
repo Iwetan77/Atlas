@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import type { PerpCloseQuote } from '@/api/contract';
 import { StillSettling, useRunIntent } from '@/api/intents';
@@ -16,7 +16,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatPrice } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Phase =
   | { kind: 'review' }
@@ -160,7 +160,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -193,4 +193,4 @@ const styles = StyleSheet.create({
   chipOn: {
     backgroundColor: colors.accentPink,
   },
-});
+}));

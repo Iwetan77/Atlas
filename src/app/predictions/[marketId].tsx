@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export default function PredictionDetail() {
   const { marketId, tokenId } = useLocalSearchParams<{ marketId: string; tokenId?: string }>();
@@ -141,7 +141,7 @@ export default function PredictionDetail() {
     </>}
   </Screen>;
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   marketHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.lg, padding: spacing.lg, borderRadius: radii.lg, backgroundColor: colors.bgSurface },
   headingText: { flex: 1, gap: spacing.sm },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
@@ -164,4 +164,4 @@ const styles = StyleSheet.create({
   notice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.bgSurface, padding: spacing.lg },
   rules: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.lg, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   risk: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
-});
+}));

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { setPin } from '@/api/pin';
@@ -10,7 +10,7 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { PinPad } from '@/security/pin-pad';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export function PinSetup({ handle: initialHandle, onDone, change = false, onCancel }: {
   handle: string | null; onDone: () => void; change?: boolean; onCancel?: () => void;
@@ -107,7 +107,7 @@ export function PinSetup({ handle: initialHandle, onDone, change = false, onCanc
     </SafeAreaView>
   );
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: { flex: 1, backgroundColor: colors.bgBase },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
   wrap: { width: '100%', maxWidth: 440, alignSelf: 'center', gap: spacing.xl },
@@ -134,4 +134,4 @@ const styles = StyleSheet.create({
   privacy: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: spacing.sm },
   privacyText: { maxWidth: 284, flexShrink: 1 },
   error: { textAlign: 'center' },
-});
+}));

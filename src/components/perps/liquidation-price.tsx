@@ -1,10 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import type { Money } from '@/api/contract';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatExactMoney } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // The number that matters most on a leveraged position, shown big and exactly as the engine
 // reported it (never recomputed or rounded here), with one plain line on what it means.
@@ -51,7 +51,7 @@ export function LiquidationPrice({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   band: {
     gap: spacing.xs,
     padding: spacing.lg,
@@ -68,4 +68,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-});
+}));

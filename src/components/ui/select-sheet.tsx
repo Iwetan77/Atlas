@@ -1,11 +1,11 @@
 import { type ReactNode, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesktop } from '@/web/use-desktop';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, type ColorToken, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, type ColorToken, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 
 export type SelectItem<K extends string> = {
   key: K;
@@ -146,7 +146,7 @@ function Row<K extends string>({ item }: { item: SelectItem<K> }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,4 +241,4 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xxs,
   },
-});
+}));

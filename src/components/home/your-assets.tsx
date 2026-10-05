@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import type { BalanceResponse, Holding, SpotPosition } from '@/api/contract';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
 // The stocks, memes and crypto the user owns, most valuable first: a row of cards to swipe through,
@@ -123,7 +123,7 @@ function AssetCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   desktopGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   desktopCard: { flexGrow: 1, flexBasis: 175, minWidth: 150, maxWidth: '100%' },
   sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -159,4 +159,4 @@ const styles = StyleSheet.create({
   cardText: {
     gap: spacing.xxs,
   },
-});
+}));

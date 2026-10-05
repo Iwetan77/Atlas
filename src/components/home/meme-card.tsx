@@ -10,7 +10,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { heldFor } from '@/format/duration';
 import { formatMoney, formatPrice, formatSignedMoney, hiddenMoney } from '@/format/money';
-import { colors, fonts, spacing, type ColorToken } from '@/theme';
+import { darkColors as colors, fonts, PaletteContext, spacing, type ColorToken } from '@/theme';
 
 // Same 360×240 canvas as the perps card, scaled to the card's width, so it exports the same everywhere.
 const W = 360;
@@ -79,6 +79,7 @@ function sparkle(x: number, y: number, r: number): string {
 // A coin the user holds, as a card worth posting: the coin's own mascot with a mood, the big
 // percentage, what went in and what it's worth now. Entry and realised gains sit under it, in the
 // app only. It lives on the coin's own screen, kept live there (`onRefresh` asks for fresh numbers).
+// The card is a picture people post, so it stays dark in light mode.
 export function MemeCard({
   position: p,
   handle,
@@ -109,6 +110,7 @@ export function MemeCard({
 
   return (
     <View style={styles.wrap}>
+      <PaletteContext.Provider value={colors}>
       <View ref={card} collapsable={false} onLayout={onLayout} style={styles.card}>
         <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={StyleSheet.absoluteFill}>
           <Defs>
@@ -209,6 +211,7 @@ export function MemeCard({
           </View>
         </View>
       </View>
+      </PaletteContext.Provider>
 
       <View style={styles.facts}>
         <Text variant="caption" color="textSecondary">

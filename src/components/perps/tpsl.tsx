@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { DisplayCurrency, PerpPosition, PerpTrigger } from '@/api/contract';
@@ -11,7 +11,7 @@ import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
 import { authorizePin } from '@/api/pin';
 import { PinPad } from '@/security/pin-pad';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 
 // Gains and losses on the margin, the way people think about a trade: "+50%", "−25%".
@@ -259,7 +259,7 @@ function TpslSheet({ position: p, onClose, onSaved }: { position: PerpPosition; 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   picker: {
     gap: spacing.lg,
   },
@@ -351,4 +351,4 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: colors.border,
   },
-});
+}));

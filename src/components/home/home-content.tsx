@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { BalanceState } from '@/api/balance';
 import type { SpotPositionsState } from '@/api/positions';
@@ -20,7 +20,7 @@ import { Text } from '@/components/ui/text';
 import { useAddMoney } from '@/funding/add-money';
 import { useWithdraw } from '@/funding/withdraw';
 import { useSettings } from '@/settings/context';
-import { colors, radii } from '@/theme';
+import { colors, radii, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 import { DesktopHome } from '@/components/web/home';
 
@@ -169,7 +169,7 @@ export function HomeContent({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -184,4 +184,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

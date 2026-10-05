@@ -8,7 +8,7 @@ import { WebView } from 'react-native-webview';
 
 import { addressOrSearch, siteOf } from '@/components/web-browser/address';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { colors, radii, spacing, type as typeScale } from '@/theme';
+import { colors, radii, spacing, type as typeScale, themedStyles } from '@/theme';
 
 export function WebBrowser({ url: start }: { url: string }) {
   const insets = useSafeAreaInsets();
@@ -101,7 +101,7 @@ function Tool({ icon, label, disabled, onPress }: { icon: IconName; label: strin
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -153,4 +153,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.6,
   },
-});
+}));

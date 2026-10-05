@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import type { WithdrawNetworks, WithdrawQuote } from '@/api/contract';
 import { StillSettling, useRunIntent } from '@/api/intents';
@@ -24,7 +24,7 @@ import { formatMoney, formatTokenNumber } from '@/format/money';
 import { useBackToWithdraw } from '@/funding/withdraw';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Phase =
   | { kind: 'edit' }
@@ -229,7 +229,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,4 +268,4 @@ const styles = StyleSheet.create({
   cta: {
     marginTop: spacing.sm,
   },
-});
+}));

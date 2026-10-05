@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Props = ViewProps & {
   // filled: grey card on the grey page (default). outlined: page-colored with a thin edge, for
@@ -19,8 +19,8 @@ const styles = StyleSheet.create({
   },
 });
 
-const variantStyles = StyleSheet.create({
+const variantStyles = themedStyles(() => ({
   filled: { backgroundColor: colors.bgSurface },
   outlined: { backgroundColor: colors.bgBase, borderWidth: 1.5, borderColor: colors.border },
   alt: { backgroundColor: colors.bgSurfaceAlt },
-});
+}));

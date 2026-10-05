@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, Share, StyleSheet, View } from 'react-native';
+import { Pressable, Share, View } from 'react-native';
 
 import type { Bank, Money } from '@/api/contract';
 import { BankLogo } from '@/components/send/bank-picker';
@@ -9,7 +9,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export type DoneTransfer = {
   intentId: string;
@@ -113,7 +113,7 @@ function Tile({ icon, label, onPress }: { icon: IconName; label: string; onPress
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   top: {
     alignItems: 'flex-end',
   },
@@ -169,4 +169,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75,
   },
-});
+}));

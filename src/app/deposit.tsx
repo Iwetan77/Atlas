@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { Share, View } from 'react-native';
 import QRCodeStyled from 'react-native-qrcode-styled';
 
 import { engineGet, enginePost, SAFE_TO_REPLAY } from '@/api/client';
@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // Base and Solana USDC go straight to the user's own wallets; every other network gets a one-off
 // deposit address that turns what arrives into USDC in the balance.
@@ -227,7 +227,7 @@ export default function DepositScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     gap: spacing.md,
   },
@@ -247,4 +247,4 @@ const styles = StyleSheet.create({
   action: {
     flex: 1,
   },
-});
+}));

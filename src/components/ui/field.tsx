@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, Pressable, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing, type as typeScale } from '@/theme';
+import { colors, radii, spacing, type as typeScale, themedStyles } from '@/theme';
 
 type Props = TextInputProps & {
   prefix?: React.ReactNode;
@@ -68,7 +68,7 @@ export function Field({ prefix, clearable, clearLabel = 'Clear search', style, o
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,4 +113,4 @@ const styles = StyleSheet.create({
     // Focus belongs to the rounded field, not a rectangle around its text.
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
-});
+}));

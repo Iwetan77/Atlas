@@ -2,8 +2,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
+import { type ReactNode, useCallback, useState, useSyncExternalStore } from 'react';
+import { ActivityIndicator, Pressable, Share, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import { useEmailSettings } from '@/api/emails';
@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/text';
 import { CURRENCIES } from '@/format/currencies';
 import { currencySymbol, formatMoney, formatTokenNumber, HIDDEN, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, setTheme, spacing, subscribeTheme, themedStyles, themeName } from '@/theme';
 
 // Square-cropped by the picker, then shrunk to 256px so it stays a few dozen KB.
 async function choosePhoto(): Promise<string | null> {
@@ -63,6 +63,7 @@ export default function ProfileScreen() {
     }, [reload]),
   );
   const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
+  const light = useSyncExternalStore(subscribeTheme, themeName, themeName) === 'light';
   const gas = useBalance().data?.gas ?? [];
   const emails = useEmailSettings();
 
@@ -130,6 +131,14 @@ export default function ProfileScreen() {
         Display
       </Text>
       <Card style={styles.group}>
+        <ToggleRow
+          icon={light ? 'sunny-outline' : 'moon-outline'}
+          title="Light mode"
+          subtitle="A bright look for daytime"
+          value={light}
+          onChange={(v) => setTheme(v ? 'light' : 'dark')}
+        />
+        <Divider />
         <View style={styles.rowStack}>
           <RowLabel icon="cash-outline" title="Currency" subtitle="Balances and prices show in this currency" />
           <SelectSheet
@@ -263,8 +272,10 @@ function ToggleRow(props: {
         value={props.value}
         onValueChange={props.onChange}
         trackColor={{ false: colors.textDisabled, true: colors.accentPink }}
-        thumbColor={colors.textPrimary}
+        thumbColor={colors.surfaceLight}
         ios_backgroundColor={colors.textDisabled}
+        // The website's switch has its own "on" knob colour (teal by default).
+        {...({ activeThumbColor: colors.surfaceLight } as object)}
       />
     </View>
   );
@@ -274,7 +285,7 @@ function Divider() {
   return <View style={styles.divider} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   overlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -351,4 +362,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     opacity: 0.5,
   },
-});
+}));

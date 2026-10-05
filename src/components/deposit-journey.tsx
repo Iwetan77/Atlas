@@ -1,11 +1,11 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { DepositHopTx, DepositJourney as Journey } from '@/api/contract';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 const short = (hash: string) => (hash.length > 14 ? `${hash.slice(0, 6)}…${hash.slice(-6)}` : hash);
 
@@ -87,7 +87,7 @@ function TxLink({ tx }: { tx: DepositHopTx }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     gap: spacing.sm,
   },
@@ -139,4 +139,4 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
     alignSelf: 'flex-start',
   },
-});
+}));

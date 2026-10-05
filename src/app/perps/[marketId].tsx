@@ -1,7 +1,7 @@
 import Slider from '@react-native-community/slider';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import type { PerpQuote } from '@/api/contract';
 import { StillSettling, useRunIntent } from '@/api/intents';
@@ -24,7 +24,7 @@ import { MoneyError } from '@/components/money-error';
 import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { TradeLayout } from '@/components/web/trade-layout';
 
 type Side = 'long' | 'short';
@@ -307,7 +307,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,4 +367,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-});
+}));

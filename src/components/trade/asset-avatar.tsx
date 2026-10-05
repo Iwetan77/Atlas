@@ -1,10 +1,10 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { bundledLogo } from '@/components/trade/asset-logos';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/theme';
+import { colors, themedStyles } from '@/theme';
 
 // The engine's icon if it sends one (and it loads), else the bundled logo, else the symbol's initials.
 // Never blank: a logo that fails to load (a dev build fetches even bundled ones) falls back too.
@@ -34,7 +34,7 @@ export function AssetAvatar({ symbol, iconUrl, size = 44 }: { symbol: string; ic
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   base: {
     overflow: 'hidden',
   },
@@ -43,4 +43,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

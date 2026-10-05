@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/text';
 import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useBackToWithdraw } from '@/funding/withdraw';
 
 // Nigerian account numbers (NUBAN) are exactly 10 digits.
@@ -395,7 +395,7 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   payee: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,4 +448,4 @@ const styles = StyleSheet.create({
   tabOn: {
     backgroundColor: colors.bgSurface,
   },
-});
+}));

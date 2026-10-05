@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Bank } from '@/api/contract';
@@ -9,7 +9,7 @@ import { AssetAvatar } from '@/components/trade/asset-avatar';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 
 // Tappable field that opens a searchable list of banks.
 export function BankPicker({
@@ -109,7 +109,7 @@ export function BankLogo({ bank, size }: { bank: Bank; size: number }) {
   return <AssetAvatar symbol={initials || 'B'} iconUrl={bank.logo ?? null} size={size} />;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,4 +154,4 @@ const styles = StyleSheet.create({
   bankName: {
     flex: 1,
   },
-});
+}));

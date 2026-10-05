@@ -1,9 +1,9 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import type { DepositState } from '@/api/contract';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // What the deposit is doing now, one line at a time.
 const NOW: Partial<Record<DepositState, string>> = {
@@ -47,7 +47,7 @@ export function DepositProgress({ state }: { state: DepositState }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   box: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-});
+}));

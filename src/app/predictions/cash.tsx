@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { StillSettling, useRunIntent } from '@/api/intents';
 import { executePrediction, predictionQuote, usePredictionAccount } from '@/api/predictions';
@@ -16,7 +16,7 @@ import { Text } from '@/components/ui/text';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export default function PredictionCash() {
   const { getAccessToken } = useAtlasAuth();
@@ -64,10 +64,10 @@ export default function PredictionCash() {
     <PillButton label="View activity" tone="secondary" onPress={() => router.push('/transactions')} />
   </Screen>;
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   cashCard: { gap: spacing.md, backgroundColor: colors.bgTabBar, borderWidth: 1, borderColor: colors.border },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   icon: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.accentPinkMuted, alignItems: 'center', justifyContent: 'center' },
   balance: { fontSize: 36, lineHeight: 42 },
   preview: { gap: spacing.md },
-});
+}));

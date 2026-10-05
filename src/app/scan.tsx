@@ -14,7 +14,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { readAccountDetails } from '@/scan/account-details';
 import { type TextReader, TextReaderView } from '@/scan/text-reader';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // Scan to pay: a QR code (an Atlas Link, a web address, bank details), or a photo of an account
 // number on a sign or card ("9033935622 Moniepoint Ivan Wetan"), which fills Send to bank. The
@@ -128,7 +128,7 @@ export default function ScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -165,4 +165,4 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
-});
+}));

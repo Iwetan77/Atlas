@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { colors, radii } from '@/theme';
+import { colors, radii, themedStyles } from '@/theme';
 
 // The user's profile photo, or their initial on Atlas pink when they haven't set one.
 export function ProfileAvatar({ photo, initial, size }: { photo?: string | null; initial: string; size: number }) {
@@ -19,11 +19,11 @@ export function ProfileAvatar({ photo, initial, size }: { photo?: string | null;
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   fallback: {
     backgroundColor: colors.accentPinkDim,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radii.pill,
   },
-});
+}));

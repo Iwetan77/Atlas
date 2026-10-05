@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
 import { TokenChainLogo } from '@/components/token-chain-logo';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatTokenNumber, formatUsd, HIDDEN, hiddenMoney } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Props = {
   balance: BalanceResponse | null;
@@ -185,7 +185,7 @@ function HeroAction({ icon, label, onPress }: { icon: IconName; label: string; o
 
 const TAB_H = 36;
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     marginBottom: TAB_H / 2,
   },
@@ -305,4 +305,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

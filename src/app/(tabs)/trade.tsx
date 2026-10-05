@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import type { AssetCategory, MarketAsset } from '@/api/contract';
 import { useAssets } from '@/api/markets';
@@ -11,7 +11,7 @@ import { Icon } from '@/components/ui/icon';
 import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 // Stocks, memes and crypto share one list and one buy flow; chips only filter.
 const CATEGORIES: { key: AssetCategory; label: string }[] = [
@@ -170,7 +170,7 @@ function AssetRow({ asset, divider }: { asset: MarketAsset; divider: boolean }) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   more: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -249,4 +249,4 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     backgroundColor: colors.bgSurfaceAlt,
   },
-});
+}));

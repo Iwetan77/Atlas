@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { PredictionMarket } from '@/api/predictions';
 import { MarketArt } from '@/components/predictions/market-art';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -89,7 +89,7 @@ export function MarketCard({ market: m, wide }: { market: PredictionMarket; wide
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     width: '100%',
     gap: spacing.md,
@@ -140,4 +140,4 @@ const styles = StyleSheet.create({
   second: {
     backgroundColor: colors.bgTabBar,
   },
-});
+}));

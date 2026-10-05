@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import type { PerpCategory, PerpMarket } from '@/api/contract';
 import { usePerpMarkets, usePerpPositions } from '@/api/perps';
@@ -14,7 +14,7 @@ import { Icon } from '@/components/ui/icon';
 import { Pinned, Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatPrice } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Filter = 'all' | PerpCategory;
 const FILTERS: { key: Filter; label: string }[] = [
@@ -212,7 +212,7 @@ function MarketRow({ market: m, divider }: { market: PerpMarket; divider: boolea
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,4 +280,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-});
+}));

@@ -16,7 +16,7 @@ import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
 import { privyEvmChains } from '@/signing/chains';
-import { colors } from '@/theme';
+import { colors, themeName } from '@/theme';
 
 type SolanaRpcs = NonNullable<NonNullable<NonNullable<ComponentProps<typeof PrivyProvider>['config']>['solana']>['rpcs']>;
 
@@ -37,7 +37,8 @@ export function AtlasAuthProvider({ children }: { children: ReactNode }) {
         supportedChains: privyEvmChains,
         // Privy's RPC type includes test-cluster methods; this configured transport is mainnet.
         solana: { rpcs: solanaRpcs as SolanaRpcs },
-        appearance: { theme: 'dark', accentColor: colors.accentPink },
+        // Privy's own sign-in screens follow the theme chosen when they open.
+        appearance: { theme: themeName(), accentColor: colors.accentPink as `#${string}` },
         embeddedWallets: {
           // AuthBridge creates both wallets itself, one after the other. Letting Privy also do it
           // on login races ours and one of the two calls fails with "already has a wallet".

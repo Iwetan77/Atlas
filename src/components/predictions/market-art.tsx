@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/icon';
-import { colors } from '@/theme';
+import { colors, themedStyles } from '@/theme';
 
 // What a market is about, from its question, for the tile shown when it has no picture.
 function topicIcon(question: string): IconName {
@@ -40,7 +40,7 @@ export function MarketArt({ uri, question, size = 44 }: { uri: string | null; qu
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   art: {
     backgroundColor: colors.bgSurfaceAlt,
   },
@@ -49,4 +49,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.accentPinkMuted,
   },
-});
+}));

@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { goBack } from '@/components/ui/back-header';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors, maxContentWidth, radii, spacing } from '@/theme';
+import { colors, maxContentWidth, radii, spacing, themedStyles } from '@/theme';
 
 // `onRefresh`: pulling the screen down runs it, with a spinner while `refreshing`.
 // `stickyTitle`: once the screen's own back button and title scroll away, a slim bar with them
@@ -165,7 +165,7 @@ function StickyBar({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   pinned: {
     gap: spacing.md,
   },
@@ -244,4 +244,4 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: spacing.lg,
   },
-});
+}));

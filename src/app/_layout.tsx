@@ -1,11 +1,12 @@
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
 import { useFonts } from 'expo-font';
-import { DarkTheme, type ErrorBoundaryProps, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, type ErrorBoundaryProps, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Platform } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Appearance, Platform } from 'react-native';
 
 import { useAtlasAuth } from '@/auth/context';
 import { AtlasAuthProvider } from '@/auth/provider';
@@ -15,24 +16,27 @@ import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
 import { PinProvider } from '@/security/pin-provider';
 import { ConfirmProvider } from '@/signing/confirm';
-import { colors } from '@/theme';
+import { colors, subscribeTheme, themeName, type ThemeName } from '@/theme';
 import { WebShell } from '@/components/web/shell';
 import { useKeyboardScroll } from '@/web/use-keyboard-scroll';
 
 SplashScreen.preventAutoHideAsync();
 
-const navTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: colors.accentPink,
-    background: colors.bgBase,
-    card: colors.bgSurface,
-    text: colors.textPrimary,
-    border: colors.border,
-    notification: colors.accentPink,
-  },
-};
+function navThemeFor(theme: ThemeName) {
+  const base = theme === 'light' ? DefaultTheme : DarkTheme;
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.accentPink,
+      background: colors.bgBase,
+      card: colors.bgSurface,
+      text: colors.textPrimary,
+      border: colors.border,
+      notification: colors.accentPink,
+    },
+  };
+}
 
 // Any render crash lands here with its message instead of a blank or red screen.
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -45,6 +49,22 @@ const serverMounted = () => false;
 
 export default function RootLayout() {
   useKeyboardScroll();
+  const theme = useSyncExternalStore(subscribeTheme, themeName, themeName);
+  const navTheme = useMemo(() => navThemeFor(theme), [theme]);
+  // Native pieces (keyboard, alerts, the window behind the app) follow the theme too.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    Appearance.setColorScheme?.(theme);
+    SystemUI.setBackgroundColorAsync(colors.bgBase).catch(() => {});
+  }, [theme]);
+  // Screens keep what they drew until something changes on them, so a switch redraws the app from
+  // scratch and brings the user back to Profile, where the switch is.
+  const first = useRef(theme);
+  useEffect(() => {
+    if (theme === first.current) return;
+    first.current = theme;
+    setTimeout(() => router.navigate('/profile'), 0);
+  }, [theme]);
   // Privy's browser session/wallet tree mounts after hydration, never against a server snapshot.
   const hydrated = useSyncExternalStore(noHydrationEvents, browserMounted, serverMounted);
   const [fontsLoaded, fontError] = useFonts({
@@ -70,14 +90,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <StatusBar style="light" />
+      <StatusBar style={theme === 'light' ? 'dark' : 'light'} />
       <SettingsProvider>
         <AtlasAuthProvider>
           <PinProvider>
           <ConfirmProvider>
             <AddMoneyProvider>
               <WithdrawProvider>
-                <WebShell><RootStack /></WebShell>
+                <WebShell key={theme}><RootStack /></WebShell>
               </WithdrawProvider>
             </AddMoneyProvider>
           </ConfirmProvider>

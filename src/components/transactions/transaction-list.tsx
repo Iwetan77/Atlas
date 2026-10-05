@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, HIDDEN } from '@/format/money';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export function TransactionLogo({ receipt: r }: { receipt: TransactionReceipt }) {
   const symbol = r.symbol?.trim() || (r.kind === 'deposit' ? r.title.match(/^Deposit\s+([A-Z0-9]+)/i)?.[1] : null);
@@ -42,7 +42,7 @@ export function TransactionList({ rows, stealth }: { rows: TransactionReceipt[];
     </Pressable>
   ))}</Card>;
 }
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { paddingVertical: spacing.xs, paddingHorizontal: spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.lg },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
@@ -50,4 +50,4 @@ const styles = StyleSheet.create({
   assetLogo: { width: 40, height: 40 },
   incoming: { position: 'absolute', right: -3, bottom: -3, width: 20, height: 20, borderRadius: radii.pill, borderWidth: 2, borderColor: colors.bgSurface, backgroundColor: colors.tilePink, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 40, height: 40, borderRadius: radii.pill, backgroundColor: colors.accentPinkDim, alignItems: 'center', justifyContent: 'center' },
-});
+}));

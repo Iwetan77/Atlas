@@ -14,7 +14,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
 import { heldFor } from '@/format/duration';
 import { formatMoney, formatPrice } from '@/format/money';
-import { colors, fonts, spacing } from '@/theme';
+import { darkColors as colors, fonts, PaletteContext, spacing } from '@/theme';
 
 // Drawn on a fixed 360×240 canvas and scaled to the card's width, so it looks (and exports) the same
 // on every screen.
@@ -30,7 +30,7 @@ const LOGO_R = 38;
 
 // An open position: a share card kept to the few numbers worth bragging about, with the
 // liquidation price right under it in the app (it's not something people post, but it must
-// never be hidden from the owner).
+// never be hidden from the owner). The card is a picture people post, so it stays dark in light mode.
 export function PositionCard({
   position: p,
   handle,
@@ -57,6 +57,7 @@ export function PositionCard({
 
   return (
     <View style={styles.wrap}>
+      <PaletteContext.Provider value={colors}>
       <View ref={card} collapsable={false} onLayout={onLayout} style={styles.card}>
         <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={StyleSheet.absoluteFill}>
           <Defs>
@@ -152,6 +153,7 @@ export function PositionCard({
           </View>
         </View>
       </View>
+      </PaletteContext.Provider>
 
       <LiquidationPrice price={p.liquidationPrice} side={p.side} symbol={p.symbol} compact />
       <TpslLine position={p} onChanged={onChanged} />

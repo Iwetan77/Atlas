@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
 const MAX = 280;
 
@@ -182,7 +182,7 @@ export function MarketComments({ marketId }: { marketId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     gap: spacing.md,
     paddingTop: spacing.lg,
@@ -249,4 +249,4 @@ const styles = StyleSheet.create({
   delete: {
     marginLeft: 'auto',
   },
-});
+}));

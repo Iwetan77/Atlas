@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import type { Recipient } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
@@ -20,7 +20,7 @@ import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useBackToWithdraw } from '@/funding/withdraw';
 
 type Lookup = { state: 'idle' | 'looking' } | { state: 'found'; recipient: Recipient } | { state: 'none' | 'error'; message: string };
@@ -155,7 +155,7 @@ export default function SendToFriendScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   recipient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,4 +174,4 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xxs,
   },
-});
+}));
