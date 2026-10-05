@@ -1,13 +1,16 @@
 import { submitPredictionStep } from '@/signing/prediction';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesktop } from '@/web/use-desktop';
 
 import { authorizePin } from '@/api/pin';
 import { PinPad } from '@/security/pin-pad';
 import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract';
+import { useBalance } from '@/api/balance';
+import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
+import { formatMoney } from '@/format/money';
 import { Text } from '@/components/ui/text';
 import { useAtlasAuth } from '@/auth/context';
 import { sendOnce, waitForTx } from '@/signing/chains';
@@ -41,19 +44,35 @@ type Pending = {
   reject: (e: Error) => void;
 };
 
-type Phase = { kind: 'review' } | { kind: 'pin' } | { kind: 'signing'; step: number } | { kind: 'error'; message: string };
+type Phase = { kind: 'review' } | { kind: 'enter' } | { kind: 'pin' } | { kind: 'signing'; step: number } | { kind: 'error'; message: string };
 
 const TITLES: Record<IntentKind, string> = {
-  buy: 'Review purchase',
-  sell: 'Review sale',
-  send: 'Review send',
-  off_ramp: 'Review withdrawal',
-  perp_open: 'Review position',
+  buy: 'Buy',
+  sell: 'Sell',
+  send: 'Send',
+  off_ramp: 'Withdraw',
+  perp_open: 'Open position',
   perp_close: 'Close position',
   earn_deposit: 'Put in savings',
   earn_withdraw: 'Take out of savings',
-  withdraw: 'Review withdrawal',
+  withdraw: 'Withdraw',
 };
+
+// The confirmation reads like a payment slip: the total big at the top, who it goes to, then the
+// details. Status lines belong on the receipt, not on a confirmation.
+const HEADLINES = ['Total from cash', 'You pay', 'You sell', 'Margin moved', 'Margin moved to Hyperliquid'];
+const RECIPIENTS = ['Send to', 'To'];
+const HIDDEN = ['Bank payout', 'Status'];
+type Row = { label: string; value: string };
+function slip(summary: Row[]) {
+  const headline = HEADLINES.map((l) => summary.find((r) => r.label === l)).find(Boolean) ?? null;
+  const to = summary.find((r) => RECIPIENTS.includes(r.label)) ?? null;
+  // "Opay · 9033935622 · NAME": the name on its own line, the bank and number under it.
+  const parts = to ? to.value.split(' · ') : [];
+  const recipient = to ? { name: parts.length > 1 ? parts[parts.length - 1] : to.value, detail: parts.length > 1 ? parts.slice(0, -1).join(' · ') : null } : null;
+  const rows = summary.filter((r) => r !== to && !HIDDEN.includes(r.label));
+  return { headline, recipient, rows };
+}
 
 const ConfirmContext = createContext<((plan: ExecutionPlan) => Promise<ActionReport>) | null>(null);
 
@@ -97,11 +116,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   };
 
   const confirm = async (pin: string) => {
-    if (!pending || busy.current || phase.kind !== 'review') return;
+    if (!pending || busy.current || phase.kind !== 'enter') return;
     busy.current = true;
     const mine = pending;
     if (Date.now() >= mine.plan.expiresAtUnixMs) {
-      busy.current = false; setPinError('This quote expired. Go back and try again.'); setPinReset((n) => n+1); return;
+      busy.current = false; setPhase({ kind: 'review' }); setPinReset((n) => n+1); return;
     }
     setPhase({ kind: 'pin' }); setPinError(null);
     let pinAuthorization: string;
@@ -111,7 +130,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       if (Date.now() >= mine.plan.expiresAtUnixMs) throw new Error('This quote expired. Go back and try again.');
       pinAuthorization = grant.authorization;
     } catch (e) {
-      busy.current = false; setPhase({ kind: 'review' }); setPinError(friendlyTxError(e)); setPinReset((n) => n+1); return;
+      busy.current = false; setPhase({ kind: 'enter' }); setPinError(friendlyTxError(e)); setPinReset((n) => n+1); return;
     }
     const { plan } = pending;
     confirmations.current += 1;
@@ -176,54 +195,132 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           <Pressable style={[styles.sheet, desktop && { borderRadius: 28, maxHeight: '85%', paddingTop: 24 }, { paddingBottom: insets.bottom + spacing.xl }]}>
             <ScrollView contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
             <View style={styles.grabber} />
-            {plan ? (
-              <>
-                <Text variant="title">{TITLES[plan.kind]}</Text>
-                <View style={styles.summary}>
-                  {plan.summary.map((row) => (
-                    <View key={row.label} style={styles.row}>
-                      <Text color="textSecondary">{row.label}</Text>
-                      <Text variant="bodyStrong">{row.value}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                {phase.kind === 'review' ? (
-                  <View style={styles.actions}>
-                    {expired ? <Text color="danger">This quote expired. Go back and try again.</Text> : null}
-                    <Text color="textSecondary">Enter your four-digit payment PIN to approve.</Text>
-                    <PinPad onComplete={confirm} disabled={expired || !signer.ready} resetKey={pinReset} />
-                    {pinError ? <Text color="danger" accessibilityRole="alert">{pinError}</Text> : null}
-                    <PillButton label="Cancel" tone="secondary" onPress={cancel} />
-                  </View>
-                ) : null}
-
-                {phase.kind === 'pin' ? <View style={styles.progress}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Checking your PIN…</Text></View> : null}
-
-                {phase.kind === 'signing' ? (
-                  <View style={styles.progress}>
-                    <ActivityIndicator color={colors.accentPink} />
-                    <Text color="textSecondary">
-                      {plan.transactions.length > 1
-                        ? `Working on it… step ${phase.step} of ${plan.transactions.length}`
-                        : 'Working on it…'}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {phase.kind === 'error' ? (
-                  <View style={styles.actions}>
-                    <Text color="danger">{phase.message}</Text>
-                    <PillButton label="Close" tone="secondary" onPress={failAfterError} />
-                  </View>
-                ) : null}
-              </>
-            ) : null}
+            {plan ? <Slip
+              plan={plan}
+              phase={phase}
+              expired={expired}
+              ready={signer.ready}
+              pinError={pinError}
+              pinReset={pinReset}
+              onPay={() => { setPinError(null); setPinReset((n) => n+1); setPhase({ kind: 'enter' }); }}
+              onBack={() => setPhase({ kind: 'review' })}
+              onCancel={cancel}
+              onPin={confirm}
+              onClose={failAfterError}
+            /> : null}
             </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
     </ConfirmContext.Provider>
+  );
+}
+
+function Slip({ plan, phase, expired, ready, pinError, pinReset, onPay, onBack, onCancel, onPin, onClose }: {
+  plan: ExecutionPlan; phase: Phase; expired: boolean; ready: boolean; pinError: string | null; pinReset: number;
+  onPay: () => void; onBack: () => void; onCancel: () => void; onPin: (pin: string) => void; onClose: () => void;
+}) {
+  const { headline, recipient, rows } = slip(plan.summary);
+  const total = headline?.value ?? null;
+
+  if (phase.kind === 'enter') {
+    return (
+      <View style={styles.pinSheet}>
+        <View style={styles.topBar}>
+          <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to the summary">
+            <Icon name="close" size={24} color="textPrimary" />
+          </Pressable>
+          <Text variant="bodyStrong">Enter payment PIN</Text>
+          <View style={styles.topSpacer} />
+        </View>
+        {total ? (
+          <Text color="textSecondary" style={styles.center}>
+            {recipient ? `${total} to ${recipient.name}` : `${TITLES[plan.kind]} · ${total}`}
+          </Text>
+        ) : null}
+        <PinPad onComplete={onPin} disabled={expired || !ready} resetKey={pinReset} />
+        {pinError ? <Text color="danger" style={styles.center} accessibilityRole="alert">{pinError}</Text> : null}
+        {expired ? <Text color="danger" style={styles.center}>This quote expired. Go back and try again.</Text> : null}
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <View style={styles.topBar}>
+        <Pressable onPress={onCancel} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cancel" disabled={phase.kind !== 'review'}>
+          <Icon name="close" size={24} color={phase.kind === 'review' ? 'textPrimary' : 'textDisabled'} />
+        </Pressable>
+        <Text variant="bodyStrong">{TITLES[plan.kind]}</Text>
+        <View style={styles.topSpacer} />
+      </View>
+
+      {headline ? (
+        <View style={styles.headline}>
+          <Text variant="caption" color="textSecondary">{headline.label}</Text>
+          <Text variant="display" style={styles.center} numberOfLines={2} adjustsFontSizeToFit>{headline.value}</Text>
+        </View>
+      ) : null}
+
+      {recipient ? (
+        <View style={styles.recipient}>
+          <View style={styles.recipientIcon}>
+            <Icon name={recipient.detail ? 'business-outline' : 'person-outline'} size={20} color="accentPinkTint" />
+          </View>
+          <View style={styles.recipientText}>
+            <Text variant="bodyStrong" style={styles.wrap}>{recipient.name}</Text>
+            {recipient.detail ? <Text variant="caption" color="textSecondary" style={styles.wrap}>{recipient.detail}</Text> : null}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.details}>
+        {rows.map((row) => (
+          <View key={row.label} style={[styles.row, row === headline && styles.totalRow]}>
+            <Text color="textSecondary" style={styles.rowLabel}>{row.label}</Text>
+            <Text variant={row === headline ? 'bodyStrong' : 'body'} style={styles.rowValue}>{row.value}</Text>
+          </View>
+        ))}
+        <PayFrom />
+      </View>
+
+      {phase.kind === 'review' ? (
+        <View style={styles.actions}>
+          {expired ? <Text color="danger">This quote expired. Go back and try again.</Text> : null}
+          <PillButton label={total ? `Pay ${total}` : 'Continue'} onPress={onPay} disabled={expired || !ready} />
+        </View>
+      ) : null}
+
+      {phase.kind === 'pin' ? <View style={styles.progress}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Checking your PIN…</Text></View> : null}
+
+      {phase.kind === 'signing' ? (
+        <View style={styles.progress}>
+          <ActivityIndicator color={colors.accentPink} />
+          <Text color="textSecondary">
+            {plan.transactions.length > 1 ? `Working on it… step ${phase.step} of ${plan.transactions.length}` : 'Working on it…'}
+          </Text>
+        </View>
+      ) : null}
+
+      {phase.kind === 'error' ? (
+        <View style={styles.actions}>
+          <Text color="danger">{phase.message}</Text>
+          <PillButton label="Close" tone="secondary" onPress={onClose} />
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+// Where the money comes from, with what's there now. Mounted only while a confirmation is open, so
+// it never keeps the balance polling on its own.
+function PayFrom() {
+  const { data } = useBalance();
+  return (
+    <View style={styles.row}>
+      <Text color="textSecondary" style={styles.rowLabel}>Pay from</Text>
+      <Text style={styles.rowValue}>{data ? `Atlas balance (${formatMoney(data.total)})` : 'Atlas balance'}</Text>
+    </View>
   );
 }
 
@@ -252,14 +349,36 @@ const styles = themedStyles(() => ({
     borderRadius: radii.pill,
     backgroundColor: colors.textDisabled,
   },
-  summary: {
-    gap: spacing.md,
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topSpacer: { width: 24 },
+  headline: { alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
+  center: { textAlign: 'center' },
+  wrap: Platform.select({ web: { overflowWrap: 'anywhere', wordBreak: 'break-word' } as object, default: {} }),
+  recipient: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg,
+    borderRadius: radii.md, backgroundColor: colors.bgSurfaceAlt,
+  },
+  recipientIcon: {
+    width: 40, height: 40, borderRadius: radii.pill, backgroundColor: colors.accentPinkMuted,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  recipientText: { flex: 1, minWidth: 0, gap: spacing.xxs },
+  details: {
+    gap: spacing.md, paddingTop: spacing.md,
+    borderTopWidth: 1, borderStyle: 'dashed', borderColor: colors.border,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
+  totalRow: { paddingTop: spacing.sm, borderTopWidth: 1, borderStyle: 'dashed', borderColor: colors.border },
+  rowLabel: { flexShrink: 0, maxWidth: '45%' },
+  rowValue: {
+    flex: 1, minWidth: 0, textAlign: 'right',
+    ...Platform.select({ web: { overflowWrap: 'anywhere', wordBreak: 'break-word' } as object, default: {} }),
+  },
+  pinSheet: { gap: spacing.lg, paddingBottom: spacing.md },
   actions: {
     gap: spacing.md,
   },
