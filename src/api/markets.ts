@@ -183,8 +183,11 @@ export function useAssetStats(assetId: string) {
           '/v1/assets/' + encodeURIComponent(assetId) + '/stats?currency=' + displayCurrency, token,
           { timeoutMs: 10_000 },
         );
-        if (live && stats.assetId === assetId &&
-          (!stats.marketCap || stats.marketCap.currency === displayCurrency)) setAnswer({ key, stats });
+        if (live && stats.assetId === assetId) {
+          const sameCurrency = [stats.marketCap, stats.volume24h, stats.liquidity]
+            .every(value => !value || value.currency === displayCurrency);
+          setAnswer({ key, stats: sameCurrency ? stats : null });
+        }
       } catch { if (live) setAnswer({ key, stats: null }); }
     };
     void load();
