@@ -25,6 +25,7 @@ import { useBackToWithdraw } from '@/funding/withdraw';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing, themedStyles } from '@/theme';
+import { QuoteTimer } from '@/components/quote-timer';
 
 type Phase =
   | { kind: 'edit' }
@@ -67,7 +68,7 @@ export default function WithdrawToWalletScreen() {
       }),
     [getAccessToken, picked, to, value, displayCurrency],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(
+  const { quote, quoting, error, secondsLeft, reload } = useLiveQuote(
     list?.enabled && value > 0 && to.length >= 2 ? request : null,
     phase.kind === 'edit',
   );
@@ -156,7 +157,7 @@ export default function WithdrawToWalletScreen() {
             </Pressable>
           </View>
           <AmountInput label="Amount they receive" value={amount} onChange={setAmount} currency={displayCurrency} />
-          <WithdrawReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+          <WithdrawReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} onReload={phase.kind === 'edit' ? reload : undefined} />
           {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
           <PillButton
             label="Withdraw"
@@ -180,11 +181,13 @@ function WithdrawReview({
   quoting,
   error,
   secondsLeft,
+  onReload,
 }: {
   quote: WithdrawQuote | null;
   quoting: boolean;
   error: string | null;
   secondsLeft: number;
+  onReload?: () => void;
 }) {
   if (quote) {
     const minutes = quote.timeEstimateSec ? Math.max(1, Math.round(quote.timeEstimateSec / 60)) : null;
@@ -200,9 +203,7 @@ function WithdrawReview({
         <Text variant="caption" color="textSecondary">
           Fees are added on top. Any unused price buffer goes back to your balance.
         </Text>
-        <Text variant="caption" color="textSecondary">
-          {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
-        </Text>
+        <QuoteTimer text={quoting ? 'Updating…' : `Held for ${secondsLeft}s`} onReload={onReload} busy={quoting} />
       </Card>
     );
   }

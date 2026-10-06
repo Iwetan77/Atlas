@@ -124,7 +124,7 @@ export default function SendToBankScreen() {
       }),
     [getAccessToken, payee, value],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(payee && value > 0 ? request : null, phase.kind === 'edit');
+  const { quote, quoting, error, secondsLeft, reload } = useLiveQuote(payee && value > 0 ? request : null, phase.kind === 'edit');
 
   const favorite = payee
     ? !!recipients?.find((r) => r.bankCode === payee.bank.code && r.accountNumber === payee.accountNumber)?.favorite
@@ -232,7 +232,7 @@ export default function SendToBankScreen() {
           </Text>
         </Pressable>
         <AmountInput label="They get" value={amount} onChange={setAmount} currency="NGN" />
-        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} onReload={phase.kind === 'edit' ? reload : undefined} />
         {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
         <PillButton
           label={quote ? `Send ${formatMoney(quote.send)}` : 'Send'}

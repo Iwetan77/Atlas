@@ -72,7 +72,7 @@ export default function SendToFriendScreen() {
       }),
     [getAccessToken, handle, value, displayCurrency],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(
+  const { quote, quoting, error, secondsLeft, reload } = useLiveQuote(
     recipient && value > 0 ? request : null,
     phase.kind === 'edit',
   );
@@ -141,7 +141,7 @@ export default function SendToFriendScreen() {
       {recipient ? (
         <>
           <AmountInput label="You send" value={amount} onChange={setAmount} currency={displayCurrency} />
-          <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+          <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} onReload={phase.kind === 'edit' ? reload : undefined} />
           {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
           <PillButton
             label={`Send to @${recipient.handle}`}

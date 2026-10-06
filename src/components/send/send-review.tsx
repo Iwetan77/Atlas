@@ -6,6 +6,7 @@ import { Text } from '@/components/ui/text';
 import { MoneyError } from '@/components/money-error';
 import { formatMoney } from '@/format/money';
 import { colors, spacing } from '@/theme';
+import { QuoteTimer } from '@/components/quote-timer';
 
 // What the engine quoted for a send, before the one confirmation.
 export function SendReview({
@@ -13,11 +14,14 @@ export function SendReview({
   quoting,
   error,
   secondsLeft,
+  onReload,
 }: {
   quote: SendQuote | null;
   quoting: boolean;
   error: string | null;
   secondsLeft: number;
+  // A fresh quote now; left out while the quote is being sent.
+  onReload?: () => void;
 }) {
   if (quote) {
     return (
@@ -30,9 +34,7 @@ export function SendReview({
           <Row label="You pay" value={formatMoney(quote.send)} />
         ) : null}
         <Row label="Arrives" value={quote.eta} />
-        <Text variant="caption" color="textSecondary">
-          {quoting ? 'Updating…' : `Held for ${secondsLeft}s`}
-        </Text>
+        <QuoteTimer text={quoting ? 'Updating…' : `Held for ${secondsLeft}s`} onReload={onReload} busy={quoting} />
       </Card>
     );
   }

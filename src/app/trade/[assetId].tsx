@@ -28,6 +28,7 @@ import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 import { TradeLayout } from '@/components/web/trade-layout';
+import { QuoteTimer } from '@/components/quote-timer';
 
 const POSITION_POLL_MS = 10_000;
 
@@ -100,7 +101,7 @@ export default function AssetTradeScreen() {
       }),
     [getAccessToken, params.assetId, side, value, displayCurrency, sellAll],
   );
-  const { quote, error: quoteError, quoting, secondsLeft, clear } = useLiveQuote(
+  const { quote, error: quoteError, quoting, secondsLeft, reload, clear } = useLiveQuote(
     value > 0 ? request : null,
     phase.kind === 'edit',
   );
@@ -260,9 +261,11 @@ export default function AssetTradeScreen() {
               </Text>
             </View>
           ) : null}
-          <Text variant="caption" color="textSecondary">
-            {quoting ? 'Updating price…' : `Price held for ${secondsLeft}s`}
-          </Text>
+          <QuoteTimer
+            text={quoting ? 'Updating price…' : `Price held for ${secondsLeft}s`}
+            onReload={phase.kind === 'edit' ? reload : undefined}
+            busy={quoting}
+          />
         </Card>
       ) : quoting ? (
         <Busy text="Getting the best price…" />

@@ -54,7 +54,7 @@ export default function CashLinkScreen() {
       }),
     [getAccessToken, key.escrow, note, value, displayCurrency],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(
+  const { quote, quoting, error, secondsLeft, reload } = useLiveQuote(
     value > 0 && live ? request : null,
     phase.kind === 'edit',
   );
@@ -114,7 +114,7 @@ export default function CashLinkScreen() {
         accessibilityLabel="Note for the link"
       />
       {live ? (
-        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
+        <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} onReload={phase.kind === 'edit' ? reload : undefined} />
       ) : (
         <Text color="textSecondary">Atlas Links open on the Atlas website, which goes live soon.</Text>
       )}

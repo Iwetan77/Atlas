@@ -26,6 +26,7 @@ import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 import { TradeLayout } from '@/components/web/trade-layout';
+import { QuoteTimer } from '@/components/quote-timer';
 
 type Side = 'long' | 'short';
 type Phase =
@@ -78,7 +79,7 @@ export default function PerpTicketScreen() {
       }),
     [getAccessToken, params.marketId, side, leverage, value, displayCurrency, takeProfit, stopLoss],
   );
-  const { quote, quoting, error, secondsLeft, clear } = useLiveQuote(value > 0 ? request : null, phase.kind === 'edit');
+  const { quote, quoting, error, secondsLeft, reload, clear } = useLiveQuote(value > 0 ? request : null, phase.kind === 'edit');
 
   const open = async () => {
     if (!quote) return;
@@ -264,17 +265,19 @@ export default function PerpTicketScreen() {
                 </Text>
               </>
             ) : null}
-            <Text variant="caption" color="textSecondary">
-              {phase.kind === 'settling'
-              ? phase.funding
-                ? 'Moving your margin to Hyperliquid…'
-                : 'Confirming with Hyperliquid…'
-              : phase.kind === 'opening'
-                ? 'Getting your order ready…'
-                : quoting
-                  ? 'Updating…'
-                  : `Held for ${secondsLeft}s`}
-            </Text>
+            <QuoteTimer
+              text={phase.kind === 'settling'
+                ? phase.funding
+                  ? 'Moving your margin to Hyperliquid…'
+                  : 'Confirming with Hyperliquid…'
+                : phase.kind === 'opening'
+                  ? 'Getting your order ready…'
+                  : quoting
+                    ? 'Updating…'
+                    : `Held for ${secondsLeft}s`}
+              onReload={phase.kind === 'edit' ? reload : undefined}
+              busy={quoting}
+            />
           </Card>
         </>
       ) : quoting ? (

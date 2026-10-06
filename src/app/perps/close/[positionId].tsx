@@ -17,6 +17,7 @@ import { Text } from '@/components/ui/text';
 import { formatMoney, formatPrice } from '@/format/money';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing, themedStyles } from '@/theme';
+import { QuoteTimer } from '@/components/quote-timer';
 
 type Phase =
   | { kind: 'review' }
@@ -41,7 +42,7 @@ export default function ClosePositionScreen() {
       }),
     [getAccessToken, params.positionId, percent],
   );
-  const { quote, quoting, error, secondsLeft } = useLiveQuote(request, phase.kind === 'review');
+  const { quote, quoting, error, secondsLeft, reload } = useLiveQuote(request, phase.kind === 'review');
 
   const close = async () => {
     if (!quote) return;
@@ -126,15 +127,17 @@ export default function ClosePositionScreen() {
           </View>
           <Row label="Exit price" value={formatPrice(quote.exitPrice)} />
           <Row label="Fee" value={formatMoney(quote.fee)} />
-          <Text variant="caption" color="textSecondary">
-            {phase.kind === 'settling'
+          <QuoteTimer
+            text={phase.kind === 'settling'
               ? phase.cashing
                 ? 'Closed. Moving the money to your balance…'
                 : 'Confirming with Hyperliquid…'
               : quoting
                 ? 'Updating…'
                 : `Held for ${secondsLeft}s`}
-          </Text>
+            onReload={phase.kind === 'review' ? reload : undefined}
+            busy={quoting}
+          />
         </Card>
       ) : quoting ? (
         <View style={styles.busy}>
