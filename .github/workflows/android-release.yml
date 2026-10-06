@@ -1,0 +1,80 @@
+# Builds the Android APK on GitHub's own machines (free for this public repo, no monthly cap) with
+# Expo's build tools and the app's existing signing key, so it installs over the current app, then
+# publishes it as release v<version> with atlas.apk, which the website's download link serves.
+#
+# Needs one repository secret: EXPO_TOKEN (an Expo robot token with the Developer role).
+# Run it from Actions → Android release → Run workflow.
+name: Android release
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: Release notes (one line per change)
+        required: false
+        default: ''
+      publish:
+        description: Publish the GitHub release (otherwise only keep the APK as a build file)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the APK (Expo, local build with the project's signing key)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then echo "EXPO_TOKEN secret is missing"; exit 1; fi
+          npx --yes eas-cli@latest build --platform android --profile preview --local --non-interactive --output atlas.apk
+
+      - name: Check the APK talks to Atlas's server
+        run: |
+          unzip -p atlas.apk assets/index.android.bundle > bundle.hbc
+          grep -q -a -F "justatlas.xyz" bundle.hbc || { echo "APK does not use justatlas.xyz"; exit 1; }
+          if grep -q -a -F "atlas-engine-djed" bundle.hbc; then echo "APK still uses the retired server"; exit 1; fi
+          echo "version $(node -p "require('./app.json').expo.version")"
+          sha256sum atlas.apk
+          ls -l atlas.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-apk
+          path: atlas.apk
+
+      - name: Publish release v<version>
+        if: ${{ inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          if gh release view "v$VERSION" >/dev/null 2>&1; then echo "v$VERSION is already released"; exit 1; fi
+          printf '%s\n' "${NOTES:-Atlas $VERSION}" > notes.md
+          gh release create "v$VERSION" atlas.apk --title "Atlas $VERSION" --notes-file notes.md --target "$GITHUB_SHA"
