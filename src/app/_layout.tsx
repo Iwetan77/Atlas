@@ -54,9 +54,24 @@ export default function RootLayout() {
   const theme = useSyncExternalStore(subscribeTheme, themeName, themeName);
   const navTheme = useMemo(() => navThemeFor(theme), [theme]);
   // Native pieces (keyboard, alerts, the window behind the app) follow the theme too.
+  // An iPhone Home Screen app (navigator.standalone) with the full-screen status bar gets a page
+  // shorter than the screen by the status bar's height, leaving a strip under the tab bar. There
+  // the page is exactly the screen's height (in portrait), which iOS reports itself.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !(navigator as Navigator & { standalone?: boolean }).standalone) return;
+    const fit = () => {
+      const height = window.innerWidth < window.innerHeight ? `${window.screen.height}px` : '';
+      for (const el of [document.documentElement, document.body, document.getElementById('root')]) {
+        if (el) el.style.height = height;
+      }
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
   useEffect(() => {
     if (Platform.OS === 'web') {
-      // Behind the web app (the iPhone Home Screen app's edges) is the tab bar's colour, not white.
+      // Behind the web app is the tab bar's colour, not white.
       document.documentElement.style.setProperty('--atlas-chrome', colors.bgTabBar);
       return;
     }
