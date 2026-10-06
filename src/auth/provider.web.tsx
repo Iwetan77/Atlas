@@ -28,27 +28,29 @@ const solanaRpcs = {
   },
 };
 
+// Privy's settings, made once. Handed a new object on every redraw (a theme switch redraws the root),
+// Privy set itself up again, and its own window (with the app's logo) could show at the top.
+const privyConfig: ComponentProps<typeof PrivyProvider>['config'] = {
+  loginMethods: ['google', 'email'],
+  defaultChain: privyEvmChains[0],
+  supportedChains: privyEvmChains,
+  // Privy's RPC type includes test-cluster methods; this configured transport is mainnet.
+  solana: { rpcs: solanaRpcs as SolanaRpcs },
+  // Privy's own sign-in screens use the theme Atlas started in.
+  appearance: { theme: themeName(), accentColor: colors.accentPink as `#${string}` },
+  embeddedWallets: {
+    // AuthBridge creates both wallets itself, one after the other. Letting Privy also do it
+    // on login races ours and one of the two calls fails with "already has a wallet".
+    ethereum: { createOnLogin: 'off' },
+    solana: { createOnLogin: 'off' },
+    // Atlas shows its own single confirmation per action; Privy's per-signature modal stays off.
+    showWalletUIs: false,
+  },
+};
+
 export function AtlasAuthProvider({ children }: { children: ReactNode }) {
   return (
-    <PrivyProvider
-      appId={privy.appId}
-      config={{
-        loginMethods: ['google', 'email'],
-        defaultChain: privyEvmChains[0],
-        supportedChains: privyEvmChains,
-        // Privy's RPC type includes test-cluster methods; this configured transport is mainnet.
-        solana: { rpcs: solanaRpcs as SolanaRpcs },
-        // Privy's own sign-in screens follow the theme chosen when they open.
-        appearance: { theme: themeName(), accentColor: colors.accentPink as `#${string}` },
-        embeddedWallets: {
-          // AuthBridge creates both wallets itself, one after the other. Letting Privy also do it
-          // on login races ours and one of the two calls fails with "already has a wallet".
-          ethereum: { createOnLogin: 'off' },
-          solana: { createOnLogin: 'off' },
-          // Atlas shows its own single confirmation per action; Privy's per-signature modal stays off.
-          showWalletUIs: false,
-        },
-      }}>
+    <PrivyProvider appId={privy.appId} config={privyConfig}>
       <AuthBridge>{children}</AuthBridge>
     </PrivyProvider>
   );

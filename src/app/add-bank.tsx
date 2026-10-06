@@ -133,20 +133,18 @@ export default function AddByBankScreen() {
           <AmountInput label="How much do you want to add?" value={naira} onChange={setNaira} currency="NGN" />
           {preview ? (
             <Card style={styles.card}>
-              {/* What's typed is what lands; the fees go on top of the transfer. */}
+              {/* What's typed is what lands; everything else is one fee on top, so the lines add
+                  up: the partner's fee, its delivery to the wallet and the rate, together. */}
               <Row label="You transfer" value={formatMoney(preview.pay)} strong />
               <Row label="You get" value={formatMoney(preview.receive)} />
-              <Row label="Fee (1%, up to ₦100)" value={formatMoney(preview.fee)} />
-              {/* A flat charge for sending the dollars to your wallet, whatever the amount. */}
-              <Row label="Delivery to your wallet" value={preview.networkFee} />
+              <Row
+                label="Fee"
+                value={preview.receive.currency === preview.pay.currency
+                  ? formatMoney({ amount: Math.max(0, Number(preview.pay.amount) - Number(preview.receive.amount)).toFixed(2), currency: preview.pay.currency })
+                  : `${formatMoney(preview.fee)} + ${preview.networkFee}`}
+              />
               <Row label="Rate" value={preview.rate} />
             </Card>
-          ) : null}
-          {preview && preview.receive.currency === 'NGN' && Number(preview.pay.amount) > 0 && 1 - Number(preview.receive.amount) / Number(preview.pay.amount) > 0.05 ? (
-            <Text variant="caption" color="textSecondary">
-              About {Math.round((1 - Number(preview.receive.amount) / Number(preview.pay.amount)) * 100)}% of the transfer goes to
-              fees here. Most of it is the flat delivery charge, so larger amounts pay a much smaller share.
-            </Text>
           ) : null}
           {previewError ? <Text color="danger">{previewError}</Text> : null}
           {problem ? <MoneyError message={problem} /> : null}
