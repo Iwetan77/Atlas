@@ -11,7 +11,8 @@ export function goBack() {
   else router.replace('/');
 }
 
-export function BackHeader({ title }: { title?: string }) {
+// `onBack` replaces leaving the screen (a page shown inside the same screen closes instead).
+export function BackHeader({ title, onBack }: { title?: string; onBack?: () => void }) {
   return (
     <View style={styles.row}>
       <Pressable
@@ -19,7 +20,7 @@ export function BackHeader({ title }: { title?: string }) {
         accessibilityLabel="Back"
         hitSlop={8}
         style={({ pressed }) => [styles.back, pressed && { backgroundColor: colors.accentPinkDim }]}
-        onPress={goBack}>
+        onPress={onBack ?? goBack}>
         <Icon name="chevron-back" size={20} color="accentPink" />
       </Pressable>
       {title ? <Text variant="title">{title}</Text> : null}

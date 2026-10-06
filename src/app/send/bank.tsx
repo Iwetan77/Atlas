@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 
 import type { Bank, BankGuess, BankRecipient } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
@@ -26,11 +26,15 @@ import { useBackToWithdraw } from '@/funding/withdraw';
 
 // Nigerian account numbers (NUBAN) are exactly 10 digits.
 const NUBAN_LENGTH = 10;
+// Like OPay: a few recents on the screen, the rest behind View all and search.
+const SHOWN_RECENTS = 4;
 
 // Who the money goes to, once the bank has confirmed the holder's name.
 type Payee = { bank: Bank; accountNumber: string; accountName: string };
 type Guesses = { number: string; banks: BankGuess[] | null; error: string | null };
 type Phase = { kind: 'edit' } | { kind: 'sending' } | { kind: 'done'; transfer: DoneTransfer } | { kind: 'failed'; message: string };
+// The full list of saved accounts, opened by View all (one tab) or the search icon (all of them).
+type Browse = { scope: 'recents' | 'favorites' | 'all'; focus: boolean };
 
 // Off-ramp: from the one balance straight to a bank account, paid out by the engine.
 // Type the account number and Atlas finds the bank (or pick a recent or favorite); then the amount.
@@ -44,6 +48,8 @@ export default function SendToBankScreen() {
   const [banksError, setBanksError] = useState<string | null>(null);
   const [recipients, setRecipients] = useState<BankRecipient[] | null>(null);
   const [tab, setTab] = useState<'recents' | 'favorites'>('recents');
+  const [browse, setBrowse] = useState<Browse | null>(null);
+  const [query, setQuery] = useState('');
   const [accountNumber, setAccountNumber] = useState(() => (params.account ?? '').replace(/\D/g, '').slice(0, NUBAN_LENGTH));
   const [guesses, setGuesses] = useState<Guesses | null>(null);
   const [manual, setManual] = useState<{ bank: Bank; result: string | null } | null>(null);
@@ -131,7 +137,22 @@ export default function SendToBankScreen() {
   const choose = (next: Payee) => {
     setAccountNumber(next.accountNumber);
     setPayee(next);
+    setBrowse(null);
+    setQuery('');
   };
+  const openBrowse = (next: Browse) => {
+    setQuery('');
+    setBrowse(next);
+  };
+  // Android's back button closes the list before it leaves the screen.
+  useEffect(() => {
+    if (!browse) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setBrowse(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [browse]);
   const reset = () => {
     setPayee(null);
     setManual(null);
@@ -223,7 +244,65 @@ export default function SendToBankScreen() {
     );
   }
 
-  const shown = (recipients ?? []).filter((r) => (tab === 'favorites' ? r.favorite : r.lastUsedAtUnixMs > 0));
+  const saved = (recipients ?? [])
+    .filter((r) => r.lastUsedAtUnixMs > 0 || r.favorite)
+    .sort((a, b) => b.lastUsedAtUnixMs - a.lastUsedAtUnixMs);
+  const inTab = (scope: Browse['scope']) =>
+    saved.filter((r) => (scope === 'favorites' ? r.favorite : scope === 'recents' ? r.lastUsedAtUnixMs > 0 : true));
+
+  if (browse) {
+    const listed = inTab(browse.scope).filter((r) => matchesSearch(r, query));
+    return (
+      <Screen>
+        <BackHeader
+          title={browse.scope === 'all' ? 'Search beneficiaries' : browse.scope === 'favorites' ? 'Favorites' : 'Recents'}
+          onBack={() => setBrowse(null)}
+        />
+        <Field
+          prefix={<Icon name="search" size={20} color="textSecondary" />}
+          placeholder="Account number or name"
+          value={query}
+          onChangeText={setQuery}
+          autoFocus={browse.focus}
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearable
+          returnKeyType="search"
+          accessibilityLabel="Search by account number or name"
+        />
+        {recipients === null ? (
+          <ActivityIndicator color={colors.accentPink} />
+        ) : listed.length === 0 ? (
+          <Text color="textSecondary">
+            {query.trim()
+              ? `No saved account matches “${query.trim()}”.`
+              : browse.scope === 'favorites'
+                ? 'Tap the star on an account to keep it here.'
+                : 'Accounts you send to show up here.'}
+          </Text>
+        ) : (
+          <Card style={styles.list}>
+            {listed.map((r, i) => {
+              const bank = { code: r.bankCode, name: r.bankName, logo: r.logo };
+              return (
+                <Row
+                  key={`${r.bankCode}:${r.accountNumber}`}
+                  bank={bank}
+                  title={r.accountName}
+                  subtitle={`${r.bankName} · ${r.accountNumber}`}
+                  divider={i > 0}
+                  onPress={() => choose({ bank, accountNumber: r.accountNumber, accountName: r.accountName })}
+                />
+              );
+            })}
+          </Card>
+        )}
+      </Screen>
+    );
+  }
+
+  const tabList = inTab(tab);
+  const shown = tabList.slice(0, SHOWN_RECENTS);
   const matches = accountNumber
     ? (recipients ?? [])
       .filter((r) => (r.lastUsedAtUnixMs > 0 || r.favorite) && r.accountNumber.startsWith(accountNumber))
@@ -328,6 +407,14 @@ export default function SendToBankScreen() {
                 </Text>
               </Pressable>
             ))}
+            <Pressable
+              onPress={() => openBrowse({ scope: 'all', focus: true })}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Search saved accounts"
+              style={styles.searchIcon}>
+              <Icon name="search" size={22} color="accentPinkTint" />
+            </Pressable>
           </View>
           {recipients === null ? (
             <ActivityIndicator color={colors.accentPink} />
@@ -352,6 +439,16 @@ export default function SendToBankScreen() {
                   />
                 );
               })}
+              {tabList.length > SHOWN_RECENTS ? (
+                <Pressable
+                  onPress={() => openBrowse({ scope: tab, focus: false })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View all ${tabList.length} ${tab === 'favorites' ? 'favorites' : 'recent accounts'}`}
+                  style={({ pressed }) => [styles.viewAll, pressed && styles.pressed]}>
+                  <Text variant="label" color="textSecondary">View all</Text>
+                  <Icon name="chevron-forward" size={14} color="textSecondary" />
+                </Pressable>
+              ) : null}
             </Card>
           )}
         </>
@@ -364,6 +461,16 @@ export default function SendToBankScreen() {
       ) : null}
     </Screen>
   );
+}
+
+// A saved account matches when its number has the typed digits, or its name or bank has the words.
+function matchesSearch(r: BankRecipient, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const digits = q.replace(/\s+/g, '');
+  if (/^\d+$/.test(digits)) return r.accountNumber.includes(digits);
+  const said = `${r.accountName} ${r.bankName}`.toLowerCase();
+  return q.split(/\s+/).every((word) => said.includes(word));
 }
 
 function Row({
@@ -448,7 +555,24 @@ const styles = themedStyles(() => ({
   },
   tabs: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
+  },
+  searchIcon: {
+    marginLeft: 'auto',
+    padding: spacing.xs,
+  },
+  viewAll: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgBase,
   },
   tab: {
     paddingVertical: spacing.xs,
