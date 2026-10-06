@@ -94,9 +94,11 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   const top = stickyTitle !== undefined && scrolled ? barHeight : 0;
   // The pinned copy lines up with the page's own column (wider on the desktop website).
   const column = StyleSheet.flatten(style);
-  return (
-    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-      {scroller && watching ? (
+  // Android draws edge to edge, so it no longer shrinks the app for the keyboard: the screen shrinks
+  // itself to the space above it, and the scroller keeps the field being typed in visible. iOS
+  // scrolling screens inset themselves (automaticallyAdjustKeyboardInsets); fixed ones pad.
+  const avoid = Platform.OS === 'android' ? 'height' : Platform.OS === 'ios' && !scroller ? 'padding' : undefined;
+  const body = scroller && watching ? (
         <View style={styles.root}>
           {scroller}
           {pinned && stuck ? (
@@ -119,10 +121,11 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
       ) : scroller ? (
         scroller
       ) : (
-        <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          {content}
-        </KeyboardAvoidingView>
-      )}
+        content
+      );
+  return (
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      {avoid ? <KeyboardAvoidingView style={styles.root} behavior={avoid}>{body}</KeyboardAvoidingView> : body}
     </SafeAreaView>
   );
 }
