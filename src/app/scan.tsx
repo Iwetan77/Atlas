@@ -72,9 +72,16 @@ export default function ScanScreen() {
       // Smaller is faster to read, and still sharp enough for printed digits.
       const image = await ImageManipulator.manipulate(shot.uri).resize({ width: 1400 }).renderAsync();
       const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG, base64: true });
-      const text = await reader.current.read(saved.base64 ?? '');
-      if (!act(text)) setNote('Couldn’t find an account number. Move closer and keep it steady, or type it in.');
-      else handled.current = true;
+      // Upright first; then sideways and upside down, since a phone can save a portrait photo
+      // turned (and a card can be held any way up).
+      for (const turn of [0, 90, 270, 180]) {
+        const text = await reader.current.read(saved.base64 ?? '', turn);
+        if (act(text)) {
+          handled.current = true;
+          return;
+        }
+      }
+      setNote('Couldn’t find an account number. Move closer and keep it steady, or type it in.');
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Couldn’t read the photo. Try again.');
     } finally {

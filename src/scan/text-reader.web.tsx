@@ -3,7 +3,8 @@
 // Tesseract itself.
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 
-export type TextReader = { read: (jpegBase64: string) => Promise<string> };
+// `turn`: degrees to rotate the photo first (a phone can save a portrait shot sideways).
+export type TextReader = { read: (jpegBase64: string, turn?: number) => Promise<string> };
 
 type Worker = {
   recognize: (image: string) => Promise<{ data: { text: string } }>;
@@ -45,6 +46,26 @@ function reader(): Promise<Worker> {
   return loading;
 }
 
+function rotated(src: string, turn: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const sideways = turn % 180 !== 0;
+      canvas.width = sideways ? img.height : img.width;
+      canvas.height = sideways ? img.width : img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Couldn’t open the photo'));
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((turn * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.onerror = () => reject(new Error('Couldn’t open the photo'));
+    img.src = src;
+  });
+}
+
 export const TextReaderView = forwardRef<TextReader>(function TextReaderView(_, ref) {
   // Start the download while the camera opens, so the first Read is quicker.
   useEffect(() => {
@@ -52,11 +73,12 @@ export const TextReaderView = forwardRef<TextReader>(function TextReaderView(_, 
   }, []);
 
   useImperativeHandle(ref, () => ({
-    read: (image) =>
+    read: (image, turn = 0) =>
       new Promise<string>((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('Reading the photo took too long')), READ_MS);
-        reader()
-          .then((worker) => worker.recognize(`data:image/jpeg;base64,${image}`))
+        const src = `data:image/jpeg;base64,${image}`;
+        Promise.all([reader(), turn ? rotated(src, turn) : src])
+          .then(([worker, photo]) => worker.recognize(photo))
           .then((result) => resolve(result.data.text), reject)
           .finally(() => clearTimeout(timer));
       }),

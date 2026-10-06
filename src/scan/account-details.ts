@@ -19,6 +19,8 @@ const ALIASES: Record<string, string[]> = {
 // Words that don't tell banks apart on their own.
 const GENERIC = new Set(['bank', 'plc', 'limited', 'ltd', 'nigeria', 'of', 'the', 'for', 'mfb', 'microfinance', 'first', 'united', 'trust', 'digital', 'services']);
 
+const LOOKALIKES: Record<string, string> = { O: '0', o: '0', Q: '0', D: '0', I: '1', l: '1', '|': '1', S: '5', B: '8' };
+
 export function readAccountDetails(text: string, banks: readonly BankLike[]): ScannedAccount | null {
   const accountNumber = findAccountNumber(text);
   if (!accountNumber) return null;
@@ -27,7 +29,12 @@ export function readAccountDetails(text: string, banks: readonly BankLike[]): Sc
 
 // Ten digits, allowing spaces or dashes between groups ("903 393 5622"); an eleven-digit phone
 // number with its leading 0 is an OPay-style account number without it.
-function findAccountNumber(text: string): string | null {
+function findAccountNumber(raw: string): string | null {
+  // A letter the reader took for a look-alike digit, between digits: "9O33935622", "50l6...".
+  let text = raw;
+  for (let i = 0; i < 3; i++) {
+    text = text.replace(/(?<=\d[\s-]?)[OoQDIl|SB](?=[\s-]?\d)/g, (c) => LOOKALIKES[c] ?? c);
+  }
   for (const match of text.matchAll(/\d(?:[\s-]?\d){9,10}/g)) {
     const digits = match[0].replace(/\D/g, '');
     const before = text[match.index - 1] ?? '';
