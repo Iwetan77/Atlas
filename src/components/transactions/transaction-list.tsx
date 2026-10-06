@@ -21,8 +21,11 @@ export function TransactionLogo({ receipt: r }: { receipt: TransactionReceipt })
       </View> : null}
     </View>;
   }
-  const icons: Record<string, IconName> = { deposit: 'arrow-down-outline', onramp: 'card-outline', offramp: 'business-outline', send: 'arrow-up-outline', cashlink: 'link-outline', earn_deposit: 'leaf-outline', earn_withdraw: 'leaf-outline', perp_open: 'trending-up-outline', perp_close: 'trending-down-outline' };
-  return <View style={styles.logo}><Icon name={icons[r.kind] ?? 'swap-horizontal-outline'} color="accentPinkTint" size={20} /></View>;
+  return <View style={styles.logo}><Icon name={transactionIcon(r.kind)} color="accentPinkTint" size={20} /></View>;
+}
+const ICONS: Record<string, IconName> = { deposit: 'arrow-down-outline', onramp: 'card-outline', offramp: 'business-outline', send: 'arrow-up-outline', cashlink: 'link-outline', earn_deposit: 'leaf-outline', earn_withdraw: 'leaf-outline', perp_open: 'trending-up-outline', perp_close: 'trending-down-outline' };
+export function transactionIcon(kind: string): IconName {
+  return ICONS[kind] ?? 'swap-horizontal-outline';
 }
 export function TransactionList({ rows, stealth }: { rows: TransactionReceipt[]; stealth: boolean }) {
   return <Card style={styles.card}>{rows.map((r, index) => (

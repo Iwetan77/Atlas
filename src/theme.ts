@@ -111,6 +111,8 @@ const light: Palette = {
 
 // Share cards are pictures people post: they keep the dark art whatever the app's theme.
 export const darkColors: Palette = { ...dark };
+// The light palette, for art that is always light (a receipt's pink header and its white pill).
+export const lightColors: Palette = { ...light };
 
 export type ThemeName = 'dark' | 'light';
 const THEME_KEY = 'atlas.theme';

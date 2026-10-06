@@ -20,13 +20,13 @@ export type ShareImageOptions = {
 };
 
 // Prepare before offering the system sheet: Safari requires sharing from a fresh tap.
-export function ShareImageSheet({ options }: { options: ShareImageOptions }) {
+export function ShareImageSheet({ options, title = 'Share your card' }: { options: ShareImageOptions; title?: string }) {
   const insets = useSafeAreaInsets();
   return <Modal visible={options.visible} transparent animationType="slide" onRequestClose={options.onClose}>
     <Pressable style={styles.backdrop} onPress={options.onClose} accessibilityLabel="Close share options">
       <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]} onPress={() => {}}>
         <ScrollView contentContainerStyle={styles.content}>
-          <Text variant="title">Share your card</Text>
+          <Text variant="title">{title}</Text>
           {options.preview ? <Image source={{ uri: options.preview }} style={styles.preview} contentFit="contain" accessibilityLabel="Your share card preview" /> : null}
           {options.preparing ? <View style={styles.progress}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Preparing your image…</Text></View> : null}
           {options.error ? <><Text color="danger" accessibilityRole="alert">{options.error}</Text>
