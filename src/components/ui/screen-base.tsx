@@ -1,5 +1,5 @@
-import { Children, createContext, isValidElement, type ReactElement, type ReactNode, useContext, useEffect, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
+import { Children, createContext, isValidElement, type ReactElement, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type GestureResponderEvent, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { goBack } from '@/components/ui/back-header';
@@ -14,6 +14,97 @@ type Props = ViewProps & { scroll?: boolean; refreshing?: boolean; onRefresh?: (
 
 // Room above the pinned copy, so it never touches the screen's edge or the title bar.
 const PINNED_GAP = spacing.sm;
+
+// Pull to refresh on the website: browsers draw nothing for RefreshControl, and the iPhone Home
+// Screen app has no pull-to-refresh of its own. How far to pull (after the drag is halved), the most
+// it stretches, and the room the spinner keeps while refreshing.
+const PULL_TRIGGER = 64;
+const PULL_MAX = 96;
+const PULL_SPINNER = 48;
+
+function touchY(e: GestureResponderEvent): number | null {
+  const n = e.nativeEvent as unknown as { touches?: ArrayLike<{ pageY: number }>; pageY?: number };
+  return n.touches?.[0]?.pageY ?? n.pageY ?? null;
+}
+
+// The page's top edge follows the finger down; past PULL_TRIGGER, letting go refreshes. Only from
+// the very top of the page, so scrolling back up never refreshes by accident.
+function useWebPull(enabled: boolean, refreshing: boolean, onRefresh: (() => void) | undefined) {
+  const [pull] = useState(() => new Animated.Value(0));
+  const [armed, setArmed] = useState(false);
+  const top = useRef(0);
+  const start = useRef<number | null>(null);
+  const distance = useRef(0);
+  const busy = useRef(refreshing);
+
+  useEffect(() => {
+    busy.current = refreshing;
+    if (!enabled) return;
+    Animated.timing(pull, { toValue: refreshing ? PULL_SPINNER : 0, duration: 180, useNativeDriver: false }).start();
+  }, [enabled, refreshing, pull]);
+
+  const settle = () => Animated.timing(pull, { toValue: busy.current ? PULL_SPINNER : 0, duration: 180, useNativeDriver: false }).start();
+
+  const handlers = enabled
+    ? {
+        onTouchStart: (e: GestureResponderEvent) => {
+          start.current = top.current <= 0 && !busy.current ? touchY(e) : null;
+          distance.current = 0;
+        },
+        onTouchMove: (e: GestureResponderEvent) => {
+          const y = touchY(e);
+          if (start.current === null || y === null) return;
+          const d = top.current > 0 ? 0 : Math.min(Math.max(0, (y - start.current) / 2), PULL_MAX);
+          distance.current = d;
+          pull.setValue(d);
+          if (d >= PULL_TRIGGER !== armed) setArmed(d >= PULL_TRIGGER);
+        },
+        onTouchEnd: () => {
+          if (start.current === null) return;
+          start.current = null;
+          setArmed(false);
+          if (distance.current >= PULL_TRIGGER && onRefresh) {
+            Animated.timing(pull, { toValue: PULL_SPINNER, duration: 120, useNativeDriver: false }).start();
+            onRefresh();
+            // A screen that doesn't report `refreshing` still lets go of the spinner.
+            setTimeout(settle, 900);
+          } else {
+            settle();
+          }
+          distance.current = 0;
+        },
+      }
+    : {};
+  const onTouchCancel = enabled ? () => { start.current = null; setArmed(false); settle(); } : undefined;
+
+  const indicator = enabled ? (
+    <Animated.View style={[pullStyles.area, { height: pull }]} pointerEvents="none">
+      {refreshing ? (
+        <ActivityIndicator color={colors.accentPink} />
+      ) : (
+        <Animated.View
+          style={{
+            opacity: pull.interpolate({ inputRange: [0, PULL_TRIGGER], outputRange: [0, 1], extrapolate: 'clamp' }),
+            transform: [{ rotate: armed ? '180deg' : '0deg' }],
+          }}>
+          <Icon name="arrow-down" size={20} color="accentPink" />
+        </Animated.View>
+      )}
+    </Animated.View>
+  ) : null;
+  const scrolledTo = (y: number) => {
+    top.current = y;
+  };
+  return { handlers: { ...handlers, onTouchCancel }, indicator, scrolledTo };
+}
+
+const pullStyles = StyleSheet.create({
+  area: {
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 // Where a screen's <Pinned> section sits in the scroll (its top, in content coordinates).
 const PinnedSpot = createContext<((y: number) => void) | null>(null);
@@ -44,6 +135,8 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   const [stuck, setStuck] = useState(false);
   const [viewport, setViewport] = useState(0);
   const watching = stickyTitle !== undefined || pinned !== undefined;
+  const webPull = useWebPull(Platform.OS === 'web' && scroll && !!onRefresh, refreshing, onRefresh);
+  const tracking = watching || Platform.OS === 'web';
   // While pinned, the page keeps a screen's worth of room below the pinned spot: typing a search
   // that leaves a few results can't shorten it so much that the bar (and its keyboard) goes away.
   const room = stuck && pinnedY !== null && viewport > 0 ? { minHeight: pinnedY + viewport } : null;
@@ -55,12 +148,15 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
       // to the top as a search narrowed it (and closed the pinned search). Phones don't do this.
       style={pinned && Platform.OS === 'web' ? ({ overflowAnchor: 'none' } as object) : undefined}
       onLayout={pinned ? (e) => setViewport(e.nativeEvent.layout.height) : undefined}
-      scrollEventThrottle={watching ? 16 : undefined}
+      scrollEventThrottle={tracking ? 16 : undefined}
+      {...webPull.handlers}
       onScroll={
-        !watching
+        !tracking
           ? undefined
           : (e) => {
               const y = e.nativeEvent.contentOffset.y;
+              webPull.scrolledTo(y);
+              if (!watching) return;
               const past = y > 56;
               if (past !== scrolled) setScrolled(past);
               // Stuck once the section's top meets the bottom of the title bar (or the screen's top).
@@ -88,6 +184,7 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
           />
         ) : undefined
       }>
+      {webPull.indicator}
       <PinnedSpot.Provider value={pinned ? setPinnedY : null}>{content}</PinnedSpot.Provider>
     </ScrollView>
   ) : null;
