@@ -4,8 +4,11 @@ import type { PropsWithChildren } from 'react';
 // On an iPhone Home Screen app with the full-screen status bar, iOS sizes the page short by the
 // status bar's height, leaving a white strip under the tab bar. There, the app fills the whole
 // screen, and what's behind it takes the tab bar's colour (set by the theme) instead of white.
+// And anywhere on the web, a long unbroken word (a pasted address, a hash, a long name) wraps inside
+// its card instead of running past it and pushing the page sideways. Phones' own text already does.
 const standalone = `
 html { background-color: var(--atlas-chrome, #444557); }
+[dir="auto"], input, textarea { overflow-wrap: anywhere; }
 @media all and (display-mode: standalone) {
   html, body, #root { height: 100vh; height: 100lvh; }
 }`;
