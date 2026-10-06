@@ -70,11 +70,7 @@ export default function RootLayout() {
     return () => window.removeEventListener('resize', fit);
   }, []);
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      // Behind the web app is the tab bar's colour, not white.
-      document.documentElement.style.setProperty('--atlas-chrome', colors.bgTabBar);
-      return;
-    }
+    if (Platform.OS === 'web') return;
     Appearance.setColorScheme?.(theme);
     SystemUI.setBackgroundColorAsync(colors.bgBase).catch(() => {});
   }, [theme]);
@@ -115,10 +111,13 @@ export default function RootLayout() {
       <SettingsProvider>
         <AtlasAuthProvider>
           <PinProvider>
-          <ConfirmProvider>
+          {/* A theme switch redraws everything that draws, the sheets above the screens included
+              (Add money, Withdraw, the payment slip): left mounted they kept the old theme's
+              colours next to the new theme's text. */}
+          <ConfirmProvider key={theme}>
             <AddMoneyProvider>
               <WithdrawProvider>
-                <WebShell key={theme}><RootStack /></WebShell>
+                <WebShell><RootStack /></WebShell>
                 <UpdateGate />
               </WithdrawProvider>
             </AddMoneyProvider>

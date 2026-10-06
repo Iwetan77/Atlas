@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Image, Modal, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,7 +12,7 @@ import { Text } from '@/components/ui/text';
 import { AppLock } from '@/security/app-lock';
 import { PinPad } from '@/security/pin-pad';
 import { PinSetup } from '@/security/pin-setup';
-import { colors, radii, spacing, themedStyles } from '@/theme';
+import { colors, radii, spacing, subscribeTheme, themedStyles, themeName } from '@/theme';
 
 export class PinCancelled extends Error { constructor() { super('Cancelled'); } }
 type Request = { action: PinAction; title: string; summary?: { label: string; value: string }[] };
@@ -32,6 +32,8 @@ export function PinProvider({ children }: { children: ReactNode }) {
   return <PinSession key={userId ?? 'signed-out'}>{children}</PinSession>;
 }
 function PinSession({ children }: { children: ReactNode }) {
+  // Its own screens redraw on a theme switch (keyed by it); its state, and the lock, stay.
+  const theme = useSyncExternalStore(subscribeTheme, themeName, themeName);
   const { authenticated, userId, getAccessToken, logout } = useAtlasAuth();
   const insets = useSafeAreaInsets();
   const [account, setAccount] = useState<{ owner: string; handle: string | null; configured: boolean } | null>(null);
@@ -90,15 +92,15 @@ function PinSession({ children }: { children: ReactNode }) {
   return (
     <Context.Provider value={{ request, reload }}>
       {setup ? !mine ? (
-        <View style={styles.loading}>
+        <View key={theme} style={styles.loading}>
           <Image source={require('../../assets/images/icon.png')} style={styles.logo} accessibilityLabel="Atlas" />
           {problem ? <><Text variant="heading">Securing your Atlas account</Text><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
             : <ActivityIndicator color={colors.accentPink} />}
         </View>
-      ) : <PinSetup handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
+      ) : <PinSetup key={theme} handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
         <AppLock active={authenticated} startLocked={!justSetUp} userId={userId} handle={mine?.handle ?? null}>{children}</AppLock>
       )}
-      <Modal visible={!!waiting} transparent animationType="slide" onRequestClose={cancel}>
+      <Modal key={theme} visible={!!waiting} transparent animationType="slide" onRequestClose={cancel}>
         <View style={styles.backdrop}>
           <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

@@ -1,12 +1,10 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
-// Behind the app is the tab bar's colour (set by the theme), never browser white. The iPhone Home
-// Screen app's height is set in _layout.tsx.
+// The iPhone Home Screen app's height is set in _layout.tsx.
 // And anywhere on the web, a long unbroken word (a pasted address, a hash, a long name) wraps inside
 // its card instead of running past it and pushing the page sideways. Phones' own text already does.
 const standalone = `
-html { background-color: var(--atlas-chrome, #444557); }
 [dir="auto"], input, textarea { overflow-wrap: anywhere; }`;
 
 export default function Root({ children }: PropsWithChildren) {
