@@ -190,9 +190,10 @@ export default function DepositScreen() {
               data={address}
               pieceSize={5}
               padding={12}
-              color={colors.bgBase}
+              // Always dark on the white card, in both themes (the page colour vanished in light mode).
+              color={colors.textOnLight}
               outerEyesOptions={{ borderRadius: 6, color: colors.accentPink }}
-              innerEyesOptions={{ borderRadius: 3, color: colors.bgBase }}
+              innerEyesOptions={{ borderRadius: 3, color: colors.textOnLight }}
             />
           </View>
           <Text selectable variant="caption" style={styles.address}>

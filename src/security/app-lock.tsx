@@ -79,8 +79,11 @@ function LockScreen({ userId, handle, onUnlock }: { userId: string; handle: stri
   useEffect(() => {
     let live = true;
     void biometry().then((b) => { if (live) setBio(b); });
-    // Straight to Face ID when it's on; the PIN pad stays underneath for when it fails.
-    if (on && !prompted.current) {
+    // On a phone app, straight to Face ID / fingerprint when it's on; the PIN pad stays underneath for
+    // when it fails. In a browser (the iPhone Home Screen app) the passkey prompt only works after a
+    // tap: asked by itself, iOS flashed its password sheet and closed it. There it waits for the
+    // "Use Face ID" button.
+    if (on && Platform.OS !== 'web' && !prompted.current) {
       prompted.current = true;
       void tryBiometrics();
     }

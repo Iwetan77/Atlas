@@ -84,7 +84,7 @@ function AssetCard({
         if (h.location === 'predictions') {
           const [, marketId, tokenId] = h.assetId.split(':');
           if (marketId && marketId !== 'cash') router.push({ pathname: '/predictions/[marketId]', params: { marketId, tokenId } });
-          else router.push('/predictions');
+          else router.navigate('/predictions-tab');
           return;
         }
         router.push({

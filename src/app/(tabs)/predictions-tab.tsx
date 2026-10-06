@@ -1,7 +1,6 @@
-import { Redirect } from 'expo-router';
+import { PredictionsHome } from '@/components/predictions/predictions-home';
 
-// The Predictions tab opens Atlas Predictions over the tabs (see the tab bar); a visit to this
-// address goes there too.
+// Atlas Predictions as a tab: the tab bar stays, like Trade and Perps.
 export default function PredictionsTab() {
-  return <Redirect href="/predictions" />;
+  return <PredictionsHome inTab />;
 }

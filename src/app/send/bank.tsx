@@ -276,36 +276,40 @@ export default function SendToBankScreen() {
 
       {complete ? (
         <>
-          {!found ? (
-            <View style={styles.finding}>
-              <ActivityIndicator color={colors.accentPink} />
-              <Text color="textSecondary">Finding the bank…</Text>
-            </View>
-          ) : found.banks?.length ? (
-            <Card style={styles.list}>
-              {found.banks.map((b, i) => (
-                <Row
-                  key={b.code}
-                  bank={b}
-                  title={b.accountName}
-                  subtitle={b.name}
-                  divider={i > 0}
-                  onPress={() => choose({ bank: b, accountNumber, accountName: b.accountName })}
-                />
-              ))}
-            </Card>
-          ) : (
-            <Text color="textSecondary">{found.error ?? 'We couldn’t find this account at the usual banks. Choose the bank below.'}</Text>
-          )}
-          <Text variant="label" color="textSecondary">
-            Not there? Choose the bank
-          </Text>
+          {/* Like OPay: the bank field right under the number, and the bank Atlas found for this
+              number suggested just below it, one tap to choose. */}
           <BankPicker
             banks={banks}
             value={chosen?.bank ?? null}
             onChange={(bank) => setManual({ bank, result: null })}
             error={banksError}
           />
+          {!chosen ? (
+            !found ? (
+              <View style={styles.finding}>
+                <ActivityIndicator color={colors.accentPink} />
+                <Text color="textSecondary">Finding the bank…</Text>
+              </View>
+            ) : found.banks?.length ? (
+              <View style={styles.suggested}>
+                <View style={styles.pointer} />
+                <Card style={styles.list}>
+                  {found.banks.map((b, i) => (
+                    <Row
+                      key={b.code}
+                      bank={b}
+                      title={b.accountName}
+                      subtitle={b.name}
+                      divider={i > 0}
+                      onPress={() => choose({ bank: b, accountNumber, accountName: b.accountName })}
+                    />
+                  ))}
+                </Card>
+              </View>
+            ) : (
+              <Text color="textSecondary">{found.error ?? 'Choose the bank above.'}</Text>
+            )
+          ) : null}
           {chosen && chosen.result === null ? <Text color="textSecondary">Checking account…</Text> : null}
           {chosen?.result ? <Text color="textSecondary">{chosen.result}</Text> : null}
         </>
@@ -404,6 +408,12 @@ const styles = themedStyles(() => ({
   payeeText: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  // The suggestion under the bank field, with a small pointer up to it.
+  suggested: { gap: 0 },
+  pointer: {
+    width: 14, height: 14, marginLeft: spacing.xl, marginBottom: -7, zIndex: 1,
+    transform: [{ rotate: '45deg' }], backgroundColor: colors.bgSurface,
   },
   finding: {
     flexDirection: 'row',

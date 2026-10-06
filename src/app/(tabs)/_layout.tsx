@@ -1,4 +1,5 @@
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 import { colors } from '@/theme';
@@ -15,6 +16,9 @@ const TABS: { name: string; title: string; icon: IconName; iconActive: IconName 
 
 export default function TabLayout() {
   const desktop = useDesktop();
+  // Android draws the app under its gesture bar or buttons (and iPhones under the home indicator):
+  // the bar grows by that much so its icons sit above them.
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -22,12 +26,13 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.accentPink,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: desktop ? { display: 'none' } : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: 72, paddingTop: 10 },
+        tabBarStyle: desktop
+          ? { display: 'none' }
+          : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: 72 + insets.bottom, paddingTop: 10, paddingBottom: insets.bottom },
         sceneStyle: { backgroundColor: colors.bgBase },
       }}>
       {TABS.slice(0, 3).map(tab)}
-      {/* Atlas Predictions, the mini app, one tap from anywhere: it opens over the tabs, and back
-          returns to where you were. It stays under More's mini apps too. */}
+      {/* Atlas Predictions, a tab like the others (the tab bar stays); also under More's mini apps. */}
       <Tabs.Screen
         name="predictions-tab"
         options={{
@@ -37,12 +42,6 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <Icon name={focused ? 'planet' : 'planet-outline'} size={26} color={focused ? 'accentPink' : 'textSecondary'} />
           ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/predictions');
-          },
         }}
       />
       {TABS.slice(3).map(tab)}

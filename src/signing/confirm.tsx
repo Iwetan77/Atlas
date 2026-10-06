@@ -42,6 +42,8 @@ export class ActionCancelled extends Error {
 
 type Pending = {
   plan: ExecutionPlan;
+  // When the quote runs out by this phone's clock.
+  deadline: number;
   resolve: (r: ActionReport) => void;
   reject: (e: Error) => void;
 };
@@ -105,7 +107,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       confirmations.current = 0;
       setPhase({ kind: 'review' });
       setPinError(null); setPinReset((n) => n+1); busy.current = false;
-      const next = { plan, resolve, reject }; currentReview.current = next; setPending(next);
+      // The plan's lifetime as the engine set it (about two minutes), started now on this phone.
+      const lifetime = plan.expiresAtUnixMs - Date.now();
+      const deadline = lifetime > 5_000 && lifetime <= 10 * 60_000 ? plan.expiresAtUnixMs : Date.now() + 110_000;
+      const next = { plan, deadline, resolve, reject }; currentReview.current = next; setPending(next);
     });
   }, []);
 
@@ -121,7 +126,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     if (!pending || busy.current || phase.kind !== 'enter') return;
     busy.current = true;
     const mine = pending;
-    if (Date.now() >= mine.plan.expiresAtUnixMs) {
+    if (Date.now() >= mine.deadline) {
       busy.current = false; setPhase({ kind: 'review' }); setPinReset((n) => n+1); return;
     }
     setPhase({ kind: 'pin' }); setPinError(null);
@@ -129,7 +134,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     try {
       const grant = await authorizePin(getAccessToken, pin, { type: 'intent', intentId: mine.plan.intentId });
       if (!mounted.current || currentReview.current !== mine) return;
-      if (Date.now() >= mine.plan.expiresAtUnixMs) throw new Error('This quote expired. Go back and try again.');
+      if (Date.now() >= mine.deadline) throw new Error('This quote expired. Go back and try again.');
       pinAuthorization = grant.authorization;
     } catch (e) {
       busy.current = false; setPhase({ kind: 'enter' }); setPinError(friendlyTxError(e)); setPinReset((n) => n+1); return;
@@ -180,13 +185,15 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   };
 
   const plan = pending?.plan;
-  // Flips when the plan's quote actually runs out, even if the sheet just sits open.
+  // Flips when the plan's quote actually runs out, even if the sheet just sits open. Timed from when
+  // the plan arrived: a phone clock that's a few minutes off made every quote look expired at once
+  // (the engine still refuses a plan that really has expired).
   const [expiredPlan, setExpiredPlan] = useState<ExecutionPlan | null>(null);
   useEffect(() => {
     if (!plan) return;
-    const id = setTimeout(() => setExpiredPlan(plan), Math.max(0, plan.expiresAtUnixMs - Date.now()));
+    const id = setTimeout(() => setExpiredPlan(plan), Math.max(0, (pending?.deadline ?? plan.expiresAtUnixMs) - Date.now()));
     return () => clearTimeout(id);
-  }, [plan]);
+  }, [plan, pending?.deadline]);
   const expired = !!plan && expiredPlan === plan;
 
   return (
@@ -202,6 +209,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               phase={phase}
               expired={expired}
               ready={signer.ready}
+              waiting={signer.waiting ?? null}
               pinError={pinError}
               pinReset={pinReset}
               onPay={() => { setPinError(null); setPinReset((n) => n+1); setPhase({ kind: 'enter' }); }}
@@ -218,8 +226,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function Slip({ plan, phase, expired, ready, pinError, pinReset, onPay, onBack, onCancel, onPin, onClose }: {
-  plan: ExecutionPlan; phase: Phase; expired: boolean; ready: boolean; pinError: string | null; pinReset: number;
+function Slip({ plan, phase, expired, ready, waiting, pinError, pinReset, onPay, onBack, onCancel, onPin, onClose }: {
+  plan: ExecutionPlan; phase: Phase; expired: boolean; ready: boolean; waiting: string | null; pinError: string | null; pinReset: number;
   onPay: () => void; onBack: () => void; onCancel: () => void; onPin: (pin: string) => void; onClose: () => void;
 }) {
   const { headline, recipient, rows } = slip(plan.summary);
@@ -289,6 +297,9 @@ function Slip({ plan, phase, expired, ready, pinError, pinReset, onPay, onBack, 
       {phase.kind === 'review' ? (
         <View style={styles.actions}>
           {expired ? <Text color="danger">This quote expired. Go back and try again.</Text> : null}
+          {!expired && !ready ? (
+            <View style={styles.waiting}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary" style={styles.waitingText}>{waiting ?? 'Connecting your wallet…'}</Text></View>
+          ) : null}
           <PillButton label={total ? `Pay ${total}` : 'Continue'} onPress={onPay} disabled={expired || !ready} />
         </View>
       ) : null}
@@ -386,6 +397,8 @@ const styles = themedStyles(() => ({
     ...Platform.select({ web: { overflowWrap: 'anywhere', wordBreak: 'break-word' } as object, default: {} }),
   },
   pinSheet: { gap: spacing.lg, paddingBottom: spacing.md },
+  waiting: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  waitingText: { flex: 1 },
   actions: {
     gap: spacing.md,
   },

@@ -3,7 +3,7 @@
 import { useAuthorizationSignature, useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
 import { VersionedTransaction } from '@solana/web3.js';
 import { Buffer } from 'buffer';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { numberToHex } from 'viem';
 
 import { predictionGeo } from '@/api/predictions';
@@ -17,7 +17,18 @@ export function useSigner(): Signer {
 
   const { generateAuthorizationSignature } = useAuthorizationSignature();
   const ethWallet = eth.wallets[0];
-  const solWallet = sol.status === 'connected' ? sol.wallets[0] : undefined;
+  // Privy can report the Solana wallet as connecting or reconnecting for a while on Android while
+  // it is there and usable (its provider waits for the connection). One that needs recovery recovers
+  // itself first (below); one that doesn't exist yet, or is disconnected, can't sign.
+  const usable = sol.status === 'connected' || sol.status === 'connecting' || sol.status === 'reconnecting';
+  const solWallet = usable ? sol.wallets?.[0] : undefined;
+  // A wallet that needs recovering recovers itself (Privy's own recovery, no prompt), once.
+  const recovering = useRef(false);
+  useEffect(() => {
+    if (sol.status !== 'needs-recovery' || recovering.current || !sol.recover) return;
+    recovering.current = true;
+    sol.recover().catch((e: unknown) => console.warn('[atlas] Solana wallet recovery failed', e)).finally(() => { recovering.current = false; });
+  }, [sol]);
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
@@ -81,5 +92,11 @@ export function useSigner(): Signer {
     [generateAuthorizationSignature],
   );
 
-  return { ready: !!ethWallet && !!solWallet, send, sign, approve };
+  const ready = !!ethWallet && !!solWallet;
+  const waiting = ready ? null : !ethWallet || sol.status === 'not-created' || sol.status === 'creating'
+    ? 'Setting up your wallet…'
+    : sol.status === 'disconnected' || sol.status === 'error'
+      ? "Your wallet isn't connected. Close Atlas fully and open it again."
+      : 'Connecting your wallet…';
+  return { ready, waiting, send, sign, approve };
 }

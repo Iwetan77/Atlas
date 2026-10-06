@@ -57,7 +57,7 @@ export default function MoreScreen() {
         Explore with your Atlas wallet that open inside Atlas with your wallet connected. You approve every signature.
       </Text>
       <View style={styles.apps}>
-        <Pressable onPress={() => router.push('/predictions')} accessibilityRole="button"
+        <Pressable onPress={() => router.navigate('/predictions-tab')} accessibilityRole="button"
           accessibilityLabel="Open Atlas Predictions"
           style={({ pressed }) => [styles.app, desktop && { width: '16.666%' }, pressed && { opacity: 0.7 }]}>
           <View style={styles.predictionIcon}>
