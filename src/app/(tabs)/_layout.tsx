@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -19,6 +20,7 @@ export default function TabLayout() {
   // Android draws the app under its gesture bar or buttons (and iPhones under the home indicator):
   // the bar grows by that much so its icons sit above them.
   const insets = useSafeAreaInsets();
+  const web = Platform.OS === 'web';
   return (
     <Tabs
       screenOptions={{
@@ -28,7 +30,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: desktop
           ? { display: 'none' }
-          : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: 72 + insets.bottom, paddingTop: 10, paddingBottom: insets.bottom },
+          : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: (web ? 56 : 72) + insets.bottom, paddingTop: web ? 4 : 10, paddingBottom: insets.bottom + (web ? 4 : 0) },
         sceneStyle: { backgroundColor: colors.bgBase },
       }}>
       {TABS.slice(0, 3).map(tab)}
