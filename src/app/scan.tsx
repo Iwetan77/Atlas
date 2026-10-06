@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Bank } from '@/api/contract';
@@ -68,7 +68,7 @@ export default function ScanScreen() {
     setNote(null);
     try {
       const shot = await camera.current?.takePictureAsync({ quality: 0.8, shutterSound: false });
-      if (!shot || !reader.current) throw new Error('Reading photos works in the Atlas app.');
+      if (!shot || !reader.current) throw new Error('Couldn’t take the photo. Try again.');
       // Smaller is faster to read, and still sharp enough for printed digits.
       const image = await ImageManipulator.manipulate(shot.uri).resize({ width: 1400 }).renderAsync();
       const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG, base64: true });
@@ -93,7 +93,15 @@ export default function ScanScreen() {
         <Text color="textSecondary">
           Atlas uses the camera to read QR codes and account numbers, so you don’t have to type them.
         </Text>
-        <PillButton label="Allow camera" onPress={requestPermission} />
+        {/* Once the phone has said no for good, asking again does nothing: only Settings can allow it. */}
+        {permission.canAskAgain || Platform.OS === 'web' ? (
+          <PillButton label="Allow camera" onPress={requestPermission} />
+        ) : (
+          <>
+            <Text color="textSecondary">Camera access is off for Atlas. Turn it on in Settings, then come back.</Text>
+            <PillButton label="Open Settings" onPress={() => void Linking.openSettings()} />
+          </>
+        )}
         <PillButton label="Type an account number" tone="secondary" onPress={() => router.replace('/send/bank')} />
       </Screen>
     );

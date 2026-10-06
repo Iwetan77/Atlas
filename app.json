@@ -49,7 +49,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Atlas uses a photo you choose as your profile picture.",
-          "cameraPermission": false,
+          "cameraPermission": "Atlas uses the camera to scan QR codes and account numbers.",
           "microphonePermission": false
         }
       ],
