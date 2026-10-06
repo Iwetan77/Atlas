@@ -235,7 +235,7 @@ export default function SendToBankScreen() {
         <SendReview quote={quote} quoting={quoting} error={error} secondsLeft={secondsLeft} />
         {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
         <PillButton
-          label={quote ? `Withdraw ${formatMoney(quote.send)}` : 'Withdraw'}
+          label={quote ? `Send ${formatMoney(quote.send)}` : 'Send'}
           disabled={!quote || quoting}
           loading={phase.kind === 'sending'}
           onPress={withdraw}

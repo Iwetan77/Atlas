@@ -45,7 +45,7 @@ export default function TabLayout() {
         }}
       />
       {TABS.slice(3).map(tab)}
-      {/* Send lives in Home's Withdraw sheet now; the page stays for the website's sidebar. */}
+      {/* Send lives in Home's Send sheet now; the page stays for the website's sidebar. */}
       <Tabs.Screen name="send" options={{ href: null, title: 'Send' }} />
     </Tabs>
   );

@@ -19,7 +19,7 @@ export type Choice = {
   onPress?: () => void;
 };
 
-// The sheet behind Home's Deposit and Withdraw: a title, and one tap per way the money can go.
+// The sheet behind Home's Deposit and Send: a title, and one tap per way the money can go.
 export function ChoiceSheet({
   visible,
   onClose,
