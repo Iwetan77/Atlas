@@ -10,7 +10,9 @@ import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract
 import { useBalance } from '@/api/balance';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
-import { formatMoney } from '@/format/money';
+import { spendableAmount } from '@/components/send/spendable-card';
+import { formatMoney, hiddenMoney } from '@/format/money';
+import { useSettings } from '@/settings/context';
 import { Text } from '@/components/ui/text';
 import { useAtlasAuth } from '@/auth/context';
 import { sendOnce, waitForTx } from '@/signing/chains';
@@ -312,14 +314,19 @@ function Slip({ plan, phase, expired, ready, pinError, pinReset, onPay, onBack, 
   );
 }
 
-// Where the money comes from, with what's there now. Mounted only while a confirmation is open, so
-// it never keeps the balance polling on its own.
+// Where the money comes from: the cash that can actually pay (coins, savings and perps margin count
+// in the balance but can't). Mounted only while a confirmation is open, so it never keeps the
+// balance polling on its own.
 function PayFrom() {
   const { data } = useBalance();
+  const { stealthMode } = useSettings();
+  const spendable = data ? { amount: spendableAmount(data).toFixed(2), currency: data.total.currency } : null;
   return (
     <View style={styles.row}>
       <Text color="textSecondary" style={styles.rowLabel}>Pay from</Text>
-      <Text style={styles.rowValue}>{data ? `Atlas balance (${formatMoney(data.total)})` : 'Atlas balance'}</Text>
+      <Text style={styles.rowValue}>
+        {spendable ? `Spendable balance (${stealthMode ? hiddenMoney(spendable.currency) : formatMoney(spendable)})` : 'Spendable balance'}
+      </Text>
     </View>
   );
 }

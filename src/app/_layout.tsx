@@ -55,7 +55,11 @@ export default function RootLayout() {
   const navTheme = useMemo(() => navThemeFor(theme), [theme]);
   // Native pieces (keyboard, alerts, the window behind the app) follow the theme too.
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      // Behind the web app (the iPhone Home Screen app's edges) is the tab bar's colour, not white.
+      document.documentElement.style.setProperty('--atlas-chrome', colors.bgTabBar);
+      return;
+    }
     Appearance.setColorScheme?.(theme);
     SystemUI.setBackgroundColorAsync(colors.bgBase).catch(() => {});
   }, [theme]);
