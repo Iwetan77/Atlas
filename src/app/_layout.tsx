@@ -21,6 +21,7 @@ import { ConfirmProvider } from '@/signing/confirm';
 import { colors, subscribeTheme, themeName, type ThemeName } from '@/theme';
 import { WebShell } from '@/components/web/shell';
 import { useKeyboardScroll } from '@/web/use-keyboard-scroll';
+import { usePageAppearance } from '@/web/use-page-appearance';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,32 +54,8 @@ export default function RootLayout() {
   useKeyboardScroll();
   const theme = useSyncExternalStore(subscribeTheme, themeName, themeName);
   const navTheme = useMemo(() => navThemeFor(theme), [theme]);
+  usePageAppearance(theme);
   // Native pieces (keyboard, alerts, the window behind the app) follow the theme too.
-  // An iPhone Home Screen app (navigator.standalone) with the full-screen status bar gets a page
-  // shorter than the screen by the status bar's height, leaving a strip under the tab bar. There
-  // the page is exactly the screen's height (in portrait), which iOS reports itself.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !(navigator as Navigator & { standalone?: boolean }).standalone) return;
-    // Only when the page really runs under the status bar (a top safe area): with a solid status
-    // bar the page starts below it, and a full-screen height would push it past the bottom.
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top)';
-    document.body.appendChild(probe);
-    const fit = () => {
-      const underStatusBar = parseFloat(getComputedStyle(probe).paddingTop) > 0;
-      const short = window.innerHeight < window.screen.height;
-      const height = underStatusBar && short && window.innerWidth < window.innerHeight ? `${window.screen.height}px` : '';
-      for (const el of [document.documentElement, document.body, document.getElementById('root')]) {
-        if (el) el.style.height = height;
-      }
-    };
-    fit();
-    window.addEventListener('resize', fit);
-    return () => {
-      window.removeEventListener('resize', fit);
-      probe.remove();
-    };
-  }, []);
   useEffect(() => {
     if (Platform.OS === 'web') return;
     Appearance.setColorScheme?.(theme);

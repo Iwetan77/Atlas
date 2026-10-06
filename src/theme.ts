@@ -2,6 +2,8 @@
 import { createContext } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
+import { applyPageTheme, pageThemeBootstrap } from '@/web/page-appearance';
+
 // Atlas's dark look (the original), and the light one: same brand pink, same meaning per token.
 const dark = {
   // MiniPay's slate greys, sampled from their app: grey carries the layout, pink carries the brand.
@@ -112,6 +114,7 @@ export const darkColors: Palette = { ...dark };
 
 export type ThemeName = 'dark' | 'light';
 const THEME_KEY = 'atlas.theme';
+export const webThemeBootstrap = pageThemeBootstrap(THEME_KEY, { dark: dark.bgBase, light: light.bgBase });
 
 // Read before any screen draws, so a light-mode user never sees a dark flash at start.
 function savedTheme(): ThemeName {
@@ -132,6 +135,7 @@ let current: ThemeName = savedTheme();
 // The live palette. Its values change in place when the theme does; every lookup at render time
 // (Text, Icon, inline styles, themedStyles) reads the current one.
 export const colors: Palette = { ...(current === 'light' ? light : dark) };
+if (Platform.OS === 'web') applyPageTheme(current, colors.bgBase);
 
 const listeners = new Set<() => void>();
 
@@ -149,6 +153,7 @@ export function setTheme(next: ThemeName) {
   if (next === current) return;
   current = next;
   Object.assign(colors, next === 'light' ? light : dark);
+  if (Platform.OS === 'web') applyPageTheme(next, colors.bgBase);
   try {
     if (Platform.OS === 'web') {
       window.localStorage?.setItem(THEME_KEY, next);
