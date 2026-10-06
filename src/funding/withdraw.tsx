@@ -7,7 +7,8 @@ import { type Choice, ChoiceSheet } from '@/components/ui/choice-sheet';
 
 const WithdrawContext = createContext<(() => void) | null>(null);
 
-// Opens the Withdraw sheet from anywhere: Home's Withdraw, or back from one of its screens.
+// Opens the Send sheet (every way money leaves) from anywhere: Home's Send, or back from one of its
+// screens. Internally it's still "withdraw", as the screens' `from` parameter says.
 export function useWithdraw() {
   const open = useContext(WithdrawContext);
   if (!open) throw new Error('useWithdraw must be used inside <WithdrawProvider>');
@@ -80,5 +81,5 @@ function WithdrawSheet({ visible, onClose }: { visible: boolean; onClose: () => 
     ];
   }, [onClose, walletReady]);
 
-  return <ChoiceSheet visible={visible} onClose={onClose} title="Withdraw" choices={choices} />;
+  return <ChoiceSheet visible={visible} onClose={onClose} title="Send" choices={choices} />;
 }

@@ -102,7 +102,7 @@ export function HeroBalance(props: Props) {
 
         <View style={styles.actions}>
           <HeroAction icon="arrow-down" label="Deposit" onPress={props.onDeposit} />
-          <HeroAction icon="arrow-up" label="Withdraw" onPress={props.onWithdraw} />
+          <HeroAction icon="arrow-up" label="Send" onPress={props.onWithdraw} />
         </View>
 
         {open ? (

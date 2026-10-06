@@ -10,7 +10,7 @@ import { colors, spacing, themedStyles } from '@/theme';
 import { DesktopColumns } from '@/components/web/columns';
 import { SpendableCard } from '@/components/send/spendable-card';
 
-// Send hub on the website (the phone uses Home's Withdraw sheet): four ways out of the one balance.
+// Send hub on the website (the phone uses Home's Send sheet): four ways out of the one balance.
 export default function SendScreen() {
   return (
     <Screen>
