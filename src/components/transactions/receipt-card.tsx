@@ -20,8 +20,10 @@ const RECIPIENT_LABELS = ['Send to', 'To'];
 const STATUS_LABELS = ['Bank payout', 'Status'];
 // The line everything adds up to, set apart at the bottom of the rows.
 const TOTAL_LABELS = ['You pay', 'Total from cash'];
-// Reference lines, not part of the sum: under the date in the footer.
-const FOOTNOTE_LABELS = ['Rate'];
+// Reference lines, not part of the sum: under the date in the footer. A gas top-up only appears on
+// a receipt where one actually happened, and the SOL stays in the balance.
+const GAS_LABEL = 'Gas top-up (kept as SOL)';
+const FOOTNOTE_LABELS = ['Rate', GAS_LABEL];
 
 const BALANCE: Stop = { name: 'Your Atlas balance', detail: null, icon: 'wallet-outline' };
 
@@ -179,7 +181,7 @@ export function ReceiptCard({
         </View>
         {footnotes.map((line) => (
           <View key={line.label} style={styles.footerLine}>
-            <Icon name="swap-horizontal-outline" size={14} color="textSecondary" />
+            <Icon name={line.label === GAS_LABEL ? 'flash-outline' : 'swap-horizontal-outline'} size={14} color="textSecondary" />
             <Text variant="caption" color="textSecondary">{line.label} {hide(line.value)}</Text>
           </View>
         ))}
