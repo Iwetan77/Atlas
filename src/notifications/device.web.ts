@@ -19,9 +19,11 @@ function publicKey(text: string) {
 }
 export async function disconnectNotifications(getToken: () => Promise<string | null>) {
   if (supported()) {
-    const reg = await navigator.serviceWorker.getRegistration('/atlas-push-sw.js');
-    const subscription = await reg?.pushManager.getSubscription();
-    await subscription?.unsubscribe();
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/atlas-push-sw.js');
+      const subscription = await reg?.pushManager.getSubscription();
+      await subscription?.unsubscribe();
+    } catch { /* A browser notification error must not block sign-out. */ }
   }
   await removeDevice(getToken).catch(() => {});
 }
