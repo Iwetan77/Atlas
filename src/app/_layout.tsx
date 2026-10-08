@@ -158,7 +158,11 @@ function RootStack() {
   // never the welcome screen. A first visit to the website shows the welcome page at once, and the
   // public pages (install instructions, Atlas Links) never wait on sign-in.
   const publicPage = Platform.OS === 'web' && /^\/(install|claim)(\/|$)/.test(pathname);
-  const restoring = started ? !authenticated && !signedIn && !waited : Platform.OS !== 'web' || startedWithSession();
+  // A known session can precede Privy's ready flag, especially when PinSession remounts after
+  // restoring the user. The PIN gate protects it; never replace its navigator with the startup
+  // logo just because the SDK is still settling.
+  const restoring = !authenticated && !signedIn
+    && (started ? !waited : Platform.OS !== 'web' || startedWithSession());
   const showStack = publicPage || !restoring;
   useEffect(() => {
     if (showStack && !signedIn && !publicPage) markWelcomeShown();
