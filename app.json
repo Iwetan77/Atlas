@@ -2,7 +2,7 @@
   "expo": {
     "name": "Atlas",
     "slug": "atlas",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "atlas",
@@ -58,6 +58,13 @@
         {
           "cameraPermission": "Atlas uses the camera to scan QR codes and account numbers.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF2E7E",
+          "defaultChannel": "money"
         }
       ]
     ],

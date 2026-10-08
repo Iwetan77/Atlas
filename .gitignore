@@ -54,3 +54,6 @@ example
 
 # Local test tooling (stand-in engine, browser flows); not shipped
 .dev/
+
+# Firebase build configuration is supplied through EAS, never commit credentials.
+google-services.json

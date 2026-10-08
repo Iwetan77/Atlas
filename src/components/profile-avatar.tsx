@@ -5,10 +5,10 @@ import { Text } from '@/components/ui/text';
 import { colors, radii, themedStyles } from '@/theme';
 
 // The user's profile photo, or their initial on Atlas pink when they haven't set one.
-export function ProfileAvatar({ photo, initial, size }: { photo?: string | null; initial: string; size: number }) {
+export function ProfileAvatar({ photo, initial, size, label = 'Your profile photo' }: { photo?: string | null; initial: string; size: number; label?: string }) {
   const round = { width: size, height: size, borderRadius: size / 2 };
   if (photo) {
-    return <Image source={{ uri: photo }} style={round} contentFit="cover" accessibilityLabel="Your profile photo" />;
+    return <Image source={{ uri: photo }} style={round} contentFit="cover" accessibilityLabel={label} />;
   }
   return (
     <View style={[styles.fallback, round]}>

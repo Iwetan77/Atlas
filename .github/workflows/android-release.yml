@@ -51,6 +51,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare Android notification configuration
+        env:
+          ATLAS_FIREBASE_CLIENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$ATLAS_FIREBASE_CLIENT" ]; then
+            printf '%s' "$ATLAS_FIREBASE_CLIENT" > "$RUNNER_TEMP/atlas-google-services.json"
+            echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/atlas-google-services.json" >> "$GITHUB_ENV"
+          fi
+
       - name: Build the APK (Expo, local build with the project's signing key)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

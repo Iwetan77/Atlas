@@ -8,6 +8,7 @@ import { executeSend, HANDLE_RE, normaliseHandle, requestSendQuote, resolveHandl
 import { useLiveQuote } from '@/api/use-live-quote';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { ResultView } from '@/components/result-view';
 import { SendReview } from '@/components/send/send-review';
 import { BackHeader } from '@/components/ui/back-header';
@@ -20,7 +21,7 @@ import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { colors, radii, spacing, themedStyles } from '@/theme';
+import { spacing, themedStyles } from '@/theme';
 import { useBackToWithdraw } from '@/funding/withdraw';
 
 type Lookup = { state: 'idle' | 'looking' } | { state: 'found'; recipient: Recipient } | { state: 'none' | 'error'; message: string };
@@ -116,11 +117,8 @@ export default function SendToFriendScreen() {
 
       {recipient ? (
         <Card style={styles.recipient}>
-          <View style={styles.avatar}>
-            <Text variant="heading" color="accentPinkTint">
-              {(recipient.displayName ?? recipient.handle)[0].toUpperCase()}
-            </Text>
-          </View>
+          <ProfileAvatar photo={recipient.avatar} initial={(recipient.displayName || recipient.handle)[0].toUpperCase()}
+            label={'Profile photo of @' + recipient.handle} size={44} />
           <View style={styles.recipientText}>
             <Text variant="bodyStrong">{recipient.displayName ?? `@${recipient.handle}`}</Text>
             <Text variant="caption" color="textSecondary">
@@ -161,14 +159,6 @@ const styles = themedStyles(() => ({
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.lg,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentPinkDim,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   recipientText: {
     flex: 1,

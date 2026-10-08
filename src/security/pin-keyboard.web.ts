@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 
 // A real input makes Safari put its form toolbar over our keypad.
 export function usePinKeyboard(onKey: (key: string) => void, onClear: () => void) {
+  const press = useEffectEvent(onKey);
+  const clear = useEffectEvent(onClear);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       const target = event.target;
@@ -9,19 +11,20 @@ export function usePinKeyboard(onKey: (key: string) => void, onClear: () => void
         (target instanceof HTMLElement && target.closest('input, textarea, [contenteditable="true"]'))) return;
       if (/^[0-9]$/.test(event.key) || event.key === 'Backspace') {
         event.preventDefault();
-        onKey(event.key);
+        press(event.key);
       } else if (event.key === 'Escape') {
-        onClear();
+        clear();
       }
     };
-    const hidden = () => { if (document.hidden) onClear(); };
+    const hidden = () => { if (document.hidden) clear(); };
     document.addEventListener('keydown', keydown);
     document.addEventListener('visibilitychange', hidden);
-    window.addEventListener('blur', onClear);
+    const blur = () => clear();
+    window.addEventListener('blur', blur);
     return () => {
       document.removeEventListener('keydown', keydown);
       document.removeEventListener('visibilitychange', hidden);
-      window.removeEventListener('blur', onClear);
+      window.removeEventListener('blur', blur);
     };
-  }, [onKey, onClear]);
+  }, []);
 }

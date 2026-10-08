@@ -116,3 +116,35 @@ export async function postComment(token: Token, marketId: string, body: string):
 export async function deleteComment(token: Token, id: string): Promise<void> {
   await enginePost('/v1/predictions/comments/' + encodeURIComponent(id) + '/delete', await token(), {}, SAFE_TO_REPLAY);
 }
+
+export type PredictionChartRange = '1D' | '1W' | '1M' | 'ALL';
+export type PredictionChartData = {
+  marketId: string; range: PredictionChartRange;
+  series: { tokenId: string; label: string; points: [number, number][] }[];
+};
+export function usePredictionChart(marketId: string, range: PredictionChartRange) {
+  const { authenticated, getAccessToken } = useAtlasAuth();
+  const [answer, setAnswer] = useState<PredictionChartData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!authenticated || !marketId) return;
+    let live = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const next = await engineGet<PredictionChartData>(
+          '/v1/predictions/markets/' + encodeURIComponent(marketId) + '/chart?range=' + range,
+          await getAccessToken(), { timeoutMs: 20_000 });
+        if (live) { setAnswer(next); setError(null); }
+      } catch (e) {
+        if (live) setError(e instanceof Error ? e.message : 'Chart could not load.');
+      } finally { if (live) setLoading(false); }
+    };
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => { live = false; clearInterval(timer); };
+  }, [authenticated, getAccessToken, marketId, range]);
+  const chart = answer?.marketId === marketId && answer.range === range ? answer : null;
+  return { chart, loading: loading || (!chart && !error), error };
+}

@@ -1,3 +1,4 @@
+import { NotificationBell } from '@/notifications/bell';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -21,7 +22,7 @@ import { useAddMoney } from '@/funding/add-money';
 import { useWithdraw } from '@/funding/withdraw';
 import { UpdateBanner } from '@/components/update-prompt';
 import { useSettings } from '@/settings/context';
-import { colors, radii, themedStyles } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 import { useDesktop } from '@/web/use-desktop';
 import { DesktopHome } from '@/components/web/home';
 
@@ -103,13 +104,14 @@ export function HomeContent({
           style={styles.avatarRing}>
           <ProfileAvatar photo={me?.avatar} initial={(email?.[0] ?? 'A').toUpperCase()} size={40} />
         </Pressable>
+        <View style={styles.headerActions}><NotificationBell />
         <Pressable
           onPress={() => router.push('/scan')}
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel="Scan to pay">
           <Icon name="scan-outline" size={28} color="textPrimary" />
-        </Pressable>
+        </Pressable></View>
       </View>
 
       {banner ? (
@@ -173,6 +175,7 @@ export function HomeContent({
 }
 
 const styles = themedStyles(() => ({
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

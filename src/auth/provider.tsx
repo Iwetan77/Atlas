@@ -1,3 +1,4 @@
+import { disconnectNotifications } from '@/notifications/device';
 // Native (iOS/Android) auth on the Privy Expo SDK. Web uses provider.web.tsx.
 import {
   PrivyProvider,
@@ -94,6 +95,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       googleLoading: oauth.state.status === 'loading',
       googleError: oauth.state.status === 'error' ? errorMessage(oauth.state.error) : null,
       logout: async () => {
+        await disconnectNotifications(getAccessToken);
         markSigningOut();
         await logout();
       },

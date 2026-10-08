@@ -403,7 +403,7 @@ export type Me = {
   // Profile photo as a small JPEG data URL, set with POST /v1/me/avatar.
   avatar?: string | null;
 };
-export type Recipient = { handle: string; displayName: string | null };
+export type Recipient = { handle: string; displayName: string | null; avatar?: string | null };
 
 // ── Send: Atlas Friends, Banks & Mobile Money, Cash Link ────────────────────────────────
 export type SendDestination =

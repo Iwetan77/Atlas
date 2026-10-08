@@ -1,3 +1,4 @@
+import { disconnectNotifications } from '@/notifications/device';
 // Web auth on the Privy React SDK. Same Privy app as native, so the same login (e.g. Google)
 // resolves to the same Privy user and the same embedded wallet addresses.
 import {
@@ -126,6 +127,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
       googleLoading: oauth.loading,
       googleError: oauth.state.status === 'error' ? errorMessage(oauth.state.error) : null,
       logout: async () => {
+        await disconnectNotifications(getAccessToken);
         markSigningOut();
         await logout();
       },

@@ -1,4 +1,4 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -13,6 +13,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { readAccountDetails } from '@/scan/account-details';
+import { useCameraAccess } from '@/scan/use-camera-access';
 import { type TextReader, TextReaderView } from '@/scan/text-reader';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 
@@ -22,7 +23,7 @@ import { colors, radii, spacing, themedStyles } from '@/theme';
 export default function ScanScreen() {
   const insets = useSafeAreaInsets();
   const { getAccessToken } = useAtlasAuth();
-  const [permission, requestPermission] = useCameraPermissions();
+  const access = useCameraAccess();
   const camera = useRef<CameraView>(null);
   const reader = useRef<TextReader>(null);
   const handled = useRef(false);
@@ -89,8 +90,8 @@ export default function ScanScreen() {
     }
   };
 
-  if (!permission) return <Screen />;
-  if (!permission.granted) {
+  if (access.loading) return <Screen />;
+  if (!access.start) {
     return (
       <Screen>
         <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
@@ -101,8 +102,9 @@ export default function ScanScreen() {
           Atlas uses the camera to read QR codes and account numbers, so you don’t have to type them.
         </Text>
         {/* Once the phone has said no for good, asking again does nothing: only Settings can allow it. */}
-        {permission.canAskAgain || Platform.OS === 'web' ? (
-          <PillButton label="Allow camera" onPress={requestPermission} />
+        {access.error ? <Text color="textSecondary">{access.error}</Text> : null}
+        {access.canAskAgain || Platform.OS === 'web' ? (
+          <PillButton label="Allow camera" onPress={access.request} />
         ) : (
           <>
             <Text color="textSecondary">Camera access is off for Atlas. Turn it on in Settings, then come back.</Text>
@@ -120,6 +122,8 @@ export default function ScanScreen() {
         ref={camera}
         style={StyleSheet.absoluteFill}
         facing="back"
+        onCameraReady={access.onReady}
+        onMountError={access.onError}
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={reading ? undefined : onScanned}
       />

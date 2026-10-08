@@ -9,6 +9,7 @@ import { useBalance } from '@/api/balance';
 import { useEmailSettings } from '@/api/emails';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { NotificationDeviceControl } from '@/notifications/device-control';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { TokenChainLogo } from '@/components/token-chain-logo';
 import { BackHeader } from '@/components/ui/back-header';
@@ -203,6 +204,9 @@ export default function ProfileScreen() {
           </Card>
         </>
       ) : null}
+
+      <Text variant="overline" color="textSecondary">Device notifications</Text>
+      <Card style={styles.group}><NotificationDeviceControl /></Card>
 
       {/* Only once the engine can send them, and to an account with an email. */}
       {emails.settings?.available && emails.settings.email ? (

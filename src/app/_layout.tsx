@@ -16,6 +16,7 @@ import { UpdateGate } from '@/components/update-prompt';
 import { AddMoneyProvider } from '@/funding/add-money';
 import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
+import { NotificationsProvider } from '@/notifications/context';
 import { PinProvider } from '@/security/pin-provider';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors, subscribeTheme, themeName, type ThemeName } from '@/theme';
@@ -97,7 +98,7 @@ export default function RootLayout() {
       <StatusBar style={theme === 'light' ? 'dark' : 'light'} />
       <SettingsProvider>
         <AtlasAuthProvider>
-          <PinProvider>
+          <NotificationsProvider><PinProvider>
           {/* A theme switch redraws everything that draws, the sheets above the screens included
               (Add money, Withdraw, the payment slip): left mounted they kept the old theme's
               colours next to the new theme's text. */}
@@ -109,7 +110,7 @@ export default function RootLayout() {
               </WithdrawProvider>
             </AddMoneyProvider>
           </ConfirmProvider>
-          </PinProvider>
+          </PinProvider></NotificationsProvider>
         </AtlasAuthProvider>
       </SettingsProvider>
     </ThemeProvider>
@@ -177,6 +178,7 @@ function RootStack() {
         <Stack.Screen name="predictions/[marketId]" />
         <Stack.Screen name="predictions/cash" />
         <Stack.Screen name="transactions" />
+        <Stack.Screen name="notifications" />
         <Stack.Screen name="transaction/[id]" />
         <Stack.Screen name="mini/[appId]" />
         <Stack.Screen name="profile" />

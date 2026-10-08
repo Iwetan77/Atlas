@@ -8,6 +8,7 @@ import { executePrediction, predictionQuote, usePredictionAccount, type Predicti
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { ProbabilityChart } from '@/components/predictions/probability-chart';
 import { MarketArt } from '@/components/predictions/market-art';
 import { MarketComments } from '@/components/predictions/comments';
 import { endsLabel, percent, volumeLabel } from '@/components/predictions/market-card';
@@ -82,6 +83,7 @@ export default function PredictionDetail() {
           </View>
         </View>
       </View>
+      <ProbabilityChart marketId={market.marketId} />
       <Text variant="label" color="textSecondary">Pick your outcome</Text>
       <View style={styles.choices}>{market.outcomes.map((o, i) => {
         const on = outcome === o.tokenId;
