@@ -81,3 +81,44 @@ export function receiptDate(ms: number) {
   const date = new Date(ms);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
+
+
+// A single receipt follows the payout while its screen is open. A failed poll never means paid.
+export function useTransactionReceipt(id: string) {
+  const { authenticated, getAccessToken, userId } = useAtlasAuth();
+  const { displayCurrency } = useSettings();
+  const [stored, setStored] = useState<{ owner: string | null; currency: string; receipt: TransactionReceipt } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function refresh() {
+      if (!authenticated || !id) return;
+      let terminal = false;
+      try {
+        const receipt = await engineGet<TransactionReceipt>(`/v1/transactions/${encodeURIComponent(id)}?currency=${displayCurrency}`, await getAccessToken(), { timeoutMs: 15000 });
+        if (!active) return;
+        setStored({ owner: userId, currency: displayCurrency, receipt });
+        setError(null);
+        terminal = receipt.state !== 'pending';
+      } catch (e) { if (active) setError(errorMessage(e)); }
+      if (active && !terminal) timer = setTimeout(() => void refresh(), 4000);
+    }
+    void refresh();
+    return () => { active = false; if (timer) clearTimeout(timer); };
+  // A manual refresh restarts the focused subscription, even after a terminal response.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, displayCurrency, getAccessToken, id, retry, userId]));
+  const receipt = authenticated && stored?.owner === userId && stored.currency === displayCurrency && stored.receipt.id === id ? stored.receipt : null;
+  return { receipt, error, reload: () => setRetry((n) => n + 1) };
+}
+
+export function bankTransferProgress(receipt: TransactionReceipt | null) {
+  if (receipt?.state === 'filled') return { title: 'Transfer successful', detail: 'Your transfer has reached the bank.', step: 2, done: true, failed: false };
+  if (receipt?.state === 'failed') return { title: 'Transfer needs attention', detail: receipt.error || 'Open the receipt for the latest update.', step: 0, done: false, failed: true };
+  const payout = receipt?.summary.find((l) => l.label === 'Bank payout')?.value;
+  if (payout === 'Being checked') return { title: 'Transfer being checked', detail: 'Your transfer is being reviewed. Follow its receipt for updates.', step: 1, done: false, failed: false };
+  if (payout === 'Paying your bank') return { title: 'Paying your bank', detail: 'Your transfer is being delivered to the bank.', step: 1, done: false, failed: false };
+  return { title: 'Sending your transfer', detail: 'We’ll update this screen when it reaches the bank.', step: 0, done: false, failed: false };
+}

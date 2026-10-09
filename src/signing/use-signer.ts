@@ -1,6 +1,6 @@
 // Native signer: Privy Expo SDK embedded wallets. The Expo SDK has no signing UI of its own,
 // so nothing here can prompt the user.
-import { useAuthorizationSignature, useEmbeddedEthereumWallet, useEmbeddedSolanaWallet } from '@privy-io/expo';
+import { useAuthorizationSignature, useEmbeddedEthereumWallet, useEmbeddedSolanaWallet, usePrivy } from '@privy-io/expo';
 import { VersionedTransaction } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 import { useCallback, useEffect, useRef } from 'react';
@@ -12,26 +12,37 @@ import { evmChainFor, solanaConnection } from '@/signing/chains';
 import type { Signer } from '@/signing/types';
 
 export function useSigner(): Signer {
+  const { isReady, user } = usePrivy();
   const eth = useEmbeddedEthereumWallet();
   const sol = useEmbeddedSolanaWallet();
 
   const { generateAuthorizationSignature } = useAuthorizationSignature();
   const ethWallet = eth.wallets[0];
-  // Privy can report the Solana wallet as connecting or reconnecting for a while on Android while
-  // it is there and usable (its provider waits for the connection). One that needs recovery recovers
-  // itself first (below); one that doesn't exist yet, or is disconnected, can't sign.
-  const usable = sol.status === 'connected' || sol.status === 'connecting' || sol.status === 'reconnecting';
+  // AuthBridge owns bounded transport reconnect/recovery. Keep the current wallet session for
+  // callbacks that continue after the PIN or funding, instead of retaining a startup snapshot.
+  const usable = isReady && !!user && (sol.status === 'connected' || sol.status === 'connecting' || sol.status === 'reconnecting');
   const solWallet = usable ? sol.wallets?.[0] : undefined;
-  // A wallet that needs recovering recovers itself (Privy's own recovery, no prompt), once.
-  const recovering = useRef(false);
+  const current = useRef({ ethWallet, solWallet, authenticated: isReady && !!user, userId: user?.id });
   useEffect(() => {
-    if (sol.status !== 'needs-recovery' || recovering.current || !sol.recover) return;
-    recovering.current = true;
-    sol.recover().catch((e: unknown) => console.warn('[atlas] Solana wallet recovery failed', e)).finally(() => { recovering.current = false; });
-  }, [sol]);
+    current.current = { ethWallet, solWallet, authenticated: isReady && !!user, userId: user?.id };
+  }, [ethWallet, solWallet, isReady, user]);
+
+  const walletsNow = useCallback(() => {
+    const value = current.current;
+    if (!value.authenticated) throw new Error('Your session ended. Sign in again to continue.');
+    return value;
+  }, []);
+  const checkSession = useCallback((session: typeof current.current) => {
+    if (!current.current.authenticated || current.current.userId !== session.userId) {
+      throw new Error('Your session ended. Sign in again to continue.');
+    }
+  }, []);
+  useEffect(() => () => { current.current = { ...current.current, authenticated: false }; }, []);
 
   const send = useCallback(
     async (tx: UnsignedTx): Promise<SentTx> => {
+      const session = walletsNow();
+      const { ethWallet, solWallet } = session;
       if ('typedData' in tx) throw new Error('Typed data is signed, not sent');
       if (tx.chain === 'privy') throw new Error('A Privy approval is signed, not sent');
       if (tx.chain !== 'solana') {
@@ -40,6 +51,7 @@ export function useSigner(): Signer {
         // when it's empty). The engine checks every hash against the plan it made.
         const chainId = evmChainFor(tx).id;
         const provider = await ethWallet.getProvider();
+        checkSession(session);
         const hash = await provider.request({
           method: 'eth_sendTransaction',
           params: [
@@ -57,6 +69,7 @@ export function useSigner(): Signer {
 
       if (!solWallet) throw new Error('Solana wallet is not ready');
       const provider = await solWallet.getProvider();
+      checkSession(session);
       const transaction = VersionedTransaction.deserialize(Buffer.from(tx.transaction, 'base64'));
       const { signature } = await provider.request({
         method: 'signAndSendTransaction',
@@ -64,39 +77,45 @@ export function useSigner(): Signer {
       });
       return { chain: 'solana', id: signature };
     },
-    [ethWallet, solWallet],
+    [walletsNow, checkSession],
   );
 
   const sign = useCallback(
     async (tx: UnsignedTx): Promise<string> => {
+      const session = walletsNow();
+      const { ethWallet, solWallet } = session;
       if ('typedData' in tx) {
         if (tx.chain === 'polygon' && !await predictionGeo()) throw new Error('Predictions trading is not available in your location.');
         if (!ethWallet) throw new Error('EVM wallet is not ready');
         const provider = await ethWallet.getProvider();
+        checkSession(session);
         return String(await provider.request({ method: 'eth_signTypedData_v4',
           params: [ethWallet.address, JSON.stringify(tx.typedData)] }));
       }
       if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
       if (!solWallet) throw new Error('Solana wallet is not ready');
       const provider = await solWallet.getProvider();
+      checkSession(session);
       const transaction = VersionedTransaction.deserialize(Buffer.from(tx.transaction, 'base64'));
       const { signedTransaction } = await provider.request({ method: 'signTransaction', params: { transaction } });
       return Buffer.from(signedTransaction.serialize()).toString('base64');
     },
-    [solWallet, ethWallet],
+    [walletsNow, checkSession],
   );
 
   const approve = useCallback(
-    async (request: PrivyApprovalRequest): Promise<string> =>
-      (await generateAuthorizationSignature(request)).signature,
-    [generateAuthorizationSignature],
+    async (request: PrivyApprovalRequest): Promise<string> => {
+      walletsNow();
+      return (await generateAuthorizationSignature(request)).signature;
+    },
+    [generateAuthorizationSignature, walletsNow],
   );
 
-  const ready = !!ethWallet && !!solWallet;
+  const ready = isReady && !!user && !!ethWallet && !!solWallet;
   const waiting = ready ? null : !ethWallet || sol.status === 'not-created' || sol.status === 'creating'
     ? 'Setting up your wallet…'
     : sol.status === 'disconnected' || sol.status === 'error'
-      ? "Your wallet isn't connected. Close Atlas fully and open it again."
+      ? 'Reconnecting your wallet... Please try again shortly.'
       : 'Connecting your wallet…';
   return { ready, waiting, send, sign, approve };
 }

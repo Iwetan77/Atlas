@@ -1,11 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { engineGet } from '@/api/client';
-import type { TransactionReceipt } from '@/api/transactions';
-import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { useTransactionReceipt } from '@/api/transactions';
 import { ShareImageSheet } from '@/components/share/share-image-sheet';
 import { useShareImage } from '@/components/share/use-share-image';
 import { ReceiptCard } from '@/components/transactions/receipt-card';
@@ -20,28 +18,9 @@ import { colors, spacing, themedStyles } from '@/theme';
 
 export default function ReceiptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAccessToken, userId } = useAtlasAuth();
-  const { displayCurrency, stealthMode } = useSettings();
-  const [storedReceipt, setReceipt] = useState<(TransactionReceipt & { owner: string | null }) | null>(null);
-  const receipt = storedReceipt?.owner === userId ? storedReceipt : null;
-  const [error, setError] = useState<string | null>(null);
+  const { stealthMode } = useSettings();
+  const { receipt, error, reload } = useTransactionReceipt(id);
   const [copied, setCopied] = useState<string | null>(null);
-  const [retry, setRetry] = useState(0);
-  useFocusEffect(useCallback(() => {
-    let active = true; let busy = false;
-    // Changing retry restarts this focused subscription.
-    const requestRound = retry;
-    async function refresh() {
-      if (busy) return; busy = true;
-      try {
-        const next = await engineGet<TransactionReceipt>(`/v1/transactions/${encodeURIComponent(id)}?currency=${displayCurrency}`, await getAccessToken(), { timeoutMs: 15000 });
-        if (active && requestRound === retry) { setReceipt({ ...next, owner: userId }); setError(null); }
-      } catch (e) { if (active) setError(errorMessage(e)); }
-      finally { busy = false; }
-    }
-    void refresh(); const timer = setInterval(() => void refresh(), 10000);
-    return () => { active = false; clearInterval(timer); };
-  }, [id, displayCurrency, getAccessToken, retry, userId]));
   const copy = async (value: string) => { await Clipboard.setStringAsync(value); setCopied(value); };
   // The card is captured at its own shape, however many lines it has.
   const card = useRef<View>(null);
@@ -49,7 +28,7 @@ export default function ReceiptScreen() {
   const { share, sharing, menu } = useShareImage(card, aspect, `atlas-receipt-${id.slice(-8)}.png`, 'Share receipt');
   return <Screen>
     <BackHeader title="Receipt" />
-    {error ? <><Text color="danger" variant="caption">{error}</Text><PillButton label="Refresh" tone="secondary" size="sm" onPress={() => setRetry((n) => n + 1)} /></> : null}
+    {error ? <><Text color="danger" variant="caption">{error}</Text><PillButton label="Refresh" tone="secondary" size="sm" onPress={reload} /></> : null}
     {receipt ? <>
       <ReceiptCard receipt={receipt} stealth={stealthMode} cardRef={card}
         onLayout={(e) => { const { width, height } = e.nativeEvent.layout; if (width > 0 && height > 0) setAspect(width / height); }} />

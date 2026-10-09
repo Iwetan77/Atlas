@@ -13,6 +13,8 @@ export type ShareImageOptions = {
   preview: string | null;
   error: string | null;
   canShare: boolean;
+  saving?: boolean;
+  notice?: string | null;
   onClose: () => void;
   onRetry: () => void;
   onShare: () => void;
@@ -31,7 +33,8 @@ export function ShareImageSheet({ options, title = 'Share your card' }: { option
           {options.preparing ? <View style={styles.progress}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Preparing your image…</Text></View> : null}
           {options.error ? <><Text color="danger" accessibilityRole="alert">{options.error}</Text>
             {!options.ready ? <PillButton label="Try again" tone="secondary" onPress={options.onRetry} /> : null}</> : null}
-          <PillButton label="Download image" icon="download-outline" disabled={!options.ready} onPress={options.onDownload} />
+          {options.notice ? <Text color="success" variant="caption" accessibilityLiveRegion="polite">{options.notice}</Text> : null}
+          <PillButton label={options.saving ? 'Saving image…' : 'Download image'} icon="download-outline" loading={options.saving} disabled={!options.ready || options.saving} onPress={options.onDownload} />
           {options.canShare ? <PillButton label="Share image" icon="share-outline" tone="secondary" disabled={!options.ready} onPress={options.onShare} /> : null}
           <PillButton label="Cancel" tone="secondary" onPress={options.onClose} />
         </ScrollView>

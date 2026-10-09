@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 
 import type { Bank, BankGuess, BankRecipient } from '@/api/contract';
@@ -56,6 +56,7 @@ export default function SendToBankScreen() {
   const [payee, setPayee] = useState<Payee | null>(null);
   const [amount, setAmount] = useState('');
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  const sending = useRef(false);
   useBackToWithdraw(phase.kind === 'done');
 
   useEffect(() => {
@@ -162,29 +163,32 @@ export default function SendToBankScreen() {
   };
 
   const withdraw = async () => {
-    if (!quote || !payee) return;
+    if (!quote || !payee || sending.current) return;
+    sending.current = true;
     setPhase({ kind: 'sending' });
+    let intentId: string | null = null;
+    let submitted = false;
+    const track = () => {
+      if (!intentId) return;
+      submitted = true;
+      setPhase({ kind: 'done', transfer: {
+        intentId, bank: payee.bank, accountNumber: payee.accountNumber, accountName: payee.accountName,
+        receive: quote.receive, send: quote.send, fee: quote.fee, eta: quote.eta,
+      } });
+    };
     try {
-      const final = await runIntent(() => executeSend(getAccessToken, quote.quoteId));
-      if (!final) setPhase({ kind: 'edit' });
-      else if (final.state === 'filled')
-        setPhase({
-          kind: 'done',
-          transfer: {
-            intentId: final.intentId,
-            bank: payee.bank,
-            accountNumber: payee.accountNumber,
-            accountName: payee.accountName,
-            receive: quote.receive,
-            send: quote.send,
-            fee: quote.fee,
-            eta: quote.eta,
-          },
-        });
-      else setPhase({ kind: 'failed', message: final.error ?? 'The withdrawal did not go through.' });
+      const final = await runIntent(async () => {
+        const plan = await executeSend(getAccessToken, quote.quoteId);
+        intentId = plan.intentId;
+        return plan;
+      }, track);
+      if (!final && !submitted) setPhase({ kind: 'edit' });
+      // Once signed/sent, the receipt owns the result: funding completion isn't bank completion.
+      if (final && !submitted) track();
     } catch (e) {
-      setPhase({ kind: 'failed', message: friendlyTxError(e) });
-    }
+      // A lost acknowledgement may still be followed by settlement. Keep following that receipt.
+      if (!submitted) setPhase({ kind: 'failed', message: friendlyTxError(e) });
+    } finally { sending.current = false; }
   };
 
   if (phase.kind === 'done') {

@@ -1,9 +1,10 @@
+import * as Application from 'expo-application';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Pressable, Share, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Share, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import { useEmailSettings } from '@/api/emails';
@@ -242,6 +243,10 @@ export default function ProfileScreen() {
           <Icon name="chevron-forward" size={18} color="accentPink" />
         </Pressable>
       </Card>
+
+      {Platform.OS === 'android' ? <View style={styles.row}>
+        <RowLabel icon="information-circle-outline" title="Atlas for Android" subtitle={Application.nativeApplicationVersion ? `Version ${Application.nativeApplicationVersion}${Application.nativeBuildVersion ? ` · Build ${Application.nativeBuildVersion}` : ''}` : 'Version unavailable'} />
+      </View> : null}
 
       <PillButton label="Sign out" icon="log-out-outline" tone="secondary" onPress={logout} />
     </Screen>

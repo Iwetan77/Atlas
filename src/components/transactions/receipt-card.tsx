@@ -4,7 +4,7 @@ import type { Ref } from 'react';
 import { type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Ellipse } from 'react-native-svg';
 
-import type { TransactionReceipt } from '@/api/transactions';
+import { bankTransferProgress, type TransactionReceipt } from '@/api/transactions';
 import { TransactionLogo, transactionIcon } from '@/components/transactions/transaction-list';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -70,8 +70,8 @@ function route(r: TransactionReceipt): { from: Stop; to: Stop } | null {
 function status(r: TransactionReceipt): { text: string; icon: IconName } {
   if (r.state === 'filled') return { text: 'Successful', icon: 'checkmark-circle' };
   if (r.state === 'failed') return { text: "Didn't go through", icon: 'alert-circle' };
-  const payout = r.summary.find((l) => l.label === 'Bank payout')?.value;
-  if (r.kind === 'offramp' && payout) return { text: payout, icon: 'time' };
+  if (r.stage === 'validate') return { text: 'Awaiting confirmation', icon: 'time' };
+  if (r.kind === 'offramp') return { text: bankTransferProgress(r).title, icon: 'time' };
   if (r.stage === 'sign') return { text: 'Waiting for approval', icon: 'time' };
   return { text: 'On its way', icon: 'time' };
 }

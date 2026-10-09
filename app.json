@@ -66,6 +66,15 @@
           "color": "#FF2E7E",
           "defaultChannel": "money"
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": "Atlas saves share cards to your photos when you choose Download image.",
+          "granularPermissions": [],
+          "isAccessMediaLocationEnabled": false
+        }
       ]
     ],
     "experiments": {

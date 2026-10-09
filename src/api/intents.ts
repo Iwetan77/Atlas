@@ -1,6 +1,6 @@
 import { submitPredictionStep } from '@/signing/prediction';
 import { predictionGeo } from '@/api/predictions';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { engineGet, enginePost, EngineTimeout, EngineUnreachable } from '@/api/client';
 import type { ExecutionPlan, IntentStatus, IntentSubmission, SentTx, SignedTx, UnsignedTx } from '@/api/contract';
@@ -107,9 +107,13 @@ export async function waitForIntent(
 // Every money-moving action runs the same way: get the engine's plan, the user confirms it once,
 // hand back what was signed/sent, wait for it to settle. Resolves null if the user cancels.
 export function useRunIntent() {
-  const { getAccessToken, wallets } = useAtlasAuth();
+  const { getAccessToken, wallets, userId } = useAtlasAuth();
   const confirmAndExecute = useConfirmAndExecute();
   const signer = useSigner();
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const currentSession = useRef({ signer, base: wallets.base, userId, getAccessToken });
+  useEffect(() => { currentSession.current = { signer, base: wallets.base, userId, getAccessToken }; }, [signer, wallets.base, userId, getAccessToken]);
 
   return useCallback(
     async (
@@ -117,7 +121,34 @@ export function useRunIntent() {
       onSettling?: () => void,
       onStatus?: (status: IntentStatus) => void,
     ): Promise<IntentStatus | null> => {
+      const owner = userId;
+      const session = () => {
+        const value = currentSession.current;
+        if (!mounted.current || !owner || value.userId !== owner) throw new ActionCancelled();
+        return value;
+      };
+      session();
+      // Capture this action's owner token while signing is still allowed. After a broadcast,
+      // leaving the screen must not lose its report or report it with a different user's token.
+      const ownerToken = await getAccessToken();
+      session();
+      if (!ownerToken) throw new ActionCancelled();
+      const token = async () => {
+        const before = currentSession.current;
+        if (!mounted.current || before.userId !== owner) return ownerToken;
+        try {
+          const refreshed = await before.getAccessToken();
+          // Funding can outlast an access token. Refresh for the same owner while mounted, but
+          // a logout/account switch during refresh must never put another user's token on a report.
+          if (!mounted.current || currentSession.current.userId !== owner) return ownerToken;
+          return refreshed ?? ownerToken;
+        } catch (e) {
+          if (!mounted.current || currentSession.current.userId !== owner) return ownerToken;
+          throw e;
+        }
+      };
       const plan = await getPlan();
+      session();
       let report;
       try {
         report = await confirmAndExecute(plan);
@@ -125,20 +156,21 @@ export function useRunIntent() {
         if (e instanceof ActionCancelled) return null;
         throw e;
       }
-      onSettling?.();
+      if (mounted.current && currentSession.current.userId === owner) onSettling?.();
       const initialStage = plan.stage ?? 'validate';
       reported.set(stepKey(plan.intentId, initialStage), { sent: report.sent, signed: report.signed, pinAuthorization: report.pinAuthorization });
-      const first = await submitIntent(getAccessToken, plan.intentId, { sent: report.sent, signed: report.signed, pinAuthorization: report.pinAuthorization });
+      const first = await submitIntent(token, plan.intentId, { sent: report.sent, signed: report.signed, pinAuthorization: report.pinAuthorization });
       if (!first.reportPending) reported.delete(stepKey(plan.intentId, initialStage));
       // A two-step plan (cash moved from another chain first): its last transaction is signed here,
       // covered by the one confirmation the user already gave.
       const signNext = async (status: IntentStatus) => {
+        session();
         if (status.intentId.startsWith('prediction-') && !await predictionGeo()) {
           throw new Error('Predictions is not available in your location. Your unused cash stays in your wallet.');
         }
         const next = await engineGet<{ transactions: UnsignedTx[] }>(
           `/v1/intents/${encodeURIComponent(status.intentId)}/next`,
-          await getAccessToken(),
+          await token(),
           { timeoutMs: POLL_REQUEST_TIMEOUT_MS, pinAuthorization: report.pinAuthorization },
         );
         // Same rules as the confirm sheet: Solana transactions the engine lands are signed; the rest
@@ -146,8 +178,9 @@ export function useRunIntent() {
         const signed: SignedTx[] = [];
         const sent: SentTx[] = [];
         for (const [index, tx] of next.transactions.entries()) {
+          const { signer, base } = session();
           if ('typedData' in tx) {
-            signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, getAccessToken, signer, report.pinAuthorization) : await signer.sign(tx) });
+            signed.push({ index, transaction: tx.prediction ? await submitPredictionStep(tx, token, signer, report.pinAuthorization) : await signer.sign(tx) });
             continue;
           }
           if (tx.chain === 'privy') {
@@ -158,22 +191,28 @@ export function useRunIntent() {
             signed.push({ index, transaction: await signer.sign(tx) });
             continue;
           }
-          const result = await sendOnce(() => signer.send(tx), tx, wallets.base, sent.length > 0);
+          const result = await sendOnce(() => signer.send(tx), tx, base, sent.length > 0);
           await waitForTx(result, tx);
           sent.push(result);
         }
+        // The whole step was already signed/sent. Always report it, including after an unmount;
+        // the guard above each transaction prevents starting another wallet request afterwards.
         reported.set(stepKey(status.intentId, 'sign'), { sent, signed, pinAuthorization: report.pinAuthorization });
-        const answer = await submitIntent(getAccessToken, status.intentId, { sent, signed, pinAuthorization: report.pinAuthorization });
+        const answer = await submitIntent(token, status.intentId, { sent, signed, pinAuthorization: report.pinAuthorization });
         if (!answer.reportPending) reported.delete(stepKey(status.intentId, 'sign'));
         return answer;
       };
-      try {
-        return await waitForIntent(getAccessToken, first, onStatus, signNext);
-      } finally {
-        reported.delete(stepKey(plan.intentId, 'validate'));
+      const final = await waitForIntent(token, first, (status) => {
+        if (mounted.current && currentSession.current.userId === owner) onStatus?.(status);
+      }, signNext);
+      // A report with no acknowledgement stays available for idempotent replay; a screen closing
+      // cannot erase evidence of an already-broadcast step. Terminal status is acknowledgement too.
+      if (final.state !== 'pending') {
+        reported.delete(stepKey(plan.intentId, initialStage));
         reported.delete(stepKey(plan.intentId, 'sign'));
       }
+      return final;
     },
-    [getAccessToken, wallets.base, confirmAndExecute, signer],
+    [getAccessToken, userId, confirmAndExecute],
   );
 }

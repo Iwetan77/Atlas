@@ -13,6 +13,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { markSigningOut } from '@/auth/device-session';
+import { createWalletReconnect, hasEmbeddedWallet } from '@/auth/wallet-reconnect';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy } from '@/config';
@@ -49,16 +50,32 @@ function AuthBridge({ children }: { children: ReactNode }) {
     useCallback((code, to) => email.loginWithCode({ code, email: to }), [email]),
   );
 
-  const solanaAddress = sol.status === 'connected' ? (sol.wallets[0]?.address ?? null) : null;
+  // Keep the known address while the wallet's transport reconnects, matching the native signer.
+  const solUsable = sol.status === 'connected' || sol.status === 'connecting' || sol.status === 'reconnecting';
+  const solanaAddress = solUsable ? (sol.wallets?.[0]?.address ?? null) : null;
   const baseAddress = eth.wallets[0]?.address ?? null;
+  const linkedAccounts = user?.linked_accounts ?? [];
+  const hasSolanaWallet = !!sol.wallets?.length || hasEmbeddedWallet(linkedAccounts, 'solana');
+  const hasEthereumWallet = !!eth.wallets.length || hasEmbeddedWallet(linkedAccounts, 'ethereum');
+
+  // One owner for connection/recovery, rather than one attempt from every signer hook. Privy's
+  // first load can fail while Android restores the session; retry its transport without a restart.
+  const reconnect = useMemo(() => createWalletReconnect(), []);
+  useEffect(() => {
+    reconnect.update({
+      ready: isReady, userId: user?.id ?? null, status: sol.status,
+      hasWallet: hasSolanaWallet, connect: sol.getProvider, recover: sol.recover,
+    });
+  }, [reconnect, isReady, user?.id, sol, hasSolanaWallet]);
+  useEffect(() => () => reconnect.cancel(), [reconnect]);
 
   // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   useEffect(() => {
     if (!isReady || !user || creating.current) return;
-    const needsEth = eth.wallets.length === 0;
-    const needsSol = sol.status === 'not-created';
+    const needsEth = !hasEthereumWallet;
+    const needsSol = sol.status === 'not-created' && !hasSolanaWallet;
     if (!needsEth && !needsSol) return;
     creating.current = true;
     (async () => {
@@ -72,7 +89,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
         creating.current = false;
       }
     })();
-  }, [isReady, user, eth, sol]);
+  }, [isReady, user, eth, sol, hasEthereumWallet, hasSolanaWallet]);
 
   const value = useMemo<AtlasAuth>(() => {
     const accounts = user?.linked_accounts ?? [];

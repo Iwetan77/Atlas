@@ -195,6 +195,27 @@ normal login: account recovery needs a separately verified process before a rese
 
 Share on a position or coin card opens an image preview with Download image and, when supported,
 Share image. Web captures only the card, with bounded image loading and capture time; the system
-share call follows a fresh tap so Safari permits it. Android Download image lets the user choose a
-folder; iPhone browsers download the PNG. Bank logos are bundled for common Nigerian banks,
+share call follows a fresh tap so Safari permits it. Android Download image saves the PNG to Pictures;
+iPhone browsers download the PNG. Bank logos are bundled for common Nigerian banks,
 including OPay and MoMo, so they do not depend on a remote logo service.
+
+### Bank payout progress and Android wallet recovery
+
+A signed bank transfer opens a live progress screen. Funding the payout address does not mean the
+bank has been paid: success follows the receipt's confirmed payout state. Receipt details poll while
+visible and stop after settlement; Activity's refresh cannot delay a receipt's own refresh. Solana
+cash normally travels through Relay to a Base payout address to avoid a fresh Solana USDC account's
+rent; a direct Solana payout remains the fallback. This reduces fees, but adds a funding step.
+
+Android reconnects an existing Privy Solana wallet after a startup transport error, with bounded,
+single-flight retries. It never retries a purchase as part of reconnecting. Funded steps use the
+current wallet after PIN approval, and completed transaction reports remain tied to the original
+user. Unsigned drafts display **Awaiting confirmation**, rather than **On its way**.
+
+**Download image** saves native Android share cards as PNGs in Pictures. Android 11 and later use
+scoped storage without requesting access to existing photos; older Android versions request write
+access when saving. Profile shows the installed Android version and build number. Native changes
+require rebuilding and installing the APK; a website deployment does not update an installed app.
+
+Run `node --test scripts/test-wallet-reconnect.mjs scripts/test-bank-and-image-save.mjs` for the
+wallet, action-reporting, bank-state and native-save regressions (mocked SDK/system boundaries).
