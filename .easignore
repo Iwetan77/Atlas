@@ -1,0 +1,66 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+
+# docs: only README.md ships, planning/handoff notes stay local
+*.md
+!README.md
+
+# local tooling and secrets
+.claude/
+.env
+.env.*
+!.env.example
+
+# Local test tooling (stand-in engine, browser flows); not shipped
+.dev/
+
+# Firebase build configuration is supplied through EAS, never commit credentials.
+google-services.json
+
+# Build archives exclude local APKs and private local signing material.
+credentials.json
+*.apk
+
+# Firebase Android client configuration is included in the APK, but stays out of Git.
+!google-services.json
