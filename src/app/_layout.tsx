@@ -169,7 +169,7 @@ function RootStack() {
   // Someone who was signed in sees a connection status until their session is back (then the lock),
   // never the welcome screen. A first visit to the website shows the welcome page at once, and the
   // public pages (install instructions, Atlas Links) never wait on sign-in.
-  const publicPage = Platform.OS === 'web' && /^\/(install|claim|invite|asset)(\/|$)/.test(pathname);
+  const publicPage = Platform.OS === 'web' && /^\/(install|claim|invite|asset|a)(\/|$)/.test(pathname);
   // A known session can precede Privy's ready flag, especially when PinSession remounts after
   // restoring the user. The PIN gate protects it; never replace its navigator with the startup
   // screen just because the SDK is still settling.
@@ -217,6 +217,7 @@ function RootStack() {
       <Stack.Screen name="claim/[linkId]" />
       <Stack.Screen name="invite/[code]" />
       <Stack.Screen name="asset/[assetId]" />
+      <Stack.Screen name="a/[code]" />
       <Stack.Screen name="install" />
     </Stack>
   );

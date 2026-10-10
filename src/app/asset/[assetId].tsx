@@ -14,10 +14,10 @@ import { useSettings } from '@/settings/context';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 
 export default function SharedAssetScreen() {
-  const { assetId } = useLocalSearchParams<{ assetId: string }>();
+  const { assetId = '', code } = useLocalSearchParams<{ assetId?: string; code?: string }>();
   const { displayCurrency } = useSettings();
   const { authenticated } = useAtlasAuth();
-  const { asset, error } = useAssetDetail(assetId, displayCurrency);
+  const { asset, error } = useAssetDetail(assetId, displayCurrency, code);
   const [shareOpen, setShareOpen] = useState(false);
   return <Screen>
     <View style={styles.wrap}>
