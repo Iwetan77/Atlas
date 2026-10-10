@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { unlockWithPin } from '@/api/pin';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
-import { welcomeShown } from '@/auth/device-session';
+import { startedWithSession } from '@/auth/device-session';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
@@ -25,13 +25,13 @@ function lockAfter(): number {
 }
 
 // Opening Atlas asks for the PIN (or Face ID / fingerprint once turned on): at every start with a
-// saved session, and on coming back after a while. What's behind stays mounted, so unlocking lands
-// exactly where the person left off.
+// saved session, and on coming back after a while. Protected screens mount after verification.
 export function AppLock({ active, startLocked = true, userId, handle, children }: {
   active: boolean; startLocked?: boolean; userId: string | null; handle: string | null; children: ReactNode;
 }) {
-  // A start with a saved session opens locked; signing in during this run already proved who it is.
-  const [locked, setLocked] = useState(() => startLocked && !welcomeShown());
+  // Google/email restores identity; a configured Atlas account still needs its server-verified PIN.
+  const [locked, setLocked] = useState(startLocked);
+  const [requirePin, setRequirePin] = useState(() => startLocked && !startedWithSession());
   useEffect(() => {
     let awayAt: number | null = null;
     const away = () => { awayAt ??= Date.now(); };
@@ -51,16 +51,17 @@ export function AppLock({ active, startLocked = true, userId, handle, children }
     });
     return () => subscription.remove();
   }, []);
-  const unlock = useCallback(() => setLocked(false), []);
+  const unlock = useCallback(() => { setRequirePin(false); setLocked(false); }, []);
   return (
     <>
-      {children}
-      {active && locked && userId ? <LockScreen userId={userId} handle={handle} onUnlock={unlock} /> : null}
+      {active && locked && userId
+        ? <LockScreen userId={userId} handle={handle} requirePin={requirePin} onUnlock={unlock} />
+        : children}
     </>
   );
 }
 
-function LockScreen({ userId, handle, onUnlock }: { userId: string; handle: string | null; onUnlock: () => void }) {
+function LockScreen({ userId, handle, requirePin, onUnlock }: { userId: string; handle: string | null; requirePin: boolean; onUnlock: () => void }) {
   const { getAccessToken, logout } = useAtlasAuth();
   const insets = useSafeAreaInsets();
   const [bio, setBio] = useState<Biometry | null>(null);
@@ -69,12 +70,12 @@ function LockScreen({ userId, handle, onUnlock }: { userId: string; handle: stri
   const [reset, setReset] = useState(0);
   // After the PIN: offer Face ID / fingerprint once, if the device has it.
   const [offer, setOffer] = useState<Biometry | null>(null);
-  const on = biometricsOn(userId);
+  const on = !requirePin && biometricsOn(userId);
   const prompted = useRef(false);
 
   const tryBiometrics = useCallback(async () => {
-    if (await unlockWithBiometrics(userId)) onUnlock();
-  }, [userId, onUnlock]);
+    if (!requirePin && await unlockWithBiometrics(userId)) onUnlock();
+  }, [userId, requirePin, onUnlock]);
 
   useEffect(() => {
     let live = true;
@@ -95,7 +96,8 @@ function LockScreen({ userId, handle, onUnlock }: { userId: string; handle: stri
     setChecking(true);
     setProblem(null);
     try {
-      await unlockWithPin(getAccessToken, pin);
+      const result = await unlockWithPin(getAccessToken, pin);
+      if (result.unlocked !== true) throw new Error('Your PIN could not be verified. Try again.');
       const b = bio ?? await biometry();
       if (b.available && !biometricsOn(userId) && !biometricsAsked(userId)) setOffer(b);
       else onUnlock();

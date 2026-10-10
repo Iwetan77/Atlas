@@ -2,6 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
+import { useAssetDetail } from '@/api/asset-detail';
+import { AssetShare } from '@/components/trade/asset-share';
+import { AssetPriceAlert } from '@/notifications/asset-price-alert';
 import { useBalance } from '@/api/balance';
 import type { IntentStage, Quote, TradeSide } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
@@ -56,6 +59,17 @@ export default function AssetTradeScreen() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency, stealthMode } = useSettings();
   const runIntent = useRunIntent();
+  const { asset: liveAsset } = useAssetDetail(params.assetId, displayCurrency);
+  const asset = liveAsset ?? (params.name && params.symbol && Number(params.price) > 0 ? {
+    assetId: params.assetId, name: params.name, symbol: params.symbol,
+    price: { amount: params.price, currency: displayCurrency }, iconUrl: params.iconUrl || null,
+    kind: (params.kind || 'crypto') as import('@/api/contract').AssetKind,
+    change24hPct: params.change || null, verified: params.verified !== 'no', tradeable: params.tradeable !== 'no',
+  } : null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const symbol = asset?.symbol ?? params.symbol ?? 'asset';
+
 
   const [side, setSide] = useState<TradeSide>('buy');
   const [amount, setAmount] = useState('');
@@ -89,7 +103,7 @@ export default function AssetTradeScreen() {
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
   const value = Number(amount) || 0;
-  const change = params.change ? Number(params.change) : null;
+  const change = asset?.change24hPct ? Number(asset.change24hPct) : null;
 
   const request = useCallback(
     () =>
@@ -152,14 +166,30 @@ export default function AssetTradeScreen() {
   return (
     <Screen>
       <TradeLayout market={<>
-      <BackHeader />
+      <View style={styles.toolbar}>
+        <BackHeader />
+        <View style={styles.tools}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Set price alert" disabled={!asset}
+            onPress={() => setAlertOpen(true)} style={styles.tool}>
+            <Icon name="notifications-outline" size={20} color="accentPink" />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Share asset" disabled={!asset}
+            onPress={() => setShareOpen(true)} style={styles.tool}>
+            <Icon name="share-social-outline" size={20} color="accentPink" />
+          </Pressable>
+        </View>
+      </View>
+      {asset ? <>
+        <AssetShare asset={asset} visible={shareOpen} onClose={() => setShareOpen(false)} />
+        <AssetPriceAlert assetId={asset.assetId} symbol={asset.symbol} visible={alertOpen} onClose={() => setAlertOpen(false)} />
+      </> : null}
 
       <View style={styles.assetHeader}>
-        <AssetAvatar symbol={params.symbol} iconUrl={params.iconUrl || null} size={52} />
+        <AssetAvatar symbol={symbol} iconUrl={asset?.iconUrl ?? params.iconUrl ?? null} size={52} />
         <View style={styles.assetText}>
-          <Text variant="heading">{params.name}</Text>
+          <Text variant="heading">{asset?.name ?? params.name ?? 'Loading asset…'}</Text>
           <Text color="textSecondary">
-            {formatPrice({ amount: params.price, currency: displayCurrency })}
+            {asset ? formatPrice(asset.price) : 'Loading price…'}
             {change === null ? '' : '  '}
             {change === null ? null : (
               <Text color={change >= 0 ? 'success' : 'danger'}>
@@ -185,7 +215,7 @@ export default function AssetTradeScreen() {
           />
         </View>
       ) : null}
-      {params.verified === 'no' ? (
+      {asset?.verified === false ? (
         <View style={styles.warning}>
           <Icon name="warning-outline" size={18} color="danger" />
           <Text variant="caption" color="danger" style={styles.flex}>
@@ -196,14 +226,14 @@ export default function AssetTradeScreen() {
       ) : null}
 
       <PriceChart assetId={params.assetId} />
-      {params.kind !== 'stock' ? <AssetMarketStats assetId={params.assetId} /> : null}
+      {asset?.kind !== 'stock' ? <AssetMarketStats assetId={params.assetId} /> : null}
       </>} ticket={<>
 
-      {params.tradeable === 'no' ? (
+      {asset?.tradeable === false ? (
         <View style={styles.soon}>
           <Icon name="time-outline" size={18} color="accentPinkTint" />
           <Text color="textSecondary" style={styles.flex}>
-            Buying {params.symbol} from your balance is coming soon. You can follow its price here meanwhile.
+            Buying {symbol} from your balance is coming soon. You can follow its price here meanwhile.
           </Text>
         </View>
       ) : null}
@@ -251,7 +281,7 @@ export default function AssetTradeScreen() {
             value={side === 'buy' ? formatTokenAmount(quote.receive.amount, quote.receive.symbol) : formatMoney(quote.receive.value)}
             strong
           />
-          <QuoteRow label="Price" value={`${formatPrice(quote.price)} / ${params.symbol}`} />
+          <QuoteRow label="Price" value={`${formatPrice(quote.price)} / ${symbol}`} />
           <QuoteRow label="Fee" value={formatMoney(quote.fee)} />
           {quote.funding ? (
             <View style={styles.funding}>
@@ -279,14 +309,14 @@ export default function AssetTradeScreen() {
           text={
             phase.stage === 'fund'
               ? 'Getting your money ready… about 30 seconds'
-              : `${side === 'buy' ? 'Buying' : 'Selling'} ${params.symbol}… this usually takes a few seconds`
+              : `${side === 'buy' ? 'Buying' : 'Selling'} ${symbol}… this usually takes a few seconds`
           }
         />
       ) : null}
 
       <PillButton
-        label={`${side === 'buy' ? 'Buy' : 'Sell'} ${params.symbol}`}
-        disabled={params.tradeable === 'no' || !quote || quoting || phase.kind === 'settling'}
+        label={`${side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`}
+        disabled={!asset || asset.tradeable === false || !quote || quoting || phase.kind === 'settling'}
         loading={phase.kind === 'preparing' || phase.kind === 'settling'}
         onPress={trade}
       />
@@ -314,6 +344,11 @@ function Busy({ text }: { text: string }) {
 }
 
 const styles = themedStyles(() => ({
+  toolbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
+  tools: { flexDirection: 'row', gap: spacing.sm },
+  tool: { width: 40, height: 40, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accentPinkDim },
+
   position: {
     gap: spacing.sm,
   },

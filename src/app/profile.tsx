@@ -4,12 +4,14 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Platform, Pressable, Share, Switch, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Switch, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import { useEmailSettings } from '@/api/emails';
 import { setAvatar, useMe } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
+import { shareLink } from '@/components/share/share-link';
+import { webUrl } from '@/config';
 import { NotificationDeviceControl } from '@/notifications/device-control';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { TokenChainLogo } from '@/components/token-chain-logo';
@@ -43,6 +45,7 @@ async function choosePhoto(): Promise<string | null> {
 export default function ProfileScreen() {
   const { email, logout, getAccessToken } = useAtlasAuth();
   const { me, error: meError, reload, setMe } = useMe();
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -237,12 +240,21 @@ export default function ProfileScreen() {
       </Text>
       <Card style={styles.group}>
         <Pressable
-          onPress={() => Share.share({ message: 'I use Atlas for one balance across stocks, memes and crypto. Join me.' })}
+          onPress={async () => {
+            try {
+              const url = `${webUrl.replace(/\/$/, '')}/invite/@${me?.handle ?? 'atlas'}`;
+              const caption = `${me?.handle ? `@${me.handle} invites you to Atlas.` : 'Join me on Atlas.'} One balance for stocks, memes and crypto.`;
+              const result = await shareLink(caption, url, 'Your Atlas invitation');
+              setInviteNotice(result === 'copied' ? 'Invitation and link copied.' : null);
+            } catch { setInviteNotice("Couldn't share. Try again."); }
+          }}
           style={styles.row}>
-          <RowLabel icon="gift-outline" title="Invite friends" subtitle="Share Atlas with people you pay" />
+          <RowLabel icon="gift-outline" title="Invite friends" subtitle="Send your personal Atlas invitation" />
           <Icon name="chevron-forward" size={18} color="accentPink" />
         </Pressable>
       </Card>
+
+      {inviteNotice ? <Text color="textSecondary" variant="caption" accessibilityLiveRegion="polite">{inviteNotice}</Text> : null}
 
       {Platform.OS === 'android' ? <View style={styles.row}>
         <RowLabel icon="information-circle-outline" title="Atlas for Android" subtitle={Application.nativeApplicationVersion ? `Version ${Application.nativeApplicationVersion}${Application.nativeBuildVersion ? ` · Build ${Application.nativeBuildVersion}` : ''}` : 'Version unavailable'} />

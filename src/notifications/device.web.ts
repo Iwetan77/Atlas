@@ -34,30 +34,44 @@ export function useNotificationDevice(owner: string | null, authenticated: boole
   useLayoutEffect(() => { session.current = authenticated ? owner : null; }, [owner, authenticated]);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
+  const working = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const bind = useCallback(async (subscription: PushSubscription) => {
     if (!owner || session.current !== owner) return;
     const token = await getToken();
     if (session.current !== owner) return;
-    await registerDevice(owner, 'web', subscription.toJSON(), token);
+    await registerDevice(owner, 'web', subscription.toJSON(), token, () => session.current === owner);
+    if (session.current !== owner) throw new Error('Sign in again to enable notifications.');
   }, [owner, getToken]);
   useEffect(() => {
     if (!available || !authenticated || !owner) return;
     let live = true;
-    void registration().then(async (reg) => {
+    void Promise.resolve().then(async () => {
+      if (!live) return null;
+      setEnabled(false); setError(null);
+      return registration();
+    }).then(async (reg) => {
+      if (!reg || !live) return;
       const subscription = await reg.pushManager.getSubscription();
       const saved = rememberedDevice();
-      const on = !!subscription && Notification.permission === 'granted' && saved?.owner === owner;
-      if (live) setEnabled(on);
-      if (on && subscription) await bind(subscription);
-      else if (subscription && saved?.owner !== owner) await subscription.unsubscribe();
-    }).catch(() => {});
-    const message = () => { void onUpdate(); };
+      // Browser permission and the subscription survive storage updates. Rebind an existing
+      // subscription even when Atlas's local registration id was cleared; never silently discard it.
+      if (subscription && saved?.owner && saved.owner !== owner) {
+        await subscription.unsubscribe(); return;
+      }
+      if (subscription && Notification.permission === 'granted') {
+        await bind(subscription);
+        if (live && session.current === owner) setEnabled(true);
+      }
+    }).catch((e) => { if (live && session.current === owner) setError(errorMessage(e)); });
+    const message = (event: MessageEvent) => { if (event.data?.type === 'atlas-money-update') void onUpdate(); };
     navigator.serviceWorker.addEventListener('message', message);
     return () => { live = false; navigator.serviceWorker.removeEventListener('message', message); };
   }, [owner, authenticated, available, bind, onUpdate]);
   const change = async (on: boolean) => {
-    if (busy || !supported() || !owner) return;
+    if (working.current || !supported() || !owner) return;
+    const current = owner;
+    working.current = true;
     // Ask inside the button gesture. Safari must not lose the gesture to a network request.
     const permission = on ? Notification.requestPermission() : Promise.resolve(Notification.permission);
     setBusy(true); setError(null);
@@ -65,8 +79,11 @@ export function useNotificationDevice(owner: string | null, authenticated: boole
       if (!on) { await disconnectNotifications(getToken); setEnabled(false); return; }
       if (await permission !== 'granted') throw new Error('Allow notifications for Atlas in your browser’s website settings.');
       const token = await getToken();
+      if (session.current !== current) return;
       const config = await engineGet<{ publicKey: string }>('/v1/notifications/config', token, { timeoutMs: 15_000 });
+      if (session.current !== current) return;
       const reg = await registration();
+      if (session.current !== current) return;
       let subscription = await reg.pushManager.getSubscription();
       const key = publicKey(config.publicKey);
       if (subscription && subscription.options.applicationServerKey &&
@@ -74,8 +91,10 @@ export function useNotificationDevice(owner: string | null, authenticated: boole
         await subscription.unsubscribe(); subscription = null;
       }
       subscription ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key.buffer as ArrayBuffer });
-      await bind(subscription); setEnabled(true);
-    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+      if (session.current !== current) return;
+      await bind(subscription); if (session.current === current) setEnabled(true);
+    } catch (e) { if (session.current === current) { setEnabled(false); setError(errorMessage(e)); } }
+    finally { working.current = false; setBusy(false); }
   };
   return { enabled: authenticated && rememberedDevice()?.owner === owner && enabled, busy, error, available, change,
     explanation: available ? 'Money updates, even when Atlas is closed.' : 'On iPhone, add Atlas to your Home Screen, then enable notifications there. Other browsers must support notifications.' };

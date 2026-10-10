@@ -45,7 +45,7 @@ export function WebShell({ children }: { children: ReactNode }) {
   const desktop = useDesktop();
   const device = useBrowserDevice();
   const standalone = useStandalone();
-  const publicPage = !authenticated || path === '/install' || path.startsWith('/claim');
+  const publicPage = !authenticated || path === '/install' || path.startsWith('/claim') || path.startsWith('/invite') || path.startsWith('/asset');
   const active = NAV.find((n) => n.match.some((m) => m === '/' ? path === '/' : path === m || path.startsWith(`${m}/`)));
   const title = active?.label ?? (path === '/profile' ? 'Your account' : path === '/deposit' || path === '/add-bank' ? 'Add money' : 'Your Atlas');
   return <div className={`atlas-shell ${desktop ? 'is-desktop' : 'is-mobile'} ${publicPage ? 'is-public' : 'is-account'}`} style={tokens()}>

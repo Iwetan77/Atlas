@@ -103,7 +103,7 @@ export function useTransactionReceipt(id: string) {
         setError(null);
         terminal = receipt.state !== 'pending';
       } catch (e) { if (active) setError(errorMessage(e)); }
-      if (active && !terminal) timer = setTimeout(() => void refresh(), 4000);
+      if (active && !terminal) timer = setTimeout(() => void refresh(), 3000);
     }
     void refresh();
     return () => { active = false; if (timer) clearTimeout(timer); };
