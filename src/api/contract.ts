@@ -424,6 +424,7 @@ export type SendQuote = {
   // What the recipient gets (NGN for a bank payout).
   receive: Money;
   fee: Money;
+  feeBreakdown?: { label: string; amount: Money }[];
   // "Instant", "Within 5 minutes"…
   eta: string;
   expiresAtUnixMs: number;
@@ -490,7 +491,9 @@ export type CashLink = {
   amount: Money;
   sender: { displayName: string | null; handle: string | null };
   message: string | null;
-  state: 'open' | 'claimed' | 'expired' | 'cancelled';
+  state: 'open' | 'processing' | 'claimed' | 'expired' | 'cancelled';
+  shortCode?: string;
+  claimIntentId?: string | null;
   expiresAtUnixMs: number;
 };
 

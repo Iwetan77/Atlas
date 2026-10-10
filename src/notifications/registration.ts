@@ -8,8 +8,12 @@ export function rememberedDevice(): Registration | null {
   try { return JSON.parse(readDeviceValue(KEY) ?? 'null'); } catch { return null; }
 }
 export function rememberDevice(device: Registration | null) { writeDeviceValue(KEY, device ? JSON.stringify(device) : null); }
-export async function registerDevice(owner: string, kind: 'web' | 'expo', subscription: unknown, token: string | null) {
+export async function registerDevice(owner: string, kind: 'web' | 'expo', subscription: unknown, token: string | null, current: () => boolean = () => true) {
   const device = await enginePost<{ id: string }>('/v1/notifications/register', token, { kind, subscription }, { retries: 2, timeoutMs: 15_000 });
+  if (!current()) {
+    await enginePost('/v1/notifications/unregister', token, { id: device.id }, { timeoutMs: 8_000 }).catch(() => {});
+    return;
+  }
   rememberDevice({ owner, id: device.id });
 }
 export async function removeDevice(getToken: () => Promise<string | null>) {

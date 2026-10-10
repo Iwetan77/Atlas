@@ -157,3 +157,9 @@ export async function setAvatar(token: Token, image: string | null): Promise<str
 export async function claimCashLink(token: Token, linkId: string, secret: string, pinAuthorization: string): Promise<IntentStatus> {
   return enginePost<IntentStatus>(`/v1/cashlinks/${encodeURIComponent(linkId)}/claim`, await token(), { secret }, { pinAuthorization });
 }
+
+// Read-only recovery: only the sender/actual claimant can see this claim's intent.
+export async function getCashLinkClaim(token: Token, linkId: string): Promise<IntentStatus | null> {
+  try { return await engineGet<IntentStatus>(`/v1/intents/cashlink-${encodeURIComponent(linkId)}`, await token()); }
+  catch (error) { if (error instanceof EngineUnavailable && error.status === 404) return null; throw error; }
+}

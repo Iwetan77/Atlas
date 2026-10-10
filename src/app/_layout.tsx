@@ -18,6 +18,7 @@ import { WithdrawProvider } from '@/funding/withdraw';
 import { SettingsProvider } from '@/settings/context';
 import { NotificationsProvider } from '@/notifications/context';
 import { PinProvider } from '@/security/pin-provider';
+import { pendingClaimPath } from '@/funding/claim-continuation';
 import { ConfirmProvider } from '@/signing/confirm';
 import { colors, subscribeTheme, themeName, type ThemeName } from '@/theme';
 import { WebShell } from '@/components/web/shell';
@@ -130,6 +131,17 @@ function RootStack() {
   // passing blip that tore it down or flipped the guard would land the user back on the welcome
   // screen mid-task, so only a lasting sign-out (or tapping Sign out) does.
   const [started, setStarted] = useState(false);
+  const returnedClaim = useRef<string | null>(null);
+  useEffect(() => {
+    if (!authenticated) return;
+    // This navigator mounts only after the PIN gate opens. Finish the original gift journey
+    // after sign-in/setup instead of dropping the recipient on Home.
+    const pending = pendingClaimPath();
+    if (!pending || returnedClaim.current === pending) return;
+    returnedClaim.current = pending;
+    if (pathname !== pending) router.replace(pending as import('expo-router').Href);
+  }, [authenticated, pathname]);
+
   const [signedIn, setSignedIn] = useState(authenticated);
   const [waited, setWaited] = useState(!startedWithSession());
   if (ready && !initError && !started) setStarted(true);
@@ -154,13 +166,13 @@ function RootStack() {
     return () => clearTimeout(id);
   }, [ready, initError, authenticated, signedIn]);
 
-  // Someone who was signed in sees the Atlas logo until their session is back (then the lock),
+  // Someone who was signed in sees a connection status until their session is back (then the lock),
   // never the welcome screen. A first visit to the website shows the welcome page at once, and the
   // public pages (install instructions, Atlas Links) never wait on sign-in.
-  const publicPage = Platform.OS === 'web' && /^\/(install|claim)(\/|$)/.test(pathname);
+  const publicPage = Platform.OS === 'web' && /^\/(install|claim|invite|asset)(\/|$)/.test(pathname);
   // A known session can precede Privy's ready flag, especially when PinSession remounts after
   // restoring the user. The PIN gate protects it; never replace its navigator with the startup
-  // logo just because the SDK is still settling.
+  // screen just because the SDK is still settling.
   const restoring = !authenticated && !signedIn
     && (started ? !waited : Platform.OS !== 'web' || startedWithSession());
   const showStack = publicPage || !restoring;
@@ -203,6 +215,8 @@ function RootStack() {
       {/* Public: someone without Atlas opens an Atlas link here and signs in on the page. Last, because
           the router falls back to the first screen it may show: signed out, that must be sign-in. */}
       <Stack.Screen name="claim/[linkId]" />
+      <Stack.Screen name="invite/[code]" />
+      <Stack.Screen name="asset/[assetId]" />
       <Stack.Screen name="install" />
     </Stack>
   );

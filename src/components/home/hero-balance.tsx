@@ -301,7 +301,7 @@ const styles = themedStyles(() => ({
     borderRadius: TAB_H / 2,
     borderWidth: 3,
     borderColor: colors.bgBase,
-    backgroundColor: colors.accentPinkMuted,
+    backgroundColor: colors.accentPinkDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
