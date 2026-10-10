@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Image, Modal, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { engineGet } from '@/api/client';
@@ -92,10 +92,9 @@ function PinSession({ children }: { children: ReactNode }) {
   return (
     <Context.Provider value={{ request, reload }}>
       {setup ? !mine ? (
-        <View key={theme} style={styles.loading}>
-          <Image source={require('../../assets/images/icon.png')} style={styles.logo} accessibilityLabel="Atlas" />
+        <View key={theme} testID="atlas-account-check" style={styles.loading}>
           {problem ? <><Text variant="heading">Securing your Atlas account</Text><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
-            : <ActivityIndicator color={colors.accentPink} />}
+            : <><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Securing your account…</Text></>}
         </View>
       ) : <PinSetup key={theme} handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
         <AppLock active={authenticated} startLocked={!justSetUp} userId={userId} handle={mine?.handle ?? null}>{children}</AppLock>
@@ -121,8 +120,7 @@ function PinSession({ children }: { children: ReactNode }) {
   );
 }
 const styles = themedStyles(() => ({
-  loading: { flex: 1, backgroundColor: colors.bgBase, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
-  logo: { width: 88, height: 88, borderRadius: 24 },
+  loading: { flex: 1, width: '100%', alignSelf: 'stretch', minHeight: '100%', backgroundColor: colors.bgBase, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
   sheet: { width: '100%', maxWidth: 440, maxHeight: '92%', alignSelf: 'center', borderRadius: radii.lg, backgroundColor: colors.bgSurface },
   content: { padding: spacing.xl, gap: spacing.lg },

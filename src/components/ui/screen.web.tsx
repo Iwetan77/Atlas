@@ -1,8 +1,9 @@
 import { usePathname } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Screen as PhoneScreen } from './screen-base';
-export { Pinned } from './screen-base';
 import { useDesktop } from '@/web/use-desktop';
+
+export { Pinned } from './screen-base';
 
 export function Screen({ style, ...props }: ComponentProps<typeof PhoneScreen>) {
   const desktop = useDesktop();

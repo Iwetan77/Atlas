@@ -1,10 +1,10 @@
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Share, StyleSheet } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { View } from 'react-native';
 
 import { useRunIntent } from '@/api/intents';
-import { executeSend, requestSendQuote } from '@/api/send';
+import { executeSend, requestSendQuote, useMe } from '@/api/send';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
@@ -18,10 +18,12 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { SpendableCard } from '@/components/send/spendable-card';
 import { formatMoney } from '@/format/money';
-import { claimUrl, keepLinkKey, newLinkKey } from '@/funding/link-key';
+import { claimUrl, keepLinkKey, newLinkKey, publicLinkLabel } from '@/funding/link-key';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
-import { spacing } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
+import { Icon } from '@/components/ui/icon';
+import { shareLink } from '@/components/share/share-link';
 import { useBackToWithdraw } from '@/funding/withdraw';
 
 const MESSAGE_MAX = 80;
@@ -33,6 +35,8 @@ export default function CashLinkScreen() {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const runIntent = useRunIntent();
+  const { me } = useMe();
+  const creating = useRef(false);
 
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
@@ -60,9 +64,10 @@ export default function CashLinkScreen() {
   );
 
   const create = async () => {
-    if (!quote) return;
+    if (!quote || creating.current) return;
     const url = claimUrl(key);
     if (!url) return;
+    creating.current = true;
     setPhase({ kind: 'sending' });
     try {
       // Kept on this phone before any money moves, so it can always be taken back.
@@ -73,21 +78,30 @@ export default function CashLinkScreen() {
       else setPhase({ kind: 'failed', message: final.error ?? 'The link could not be created.' });
     } catch (e) {
       setPhase({ kind: 'failed', message: friendlyTxError(e) });
-    }
+    } finally { creating.current = false; }
   };
 
   if (phase.kind === 'done') {
-    const text = `${phase.amount} for you on Atlas${note ? `: ${note}` : ''}. Claim it here: ${phase.url}`;
+    const sender = me?.handle ? '@' + me.handle : 'Your friend';
+    const caption = `${sender} is inviting you to Atlas with ${phase.amount}${note ? ': ' + note : '.'} Open this private link to claim your gift.`;
     return (
-      <ResultView title={`Your ${phase.amount} link is ready`} subtitle="Anyone with this link can claim it. Share it only with the person it's for.">
-        <Card variant="outlined">
-          <Text selectable variant="caption">
-            {phase.url}
-          </Text>
+      <ResultView title="Your gift is ready" subtitle="Share this private link with the person you’re sending it to.">
+        <Card style={styles.gift}>
+          <View style={styles.giftIcon}><Icon name="gift-outline" color="accentPink" size={30} /></View>
+          <Text variant="bodyStrong">{sender} invites you to Atlas</Text>
+          <Text variant="display">{phase.amount}</Text>
+          {note ? <Text color="textSecondary" style={styles.center}>{note}</Text> : null}
+          <View style={styles.link}><Icon name="link-outline" color="accentPink" size={16} />
+            <Text variant="caption" numberOfLines={1} style={styles.linkLabel}>{publicLinkLabel(phase.url)}</Text>
+          </View>
+          <Text variant="caption" color="textSecondary" style={styles.center}>Your gift is funded and waiting to be claimed.</Text>
         </Card>
-        <PillButton label="Share" icon="share-outline" onPress={() => Share.share({ message: text })} />
+        <PillButton label={copied ? 'Copied invitation' : 'Share invitation'} icon="share-outline" onPress={async () => {
+          const result = await shareLink(caption, phase.url, sender + ' invites you to Atlas');
+          if (result === 'copied') setCopied(true);
+        }} />
         <PillButton
-          label={copied ? 'Copied' : 'Copy link'}
+          label={copied ? 'Copied' : 'Copy private link'}
           icon={copied ? 'checkmark-circle' : 'copy-outline'}
           tone={copied ? 'success' : 'secondary'}
           onPress={async () => {
@@ -131,8 +145,13 @@ export default function CashLinkScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
+  gift: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xl },
+  giftIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.accentPinkMuted, alignItems: 'center', justifyContent: 'center' },
+  center: { textAlign: 'center' },
+  link: { maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.bgBase, borderRadius: radii.pill },
+  linkLabel: { flexShrink: 1 },
   cta: {
     marginTop: spacing.sm,
   },
-});
+}));

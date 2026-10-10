@@ -28,7 +28,11 @@ export function SendReview({
       <Card variant="outlined" style={styles.card}>
         <Row label="To" value={quote.destinationLabel} />
         <Row label="They get" value={formatMoney(quote.receive)} strong />
-        <Row label="Fee" value={Number(quote.fee.amount) === 0 ? 'Free' : formatMoney(quote.fee)} />
+        <Row label="Total fee" value={Number(quote.fee.amount) === 0 ? 'Free' : formatMoney(quote.fee)} />
+        {quote.feeBreakdown?.map((part, index) => <Row key={part.label + index} label={part.label} value={formatMoney(part.amount)} />)}
+        {quote.feeBreakdown?.some(part => part.label === 'Claim delivery reserve') ? (
+          <Text variant="caption" color="textSecondary">The claim reserve covers delivery to their wallet. Any unused reserve goes to the recipient. Network delivery pays for funding the link.</Text>
+        ) : null}
         {/* A bank payout's fee goes on top: what leaves the balance is more than they get. */}
         {quote.send.currency === quote.receive.currency && Number(quote.send.amount) > Number(quote.receive.amount) ? (
           <Row label="You pay" value={formatMoney(quote.send)} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
@@ -7,8 +7,7 @@ import { colors, spacing, themedStyles } from '@/theme';
 
 const SLOW_MS = 12_000;
 
-// The Atlas logo while sign-in initialises (and while a saved session comes back). If it stalls or fails, it says so (with the SDK's own message)
-// instead of leaving the user on an endless spinner.
+// A contained connection status while the saved session restores.
 export function StartupStatus({ error }: { error: string | null }) {
   const [slow, setSlow] = useState(false);
 
@@ -18,8 +17,8 @@ export function StartupStatus({ error }: { error: string | null }) {
   }, []);
 
   return (
-    <View style={styles.wrap}>
-      <Image source={require('../../assets/images/icon.png')} style={styles.logo} accessibilityLabel="Atlas" />
+    <View testID="atlas-startup-status" style={styles.wrap}>
+      <Text variant="bodyStrong">Connecting to Atlas</Text>
       {error ? null : <ActivityIndicator color={colors.accentPink} />}
       {error || slow ? (
         <View style={styles.detail}>
@@ -58,16 +57,13 @@ export function StartupError({ error, retry }: { error: Error; retry: () => Prom
 const styles = themedStyles(() => ({
   wrap: {
     flex: 1,
+    minHeight: 240,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xl,
     padding: spacing.xl,
     backgroundColor: colors.bgBase,
-  },
-  logo: {
-    width: 88,
-    height: 88,
-    borderRadius: 24,
   },
   detail: {
     gap: spacing.sm,
