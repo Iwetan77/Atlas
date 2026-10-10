@@ -181,7 +181,7 @@ export default function AssetTradeScreen() {
       </View>
       {asset ? <>
         <AssetShare asset={asset} visible={shareOpen} onClose={() => setShareOpen(false)} />
-        <AssetPriceAlert assetId={asset.assetId} symbol={asset.symbol} visible={alertOpen} onClose={() => setAlertOpen(false)} />
+        <AssetPriceAlert assetId={asset.assetId} symbol={asset.symbol} name={asset.name} iconUrl={asset.iconUrl} price={asset.price} visible={alertOpen} onClose={() => setAlertOpen(false)} />
       </> : null}
 
       <View style={styles.assetHeader}>
