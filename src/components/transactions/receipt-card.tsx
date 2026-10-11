@@ -79,7 +79,7 @@ function status(r: TransactionReceipt): { text: string; icon: IconName } {
 export function receiptLongDate(ms: number) {
   if (!ms) return '';
   const d = new Date(ms);
-  return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+  return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 }
 
 // A receipt worth keeping and sharing: an Atlas-pink header with the planet's orbits, the amount and
