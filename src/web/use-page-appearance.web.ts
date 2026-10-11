@@ -18,12 +18,18 @@ export function usePageAppearance(theme: ThemeName) {
       const active = document.activeElement;
       return active instanceof HTMLElement && !!active.closest('input, textarea, [contenteditable="true"]');
     };
+    // Drawn under a translucent status bar (the status-bar backdrop has the top inset's height),
+    // WebKit leaves the status bar's height out of innerHeight: fitting that left a strip of page
+    // under the tabs. There the app takes the screen's full height. Under an opaque status bar
+    // (light mode) the top inset is 0 and innerHeight is the whole viewport, so the tabs never move
+    // below the screen.
+    const underStatusBar = () =>
+      (document.getElementById('atlas-statusbar-backdrop')?.getBoundingClientRect().height ?? 0) > 0;
     const fit = () => {
       if (typing()) return;
-      // The physical screen includes areas outside WebKit's viewport. In particular, switching
-      // the status-bar style for light mode can change the available height. Fit that viewport
-      // in both themes, rather than stretching the app to screen.height and moving its tabs.
-      const height = `${window.innerHeight}px`;
+      const portrait = window.innerWidth < window.innerHeight;
+      const short = underStatusBar() && portrait && window.innerHeight < window.screen.height;
+      const height = `${short ? window.screen.height : window.innerHeight}px`;
       for (const el of [document.documentElement, document.body, document.getElementById('root')]) {
         if (el) el.style.height = height;
       }
