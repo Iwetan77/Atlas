@@ -1,25 +1,28 @@
 import { Connection } from '@solana/web3.js';
 import { type Chain, createPublicClient, http, type PublicClient } from 'viem';
-import { base, mainnet, monad, polygon } from 'viem/chains';
+import { base, mainnet, monad, polygon, robinhood } from 'viem/chains';
 
 import type { SentTx, UnsignedTx } from '@/api/contract';
 import { solana } from '@/config';
 
-// Mainnet only: Base, Ethereum for the occasional L1 leg, and Monad (selling MON sends it from here).
+// Mainnet only: Base, Ethereum for the occasional L1 leg, Monad (selling MON sends it from here) and
+// Robinhood Chain (selling its coins sends them from here).
 export const evmChains = {
   base,
   ethereum: mainnet,
   monad,
   polygon,
+  robinhood,
 } as const;
 
 // Every EVM network the app will sign on, and which `chain` family each belongs to. A plan names
 // its network by chainId; anything else is refused rather than guessed.
-const KNOWN_EVM: Record<number, { chain: Chain; family: 'base' | 'ethereum' | 'monad' | 'polygon' }> = {
+const KNOWN_EVM: Record<number, { chain: Chain; family: 'base' | 'ethereum' | 'monad' | 'polygon' | 'robinhood' }> = {
   [base.id]: { chain: base, family: 'base' },
   [mainnet.id]: { chain: mainnet, family: 'ethereum' },
   [monad.id]: { chain: monad, family: 'monad' },
   [polygon.id]: { chain: polygon, family: 'polygon' },
+  [robinhood.id]: { chain: robinhood, family: 'robinhood' },
 };
 
 // Privy must know every chain it may send on; the build's default Base goes first.

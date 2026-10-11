@@ -64,9 +64,9 @@ export type UnsignedTx =
 
   | {
       // EVM chains the embedded wallet signs on. Base is the default; Ethereum covers L1 legs (e.g.
-      // bridging); Monad is where MON is sold from.
-      chain: 'base' | 'ethereum' | 'monad' | 'polygon';
-      // The exact network: 8453 Base, 1 Ethereum, 143 Monad. Required: the app refuses a plan for a
+      // bridging); Monad is where MON is sold from; Robinhood Chain is where its coins are sold from.
+      chain: 'base' | 'ethereum' | 'monad' | 'polygon' | 'robinhood';
+      // The exact network: 8453 Base, 1 Ethereum, 143 Monad, 4663 Robinhood Chain. Required: the app refuses a plan for a
       // network it doesn't sign on rather than guessing.
       chainId: number;
       to: `0x${string}`;
