@@ -22,6 +22,7 @@ export type DoneTransfer = {
   receive: Money;
   send: Money;
   fee: Money;
+  networkFee?: Money;
   eta: string;
 };
 
@@ -46,7 +47,10 @@ export function TransferDone({
     'Atlas transfer receipt',
     `${formatMoney(t.receive)} to ${t.accountName}`,
     `${t.bank.name} · ${t.accountNumber}`,
-    `You pay ${formatMoney(t.send)} (fee ${formatMoney(t.fee)})`,
+    `You pay ${live?.summary.find(line => line.label === 'You pay')?.value ?? formatMoney(t.send)}`,
+    `Fee: ${live?.summary.find(line => line.label === 'Fee')?.value ?? formatMoney(t.fee)}`,
+    ...(live?.summary.some(line => line.label === 'Network fee') || t.networkFee
+      ? [`Network fee: ${live?.summary.find(line => line.label === 'Network fee')?.value ?? (t.networkFee && Number(t.networkFee.amount) !== 0 ? formatMoney(t.networkFee) : 'Free')}`] : []),
     `Status: ${progress.title}`,
     when,
     `Reference: ${t.intentId}`,

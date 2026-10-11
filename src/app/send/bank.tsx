@@ -173,7 +173,7 @@ export default function SendToBankScreen() {
       submitted = true;
       setPhase({ kind: 'done', transfer: {
         intentId, bank: payee.bank, accountNumber: payee.accountNumber, accountName: payee.accountName,
-        receive: quote.receive, send: quote.send, fee: quote.fee, eta: quote.eta,
+        receive: quote.receive, send: quote.send, fee: quote.fee, networkFee: quote.networkFee, eta: quote.eta,
       } });
     };
     try {

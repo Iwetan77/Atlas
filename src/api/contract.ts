@@ -423,7 +423,10 @@ export type SendQuote = {
   send: Money;
   // What the recipient gets (NGN for a bank payout).
   receive: Money;
+  // Bank payout charge, excluding any fresh USDC needed for network fees.
   fee: Money;
+  // Absent on older servers; zero means existing gas reserves cover delivery.
+  networkFee?: Money;
   feeBreakdown?: { label: string; amount: Money }[];
   // "Instant", "Within 5 minutes"…
   eta: string;
