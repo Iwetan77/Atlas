@@ -10,8 +10,8 @@ with **one tap to confirm** and no chain names, bridges or gas to think about.
 - **This repo:** the client. React Native + Expo (managed workflow), TypeScript, one codebase for iOS,
   Android and web.
 
-Money is always shown in the user's currency (₦, $, €, £, KSh, GH₵, R). Under the hood it's USDC on Solana
-and Base; chain names only appear on the deposit screen, where sending on the wrong network loses money.
+Money is shown in the user's selected currency (₦, $, €, £, KSh, GH₵, R). Under the hood, cash is USDC
+on Solana and Base. Network details are shown when needed to select a deposit or withdrawal route.
 
 ---
 
@@ -21,16 +21,16 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
    phrase and no "create wallet" step.
 2. **Add money** from the Add money sheet:
    - **Wallet or exchange:** USDC on Solana or Base goes straight in; USDT on Tron or BNB Chain, USDC on Sui,
-     SOL and 19 more networks and coins get a one-off address (with a QR and live status) and arrive as dollars.
+     SOL and other supported networks and coins get a one-off address with a QR and live status.
      Each option shows its coin's logo with the chain as a badge. Type what you want to land in your balance;
      the quote adds fees on top and shows the full amount to send.
-   - **Bank transfer:** a one-time Nigerian bank account for the exact transfer. Type the amount you want
-     in your balance; Fee and delivery costs go on top, with the total shown before you transfer.
+   - **Bank transfer:** a one-time Nigerian bank account. Enter the amount you want in your balance;
+     the quote shows fees and the full transfer amount before you proceed.
 3. **Home** shows the one balance (hide it with the eye: amounts turn into `₦••••`), what's earning, and a
    card per coin held with its gain or loss, shareable as an image.
 4. **Trade:** Trending (the day's biggest risers, per kind), Crypto, Stocks and Memes, plus search by name or
-   pasted address on any supported chain. Every asset has a price chart; a coin nobody has vetted carries an
-   **unverified** warning with its address.
+   pasted address on a supported chain. Charts use available venue data; searched assets without a verified
+   listing carry an **unverified** warning with their address.
 5. **Buy or sell in one tap.** The app gets a live quote (price held for a few seconds, refreshed), the user
    confirms once on the confirm sheet, and the app signs the engine's plan and follows it to the end:
    "Getting your money ready…", then "Buying…", then done. If the cash is on another chain, it moves first,
@@ -48,7 +48,7 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
      recent recipients with their bank logo, name and account number; recents refresh on returning.
    - **Withdraw to wallet:** paste any address and pick the coin: USDC on Solana or Base, USDT on Tron or BNB
      Chain, SOL, BTC and other supported deposit coins. The amount entered is what the recipient gets;
-     fees go on top, and the review shows the full cash debit and any estimated wallet network fee.
+     the review shows the fees and full cash debit.
      Availability and minimum amounts come from the live route.
 9. **The bottom bar:** Home, Trade, Perps, Atlas Predictions (opens the mini app straight away; it's under More's
    mini apps too) and More. Predictions shows live Polymarket events, fee-inclusive minimum spend, outcome
@@ -67,14 +67,14 @@ and Base; chain names only appear on the deposit screen, where sending on the wr
 | **Privy (Expo and React SDKs)** | Google and email sign-in, the user's embedded wallets, headless signing after the one confirm. |
 | **Atlas Engine** | Everything with money in it: balance, quotes, plans, deposits, perps, earn, friends. The app sends the Privy access token on every request. |
 | **react-native-qrcode-styled** | Deposit QR codes. |
-| **EAS** | Cloud builds (APK / iOS) and updates. |
+| **EAS** | Native development and release builds, using the project's signing credentials. |
 
 ---
 
 ## Safety model
 
-- **The app never holds keys or secrets.** Wallets are Privy's embedded wallets, owned by the user; the Privy
-  app secret lives only in the engine.
+- **Wallet ownership and configuration.** Users sign through their Privy embedded wallets. Provider secrets
+  remain on the engine; the app contains only public configuration.
 - **One confirm, then only what was confirmed.** The confirm sheet shows the plan in plain words; the app
   signs exactly the engine's plan: transactions, pinned EVM typed data, or one-use Privy device approvals.
   The bridge passes device approvals to Privy; it never signs a user's wallet using their login token.
@@ -109,113 +109,97 @@ src/components     Home cards, trade, perps, send, share cards, UI kit (SelectSh
 src/format         Money, currency list and flags
 ```
 
-**Every action in one breath:** `getPlan()` (quote → execute) → the confirm sheet → sign or send each
+**Action lifecycle:** `getPlan()` (quote → execute) → the confirm sheet → sign or send each
 transaction → `POST /v1/intents/{id}/signed` → poll `GET /v1/intents/{id}`; when the engine says the second
 step is ready (cash or gas landed), `GET /next`, sign, report, and keep polling until filled or failed
 (`src/api/intents.ts`). If the app closes before a later signature, Home's pending-purchase card
 lets the user finish from their own wallet without paying for the purchase again. Activity shows the
 last six actions on Home, with the full history, statuses and transaction IDs under See more.
-Money emails go to the sign-in address; Profile can turn them off.
+Money emails go to the sign-in address; Profile can turn them off. Device notifications and price alerts
+are available when the device grants notification permission.
 
 ---
 
 ## Run it locally
 
-You need Node 22+ (the app is built with Node 25).
+Requires Node.js 22.13 or later and npm. These instructions are for authorized development; see
+[LICENSE](LICENSE).
 
 ```bash
-npm install
-cp .env.example .env        # EXPO_PUBLIC_ENGINE_URL (and optionally EXPO_PUBLIC_PRIVY_CLIENT_ID)
-npx expo start              # web, or a development build on a phone
-npx expo export -p web      # static web build in dist/
+npm ci
+cp .env.example .env
+npx expo start
 ```
 
-The app uses native modules beyond Expo Go, so on a phone use a development build
-(`npx eas-cli@latest build --profile development`) and `npx expo start`.
+Set `EXPO_PUBLIC_ENGINE_URL` to the engine you want to use and `EXPO_PUBLIC_WEB_URL` to the hosted
+website used by invitation and claim links. `EXPO_PUBLIC_PRIVY_CLIENT_ID` optionally overrides the
+native Privy client. These values are public; server credentials must never use an `EXPO_PUBLIC_` prefix.
 
-Before every commit:
+The app uses native modules beyond Expo Go. For a phone, create and install a development build:
+
+```bash
+npx eas-cli@latest build --platform android --profile development
+npx expo start --dev-client
+```
+
+For iOS, use `--platform ios` with the required Apple signing credentials. Local engine setup is
+documented in [Atlas Engine](https://github.com/Iwetan77/Atlas-Engine#run-it-locally).
+
+### Checks
 
 ```bash
 npx tsc --noEmit
 npx expo lint
+node --test scripts/test-wallet-reconnect.mjs scripts/test-bank-and-image-save.mjs
+git diff --check
 ```
 
-## Build
+These checks cover types, lint and selected mocked wallet, receipt and image-saving boundaries.
+They do not establish funded settlement across every venue.
+
+## Build and deployment
 
 ```bash
-npx eas-cli@latest build -p android --profile preview      # installable APK
-npx eas-cli@latest build -p ios --profile preview          # needs an Apple Developer account
+npx eas-cli@latest build --platform android --profile preview
+npx eas-cli@latest build --platform ios --profile preview
 ```
 
-Every profile in `eas.json` points at the live engine (`EXPO_PUBLIC_ENGINE_URL`). Mainnet only.
+The preview Android profile produces an installable APK. Native release profiles in `eas.json` use
+the mainnet engine. The **Android release** GitHub Actions workflow builds with the existing signing
+key and can publish `atlas.apk` as a versioned release. Keep the same signing credentials so updates
+can replace an installed app.
 
----
+The website is the engine's static Expo export:
 
-## What's been verified
+```bash
+EXPO_PUBLIC_ENGINE_URL=https://justatlas.xyz \
+EXPO_PUBLIC_WEB_URL=https://justatlas.xyz \
+npx expo export -p web
+```
 
-| Check | Status |
-|---|---|
-| Sign-in, wallets, balance and holdings against the live engine | ✅ web and phone |
-| Trade lists, search, charts, quotes and the unverified warning | ✅ live engine |
-| Confirm sheet → sign → settle, two-step plans (cash or gas first), stalls and retries | ✅ against a stand-in engine that follows `contract.ts` |
-| Deposit list (featured + More networks and coins), QR and status, Back to the Add money list | ✅ web |
-| Earn venues and markets (incl. Morpho's vaults), hidden balance, currency picker | ✅ web |
-| Complete funded coverage across every venue and route | Not established by unit tests or unsigned dry runs; verify each funded path separately |
+Copy `dist/` into the engine's `crates/engine-service/web/`, run its
+`scripts/normalize-web-export.py`, and deploy the engine. For another origin, update both the engine's
+`ATLAS_ALLOWED_ORIGINS` and Privy's allowed web origins.
 
+### Installation and platform support
 
-## Desktop website and phone installation
+- **Web:** responsive desktop and mobile layouts share account, signing and money-action flows.
+- **iPhone:** `/install` explains Safari → Share → Add to Home Screen. This installs the web app;
+  it is not a native iOS binary.
+- **Android:** [download the latest signed APK](https://justatlas.xyz/download/android).
+  Profile shows the installed version and build number. A website deployment does not update an installed APK.
 
-Laptop/desktop browsers (at least 1024px wide, excluding iPhone/iPad/Android user agents) use an Atlas pink/slate website: public welcome and Google/email sign-in, sidebar navigation, a two-column Home dashboard with a Predictions shortcut, asset cards, market/order panels, Send/More grids and centred approval/funding dialogs. These reuse the same real account, balance, quotes, history and signing flows. Native and narrow mobile web retain the phone layout; mobile web adds a small installation link. Private browser session/wallet components mount after hydration so a server snapshot cannot reset sign-in.
+The four-digit payment PIN protects returning sign-ins and money actions. Changing it requires the
+current PIN; a normal sign-in cannot reset a forgotten PIN. Position share cards can be downloaded
+as images, and asset pages provide short sharing links and price alerts in the selected currency.
 
-`/install` is public. iPhone shows original Atlas illustrations and Safari Share -> Add to Home Screen instructions. It installs the website as a web app, not an iOS native binary. The public web manifest and existing Atlas icon provide the standalone name/icon. No service worker caches balances, login tokens or signed requests.
+Market data, routes, transaction times and notification delivery depend on external providers.
+Quotes and pending receipts report available routes and settlement progress; provider availability
+is not guaranteed.
 
-Android downloads the latest signed APK from GitHub Releases. `EXPO_PUBLIC_ANDROID_APK_URL` can override that public link; it is not a secret. Keep the same EAS signing credentials so an update installs over the previous app. Desktop's Get Atlas link opens the same platform guide. The install strip hides in standalone mode.
+## License
 
-Build/check: `npx tsc --noEmit`, `npx expo lint`, `npx expo export -p web`, `git diff --check`. The production website is served by the engine at `https://justatlas.xyz`; set both `EXPO_PUBLIC_ENGINE_URL` and `EXPO_PUBLIC_WEB_URL` to that origin for the web export. Copy the production export into the engine's `crates/engine-service/web/` for Render (never copy local QA fixtures). When hosting at a new domain, allow that exact origin in the engine's `ATLAS_ALLOWED_ORIGINS` and in Privy's allowed web origins; the backend URL is public but authentication remains required. There is no test auth bypass in this implementation.
-
-### Current Android download
-The website's Android button downloads [the newest Atlas APK](https://github.com/Iwetan77/Atlas/releases/latest/download/atlas.apk): GitHub sends that link to
-the `atlas.apk` file of the newest full (not pre-) release, so publishing an update needs no website rebuild.
-EXPO_PUBLIC_ANDROID_APK_URL can override it.
-
-To publish an update: build with `npx eas-cli@latest build -p android --profile preview` (the existing EAS
-signing credentials, so phones update over the installed app; EAS raises the build number), then make a
-GitHub release `v<version>` (not a pre-release) with the APK attached as `atlas.apk`.
-
-## Payment PIN and share cards
-
-After sign-in, every account sets a four-digit payment PIN; new accounts choose their handle in the
-same setup. Reviews keep the amount, recipient and fee visible and ask for the PIN instead of another
-Confirm button. One approval covers the saved payment's later steps. Profile → Payment PIN changes
-it using the current PIN. PINs and payment approvals are never stored in AsyncStorage or logs.
-
-The engine checks the PIN and limits wrong attempts in persistent storage. Older clients are stopped
-before receiving a spending plan and must update. A forgotten PIN cannot be overwritten from a
-normal login: account recovery needs a separately verified process before a reset is added.
-
-Share on a position or coin card opens an image preview with Download image and, when supported,
-Share image. Web captures only the card, with bounded image loading and capture time; the system
-share call follows a fresh tap so Safari permits it. Android Download image saves the PNG to Pictures;
-iPhone browsers download the PNG. Bank logos are bundled for common Nigerian banks,
-including OPay and MoMo, so they do not depend on a remote logo service.
-
-### Bank payout progress and Android wallet recovery
-
-A signed bank transfer opens a live progress screen. Funding the payout address does not mean the
-bank has been paid: success follows the receipt's confirmed payout state. Receipt details poll while
-visible and stop after settlement; Activity's refresh cannot delay a receipt's own refresh. Solana
-cash normally travels through Relay to a Base payout address to avoid a fresh Solana USDC account's
-rent; a direct Solana payout remains the fallback. This reduces fees, but adds a funding step.
-
-Android reconnects an existing Privy Solana wallet after a startup transport error, with bounded,
-single-flight retries. It never retries a purchase as part of reconnecting. Funded steps use the
-current wallet after PIN approval, and completed transaction reports remain tied to the original
-user. Unsigned drafts display **Awaiting confirmation**, rather than **On its way**.
-
-**Download image** saves native Android share cards as PNGs in Pictures. Android 11 and later use
-scoped storage without requesting access to existing photos; older Android versions request write
-access when saving. Profile shows the installed Android version and build number. Native changes
-require rebuilding and installing the APK; a website deployment does not update an installed app.
-
-Run `node --test scripts/test-wallet-reconnect.mjs scripts/test-bank-and-image-save.mjs` for the
-wallet, action-reporting, bank-state and native-save regressions (mocked SDK/system boundaries).
+Proprietary. Copyright © 2026 Atlas. All rights reserved. Source is publicly viewable for evaluation,
+demonstration and reference only. Use, copying, modification, distribution and deployment require
+prior written permission. See [LICENSE](LICENSE). Third-party dependencies and bundled fonts retain
+their own licenses.

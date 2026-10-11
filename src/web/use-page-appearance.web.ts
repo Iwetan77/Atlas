@@ -1,23 +1,21 @@
 import { useEffect } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { applyPageTheme } from '@/web/page-appearance';
 import { colors, type ThemeName } from '@/theme';
 
 export function usePageAppearance(theme: ThemeName) {
-  const insets = useSafeAreaInsets();
   useEffect(() => {
+    applyPageTheme(theme, colors.bgBase);
     const standalone = !!(navigator as Navigator & { standalone?: boolean }).standalone
       || window.matchMedia('(display-mode: standalone)').matches;
     const iphone = /iPhone|iPod/.test(navigator.userAgent);
+    if (!standalone || !iphone) return;
+
     const fit = () => {
-      applyPageTheme(theme, colors.bgBase);
-      if (!standalone || !iphone) return;
-      // In translucent Home Screen mode WebKit can exclude the top inset from 100% height.
-      // Wait for the provider's real inset, including its update after the first paint.
-      const fullScreen = insets.top > 0 && window.innerHeight < window.screen.height
-        && window.innerWidth < window.innerHeight;
-      const height = fullScreen ? `${window.screen.height}px` : '';
+      // The physical screen includes areas outside WebKit's viewport. In particular, switching
+      // the status-bar style for light mode can change the available height. Fit that viewport
+      // in both themes, rather than stretching the app to screen.height and moving its tabs.
+      const height = `${window.innerHeight}px`;
       for (const el of [document.documentElement, document.body, document.getElementById('root')]) {
         if (el) el.style.height = height;
       }
@@ -27,11 +25,13 @@ export function usePageAppearance(theme: ThemeName) {
     window.addEventListener('resize', fit);
     window.addEventListener('pageshow', fit);
     window.addEventListener('orientationchange', fit);
+    window.visualViewport?.addEventListener('resize', fit);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', fit);
       window.removeEventListener('pageshow', fit);
       window.removeEventListener('orientationchange', fit);
+      window.visualViewport?.removeEventListener('resize', fit);
     };
-  }, [theme, insets.top]);
+  }, [theme]);
 }

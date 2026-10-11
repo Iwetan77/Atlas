@@ -10,14 +10,26 @@ const LOCALES: Record<DisplayCurrency, string> = {
   ZAR: 'en-ZA',
 };
 
+// Constructing an Intl formatter for every market row is costly on native. The finite
+// currency/precision combinations share their formatter across list renders.
+const FORMATTERS = new Map<string, Intl.NumberFormat>();
+function numberFormat(currency: DisplayCurrency, smallPrice = false) {
+  const key = currency + (smallPrice ? ':price' : ':money');
+  let formatter = FORMATTERS.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(LOCALES[currency], {
+      style: 'currency',
+      currency,
+      ...(smallPrice ? { maximumSignificantDigits: 4 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    });
+    FORMATTERS.set(key, formatter);
+  }
+  return formatter;
+}
+
 // Display only. Amounts arrive as decimal strings from the engine; nothing here does arithmetic.
 export function formatMoney(money: Money): string {
-  return new Intl.NumberFormat(LOCALES[money.currency], {
-    style: 'currency',
-    currency: money.currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(money.amount));
+  return numberFormat(money.currency).format(Number(money.amount));
 }
 
 // Gains and losses: always signed, "+₦1,500.00" / "−₦1,500.00".
@@ -65,11 +77,7 @@ export function currencySymbol(currency: DisplayCurrency): string {
 export function formatPrice(money: Money): string {
   const n = Number(money.amount);
   if (n === 0 || Math.abs(n) >= 1) return formatMoney(money);
-  return new Intl.NumberFormat(LOCALES[money.currency], {
-    style: 'currency',
-    currency: money.currency,
-    maximumSignificantDigits: 4,
-  }).format(n);
+  return numberFormat(money.currency, true).format(n);
 }
 
 // "10000.5" → "10,000.5" for amount inputs; keeps a trailing "." or decimals the user is typing.
@@ -90,12 +98,19 @@ export function formatExactMoney(money: Money): string {
 // Short form for tight spaces: ₦85,343,731.37 → ₦85.34M. Display only; never for values that must
 // match the engine exactly.
 export function formatCompactMoney(money: Money): string {
-  return new Intl.NumberFormat(LOCALES[money.currency], {
-    style: 'currency',
-    currency: money.currency,
-    notation: 'compact',
-    maximumFractionDigits: 2,
-  }).format(Number(money.amount));
+  const amount = Number(money.amount);
+  const absolute = Math.abs(amount);
+  if (!Number.isFinite(amount) || absolute < 1_000) return formatMoney(money);
+  // Hermes versions can silently ignore Intl's compact notation. Explicit units keep
+  // the same readable figures on Android, iOS and browsers.
+  const units = ['', 'K', 'M', 'B', 'T'] as const;
+  let unit = Math.min(Math.floor(Math.log10(absolute) / 3), units.length - 1);
+  let rounded = Number((absolute / (1_000 ** unit)).toFixed(2));
+  if (rounded >= 1_000 && unit < units.length - 1) {
+    unit += 1;
+    rounded = Number((absolute / (1_000 ** unit)).toFixed(2));
+  }
+  return (amount < 0 ? '−' : '') + currencySymbol(money.currency) + rounded + units[unit];
 }
 
 // A hidden amount keeps its currency symbol ("₦••••"), so it still says what it's in.

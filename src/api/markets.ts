@@ -14,15 +14,20 @@ import type {
 } from '@/api/contract';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { useSettings } from '@/settings/context';
+import { createReadCache } from '@/api/read-cache';
 
 type Token = () => Promise<string | null>;
 
 // How long a search may take before it's called slow (the engine answers within a few seconds, leaving
 // out any source that's slow).
 const SEARCH_TIMEOUT_MS = 15_000;
+// Cold catalog/price refreshes can legitimately outlive a search. Keep them bounded
+// without declaring the list failed before its server-side deadline.
+const LIST_TIMEOUT_MS = 35_000;
+const assetReads = createReadCache<AssetsResponse>(10_000, 48, value => value.searchComplete !== false);
 
 export function useAssets(category: AssetCategory, query: string) {
-  const { getAccessToken } = useAtlasAuth();
+  const { getAccessToken, userId } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const [assets, setAssets] = useState<MarketAsset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +36,7 @@ export function useAssets(category: AssetCategory, query: string) {
   // A search's second part (other chains, Base coins by name) is still on its way.
   const [more, setMore] = useState(false);
   const search = query.trim();
-  const key = JSON.stringify([displayCurrency, category, search]);
+  const key = JSON.stringify([userId, displayCurrency, category, search]);
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Only the latest request may update the list: a slow answer for "bon" never replaces "bonk".
@@ -43,7 +48,7 @@ export function useAssets(category: AssetCategory, query: string) {
     latest.current++;
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (refresh = false) => {
     // Submitting with the keyboard cancels the pending automatic search.
     cancel();
     const ticket = latest.current;
@@ -60,8 +65,14 @@ export function useAssets(category: AssetCategory, query: string) {
     try {
       const token = await getAccessToken();
       if (stale()) return;
+      const read = (part?: 'listed' | 'other') => {
+        const path = url(part);
+        return assetReads.read(JSON.stringify([userId, path]),
+          () => engineGet<AssetsResponse>(path, token, { timeoutMs: search ? SEARCH_TIMEOUT_MS : LIST_TIMEOUT_MS }),
+          refresh);
+      };
       if (!search) {
-        const res = await engineGet<AssetsResponse>(url(), token, { timeoutMs: SEARCH_TIMEOUT_MS });
+        const res = await read();
         if (stale()) return;
         setAssets(res.assets);
         setIncomplete(false);
@@ -70,13 +81,13 @@ export function useAssets(category: AssetCategory, query: string) {
       // A search answers in two parts: Atlas's own coins show as soon as they're found, and other
       // chains (and Base coins by name) join the list when they arrive.
       const other = () =>
-        engineGet<AssetsResponse>(url('other'), token, { timeoutMs: SEARCH_TIMEOUT_MS }).catch((e: unknown) => e as Error);
+        read('other').catch((e: unknown) => e as Error);
       const pending = other();
       setMore(true);
       let listed: MarketAsset[] = [];
       let listedError: unknown = null;
       try {
-        listed = (await engineGet<AssetsResponse>(url('listed'), token, { timeoutMs: SEARCH_TIMEOUT_MS })).assets;
+        listed = (await read('listed')).assets;
       } catch (e) {
         listedError = e;
       }
@@ -117,11 +128,11 @@ export function useAssets(category: AssetCategory, query: string) {
         setMore(false);
       }
     }
-  }, [getAccessToken, displayCurrency, category, search, key, cancel]);
+  }, [getAccessToken, userId, displayCurrency, category, search, key, cancel]);
 
   useEffect(() => {
     // Typing shouldn't fire a request per keystroke; the keyboard's Search key runs it at once.
-    debounce.current = setTimeout(load, search ? 350 : 0);
+    debounce.current = setTimeout(() => void load(), search ? 350 : 0);
     // Retire the old request as soon as typing changes, before the next debounce fires.
     return cancel;
   }, [load, search, cancel]);
@@ -133,11 +144,11 @@ export function useAssets(category: AssetCategory, query: string) {
     loading: loading || !current,
     incomplete: current && incomplete,
     searchingMore: current && more,
-    reload: load,
+    reload: () => load(true),
   };
 }
 
-// An asset's price history for one range; switching range keeps the last chart until the new one lands.
+// Switching range can keep this asset's last chart; another asset or currency must never reuse it.
 export function useAssetChart(assetId: string, range: ChartRange) {
   const { getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
@@ -152,6 +163,7 @@ export function useAssetChart(assetId: string, range: ChartRange) {
         engineGet<AssetChart>(
           `/v1/assets/${encodeURIComponent(assetId)}/chart?range=${range}&currency=${displayCurrency}`,
           token,
+          { timeoutMs: 60_000 },
         ),
       )
       .then(
@@ -163,8 +175,9 @@ export function useAssetChart(assetId: string, range: ChartRange) {
     };
   }, [assetId, range, displayCurrency, getAccessToken, key]);
 
-  const current = chart && chart.range === range && chart.currency === displayCurrency ? chart : null;
-  return { chart: current ?? chart, loading: !current && error?.key !== key, error: error?.key === key ? error.message : null };
+  const sameAsset = chart?.assetId === assetId && chart.currency === displayCurrency ? chart : null;
+  const current = sameAsset?.range === range ? sameAsset : null;
+  return { chart: current ?? sameAsset, loading: !current && error?.key !== key, error: error?.key === key ? error.message : null };
 }
 
 // Optional display data is independent of quotes and is refreshed while this asset is open.

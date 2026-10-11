@@ -52,8 +52,13 @@ export default function WithdrawToWalletScreen() {
   useBackToWithdraw(phase.kind === 'done');
 
   useEffect(() => {
-    listWithdrawNetworks(getAccessToken).then(setList, (e) => setLoadError(errorMessage(e)));
-  }, [getAccessToken]);
+    let live = true;
+    listWithdrawNetworks().then(
+      (networks) => { if (live) setList(networks); },
+      (e) => { if (live) setLoadError(errorMessage(e)); },
+    );
+    return () => { live = false; };
+  }, []);
 
   const network = list?.networks.find((n) => n.id === picked);
   const to = address.trim();
