@@ -82,5 +82,6 @@
     "export:web": "expo export -p web",
     "start:tunnel": "bash scripts/tunnel.sh"
   },
-  "private": true
+  "private": true,
+  "license": "UNLICENSED"
 }

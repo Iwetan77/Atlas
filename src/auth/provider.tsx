@@ -116,7 +116,9 @@ function AuthBridge({ children }: { children: ReactNode }) {
         markSigningOut();
         await logout();
       },
-      getAccessToken: () => getAccessToken(),
+      // The SDK export is stable. A fresh wrapper here restarts every request hook when
+      // wallet connection or OAuth state redraws this bridge.
+      getAccessToken,
     };
   }, [user, isReady, privyError, solanaAddress, baseAddress, walletError, emailLogin, oauth, logout]);
 
