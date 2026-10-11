@@ -41,7 +41,7 @@ export function TransferDone({
   const { receipt: live, error } = useTransactionReceipt(t.intentId);
   const progress = bankTransferProgress(live);
   const [openedAt] = useState(() => Date.now());
-  const when = new Date(live?.createdAtUnixMs || openedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Date(live?.createdAtUnixMs || openedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'medium' });
   const receipt = [
     'Atlas transfer receipt',
     `${formatMoney(t.receive)} to ${t.accountName}`,

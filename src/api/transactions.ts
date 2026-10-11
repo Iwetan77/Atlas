@@ -79,7 +79,7 @@ export function receiptState(r: TransactionReceipt) {
 export function receiptDate(ms: number) {
   if (!ms) return '';
   const date = new Date(ms);
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 
