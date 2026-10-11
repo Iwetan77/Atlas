@@ -21,6 +21,9 @@ export default function TabLayout() {
   // the bar grows by that much so its icons sit above them.
   const insets = useSafeAreaInsets();
   const web = Platform.OS === 'web';
+  // On the iPhone web app, the full home-indicator inset left a tall empty band under the icons;
+  // the indicator itself only needs about 20 points of clearance.
+  const bottom = web ? Math.min(insets.bottom, 20) : insets.bottom;
   return (
     <Tabs
       screenOptions={{
@@ -30,7 +33,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: desktop
           ? { display: 'none' }
-          : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: (web ? 56 : 72) + insets.bottom, paddingTop: web ? 4 : 10, paddingBottom: insets.bottom + (web ? 4 : 0) },
+          : { backgroundColor: colors.bgTabBar, borderTopWidth: 0, height: (web ? 56 : 72) + bottom, paddingTop: web ? 4 : 10, paddingBottom: bottom + (web ? 4 : 0) },
         sceneStyle: { backgroundColor: colors.bgBase },
       }}>
       {TABS.slice(0, 3).map(tab)}
