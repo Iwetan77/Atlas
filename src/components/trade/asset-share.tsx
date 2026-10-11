@@ -21,6 +21,14 @@ export function assetShareUrl(assetId: string) {
 export function assetCaption(asset: MarketAsset) {
   return `Trade ${asset.symbol} on Atlas. ${asset.name} is trading at ${formatPrice(asset.price)}.\nClick the link below to explore and trade.`;
 }
+const KINDS: Record<string, string> = { cash: 'Cash', crypto: 'Crypto', meme: 'Meme', stock: 'Stock' };
+const CHAINS: Record<string, string> = { solana: 'Solana', base: 'Base', robinhood: 'Robinhood', hood: 'Robinhood', near: 'NEAR', sui: 'Sui', monad: 'Monad', hyperliquid: 'Hyperliquid' };
+// The line under the name: the ticker, or what the coin is when its name is only the ticker again.
+function assetLine(asset: MarketAsset) {
+  if (asset.name.trim().toUpperCase() !== asset.symbol.trim().toUpperCase()) return asset.symbol;
+  const chain = asset.chain ? CHAINS[asset.chain] : undefined;
+  return (KINDS[asset.kind] ?? 'Coin') + (chain ? ' on ' + chain : '');
+}
 export function AssetShare({ asset, visible, onClose }: { asset: ShareAsset; visible: boolean; onClose: () => void }) {
   const { authenticated, getAccessToken } = useAtlasAuth();
   const insets = useSafeAreaInsets();
@@ -28,6 +36,7 @@ export function AssetShare({ asset, visible, onClose }: { asset: ShareAsset; vis
   const [prepared, setPrepared] = useState<{ key: string; url: string } | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [retry, setRetry] = useState(0);
+  const change = asset.change24hPct === null || !Number.isFinite(Number(asset.change24hPct)) ? null : Number(asset.change24hPct);
   const key = asset.assetId + ':' + asset.price.currency;
   useEffect(() => {
     if (!visible) return;
@@ -96,11 +105,12 @@ export function AssetShare({ asset, visible, onClose }: { asset: ShareAsset; vis
                 <Text variant="overline" color="textSecondary">YOUR NEXT MOVE</Text></View>
               <View style={styles.asset}><AssetAvatar symbol={asset.symbol} iconUrl={asset.iconUrl} size={52} />
                 <View style={styles.flex}><Text variant="heading" numberOfLines={2}>{asset.name}</Text>
-                  <Text variant="caption" color="textSecondary">{asset.symbol}</Text></View>
+                  <Text variant="caption" color="textSecondary">{assetLine(asset)}</Text></View>
               </View>
               <View style={styles.cardHeadline}><Text variant="title" numberOfLines={2}>Trade {asset.symbol} on Atlas</Text>
                 <Text style={styles.price} color="accentPinkTint" numberOfLines={1} adjustsFontSizeToFit>{formatPrice(asset.price)}</Text>
-                <Text variant="caption" color="textSecondary">Price at time of sharing</Text></View>
+                <Text variant="caption" color="textSecondary">{change === null ? null : <Text variant="caption" color={change >= 0 ? 'success' : 'danger'}>
+                  {(change >= 0 ? '+' : '−') + Math.abs(change).toFixed(2) + '% today · '}</Text>}Price when shared</Text></View>
               <View style={styles.cardFooter}>
                 <Text variant="caption" color="textSecondary">Click the link below to explore and trade</Text>
                 <Text variant="label" numberOfLines={1}>{url ? url.replace(/^https?:\/\//, '') : 'Preparing your short link…'}</Text>

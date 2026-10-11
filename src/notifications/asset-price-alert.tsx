@@ -93,7 +93,7 @@ export function AssetPriceAlert({ assetId, symbol, name, iconUrl, price, visible
           </View>
             <View style={styles.amount}><Text style={styles.symbol} color="textSecondary">{currencySymbol(displayCurrency)}</Text>
               <TextInput value={target} onChangeText={raw => setTarget(raw.replace(/,/g, '').replace(/[^0-9.]/g, ''))}
-                placeholder="0.00" placeholderTextColor={colors.textDisabled} keyboardType="decimal-pad" returnKeyType="done"
+                placeholder="0.00" placeholderTextColor={colors.textDisabled} selectionColor={colors.accentPink} underlineColorAndroid="transparent" keyboardType="decimal-pad" returnKeyType="done"
                 onSubmitEditing={() => void save()} editable={!busy} accessibilityLabel={'Target price in ' + displayCurrency} style={styles.input} />
             </View>
             <View style={styles.inputHint}><Icon name={higher === null ? 'notifications-outline' : higher ? 'trending-up-outline' : 'trending-down-outline'} size={16} color="accentPinkTint" />
