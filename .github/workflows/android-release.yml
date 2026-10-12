@@ -60,6 +60,18 @@ jobs:
             echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/atlas-google-services.json" >> "$GITHUB_ENV"
           fi
 
+      # The over-the-air update module made the build larger than Gradle's default memory (512 MB of
+      # Metaspace): the build then hangs on OutOfMemoryError until it times out. The runner has 16 GB;
+      # these settings (in Gradle's user home, which wins over the project's) give it room.
+      - name: Give Gradle and Kotlin enough memory
+        run: |
+          mkdir -p ~/.gradle
+          {
+            echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g"
+          } >> ~/.gradle/gradle.properties
+          cat ~/.gradle/gradle.properties
+
       - name: Build the APK (Expo, local build with the project's signing key)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
