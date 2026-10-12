@@ -1,0 +1,71 @@
+# Ships the app's JavaScript to Android phones over the air (EAS Update), the way the website gets a
+# change as soon as it's merged: every push to main that touches the app publishes an update on the
+# "preview" channel. The APK downloads it when it opens and runs it from the next launch.
+#
+# Updates only reach APKs built from the same native code (runtimeVersion is the native fingerprint),
+# so a phone never gets JavaScript it can't run. A change to native code (a new native module, an
+# app.json plugin or permission) needs a new APK from "Android release" first.
+#
+# Needs the same EXPO_TOKEN secret as Android release. Run it by hand from Actions → Android update.
+name: Android update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'app.json'
+      - 'app.config.ts'
+      - 'eas.json'
+  workflow_dispatch:
+    inputs:
+      message:
+        description: What changed (one line)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The same native configuration the APK is built with (Android release), so the fingerprint
+      # this update targets is the APK's.
+      - name: Prepare Android notification configuration
+        env:
+          ATLAS_FIREBASE_CLIENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$ATLAS_FIREBASE_CLIENT" ]; then
+            printf '%s' "$ATLAS_FIREBASE_CLIENT" > "$RUNNER_TEMP/atlas-google-services.json"
+            echo "GOOGLE_SERVICES_JSON=$RUNNER_TEMP/atlas-google-services.json" >> "$GITHUB_ENV"
+          fi
+
+      - name: Publish the update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_ENGINE_URL: https://justatlas.xyz
+          MESSAGE: ${{ inputs.message || github.event.head_commit.message || 'Atlas update' }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then echo "EXPO_TOKEN secret is missing"; exit 1; fi
+          npx --yes eas-cli@latest update --channel preview --platform android --non-interactive \
+            --message "$(printf '%s\n' "$MESSAGE" | head -n 1)"

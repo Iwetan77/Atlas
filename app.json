@@ -3,6 +3,14 @@
     "name": "Atlas",
     "slug": "atlas",
     "version": "1.0.22",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3f8569ae-c653-4960-92b5-f4222ca72bbd",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "atlas",
