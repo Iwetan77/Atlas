@@ -291,7 +291,7 @@ export default function PerpTicketScreen() {
         <MoneyError message={error} shortfall={shortfall} />
       ) : null}
 
-      {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+      {phase.kind === 'failed' ? <MoneyError message={phase.message} shortfall={shortfall} /> : null}
       <PillButton
         label={`Open ${long ? 'long' : 'short'} ${leverage}×`}
         disabled={!quote || quoting}

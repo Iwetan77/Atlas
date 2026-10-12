@@ -305,7 +305,7 @@ export default function AssetTradeScreen() {
         <MoneyError message={quoteError} shortfall={shortfall} />
       ) : null}
 
-      {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+      {phase.kind === 'failed' ? <MoneyError message={phase.message} shortfall={shortfall} /> : null}
       {phase.kind === 'settling' ? (
         <Busy
           text={

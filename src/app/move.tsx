@@ -197,7 +197,7 @@ export default function MoveScreen() {
             <MoneyError message={error} />
           ) : null}
 
-          {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+          {phase.kind === 'failed' ? <MoneyError message={phase.message} /> : null}
           {phase.kind === 'settling' ? (
             <View style={styles.busy}>
               <ActivityIndicator color={colors.accentPink} />
