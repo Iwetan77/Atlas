@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
-import { elsewhereAmount, pocketMoney, spendableAmount, tradingAmount } from '@/api/pockets';
+import { elsewhereAmount, pocketMoney, pocketsLive, spendableAmount, tradingAmount } from '@/api/pockets';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, formatUsd, hiddenMoney } from '@/format/money';
@@ -122,7 +122,7 @@ export function HeroBalance(props: Props) {
                 uses="Trade, perps, predictions"
                 amount={show(tradingAmount(balance))}
                 onPress={() => router.push('/trade')}
-                onAdd={() => openMove('to_trading')}
+                onAdd={pocketsLive(balance) ? () => openMove('to_trading') : undefined}
               />
             </View>
             {elsewhere >= 0.01 ? (

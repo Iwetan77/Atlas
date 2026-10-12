@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
-import { spendableAmount, tradingAmount } from '@/api/pockets';
+import { pocketsLive, spendableAmount, tradingAmount } from '@/api/pockets';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, hiddenMoney } from '@/format/money';
@@ -38,7 +38,7 @@ export function SpendableCard() {
           <Text variant="caption" color="textOnAccent" style={styles.soft}>Your total balance</Text>
           <Text variant="label" color="textOnAccent">{show(total)}</Text>
         </View>
-        {trading >= 0.01 ? (
+        {trading >= 0.01 && pocketsLive(data) ? (
           <Pressable
             onPress={() => openMove('to_spendable')}
             accessibilityRole="button"

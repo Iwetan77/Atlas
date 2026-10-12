@@ -1,7 +1,7 @@
 import { Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
-import { pocketMoney, tradingAmount } from '@/api/pockets';
+import { pocketMoney, pocketsLive, tradingAmount } from '@/api/pockets';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, hiddenMoney } from '@/format/money';
@@ -14,6 +14,8 @@ import { colors, radii, spacing, themedStyles } from '@/theme';
 export function TradingBalanceCard() {
   const { data } = useBalance();
   const { stealthMode } = useSettings();
+  // Nothing to show until the engine keeps Trading apart (it can't move money in before then).
+  if (data && !pocketsLive(data)) return null;
   const trading = data ? tradingAmount(data) : null;
   const amount =
     data && trading !== null

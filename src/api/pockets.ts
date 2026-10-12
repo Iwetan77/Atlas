@@ -18,6 +18,12 @@ export function tradingAmount(balance: BalanceResponse): number {
   return balance.trading ? Number(balance.trading.amount) : walletCash(balance, 'solana');
 }
 
+// Whether the engine keeps Spendable and Trading apart and can move money between them. An engine
+// from before that leaves the two fields out; the app then shows them but offers no moves.
+export function pocketsLive(balance: BalanceResponse): boolean {
+  return balance.spendable !== undefined && balance.trading !== undefined;
+}
+
 export function pocketMoney(balance: BalanceResponse, amount: number): Money {
   return { amount: amount.toFixed(2), currency: balance.total.currency };
 }
