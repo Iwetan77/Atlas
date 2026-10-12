@@ -10,8 +10,10 @@ with **one tap to confirm** and no chain names, bridges or gas to think about.
 - **This repo:** the client. React Native + Expo (managed workflow), TypeScript, one codebase for iOS,
   Android and web.
 
-Money is shown in the user's selected currency (₦, $, €, £, KSh, GH₵, R). Under the hood, cash is USDC
-on Solana and Base. Network details are shown when needed to select a deposit or withdrawal route.
+Money is shown in the user's selected currency (₦, $, €, £, KSh, GH₵, R). The one balance holds two kinds
+of cash: **Spendable** (USDC on Base) for sending, cashing out and saving, and **Trading** (USDC on Solana)
+for trades, perps and predictions. Network details are shown only when needed to select a deposit or
+withdrawal route.
 
 ---
 
@@ -20,29 +22,34 @@ on Solana and Base. Network details are shown when needed to select a deposit or
 1. **Sign in** with Google or email. Privy creates the user's own wallets (EVM and Solana) with no seed
    phrase and no "create wallet" step.
 2. **Add money** from the Add money sheet:
-   - **Wallet or exchange:** USDC on Solana or Base goes straight in; USDT on Tron or BNB Chain, USDC on Sui,
-     SOL and other supported networks and coins get a one-off address with a QR and live status.
+   - **Wallet or exchange:** USDC on Base goes straight into Spendable (USDC on Solana goes straight into
+     Trading); USDT on Tron or BNB Chain, USDC on Sui, SOL and other supported networks and coins get a
+     one-off address with a QR and live status, and land in Spendable.
      Each option shows its coin's logo with the chain as a badge. Type what you want to land in your balance;
      the quote adds fees on top and shows the full amount to send.
    - **Bank transfer:** a one-time Nigerian bank account. Enter the amount you want in your balance;
-     the quote shows fees and the full transfer amount before you proceed.
-3. **Home** shows the one balance (hide it with the eye: amounts turn into `₦••••`), what's earning, and a
-   card per coin held with its gain or loss, shareable as an image.
+     the quote shows fees and the full transfer amount before you proceed. It lands in Spendable.
+3. **Home** shows the one balance (hide it with the eye: amounts turn into `₦••••`). The chevron under it
+   opens its two cash cards, **Spendable** and **Trading**: tap Trading to go to Trade, or Add to move
+   money in from Spendable. Below: what's earning, and a card per coin held with its gain or loss,
+   shareable as an image.
+   - **Move money** moves cash between Spendable and Trading in a few seconds for a few cents, one confirm:
+     from Trading's Add, the Trade and Perps cards, or the Spendable card on every Send screen.
 4. **Trade:** Trending (the day's biggest risers, per kind), Crypto, Stocks and Memes, plus search by name or
    pasted address on a supported chain. Charts use available venue data; searched assets without a verified
    listing carry an **unverified** warning with their address.
 5. **Buy or sell in one tap.** The app gets a live quote (price held for a few seconds, refreshed), the user
    confirms once on the confirm sheet, and the app signs the engine's plan and follows it to the end:
-   "Getting your money ready…", then "Buying…", then done. If the cash is on another chain, it moves first,
-   inside that same confirm.
+   "Buying…", then done. Buys are paid from Trading; a Base coin's price comes over from Trading inside that
+   same confirm. Sales come back to Trading (a Base coin's sale lands in Spendable).
 6. **Perps** on Hyperliquid: crypto, stocks, commodities, indices and currencies, long or short with leverage,
-   margin from the balance, liquidation price shown before opening, one tap to close, and the money comes back
-   to the balance. Pick take-profit and stop-loss when opening, or edit them on a position later.
-7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in or
-   take out any time.
-8. **Withdraw** from Home's Withdraw sheet, the mirror of Add money, each screen showing what's spendable on
-   a pink card:
-   - **Atlas Friends:** to an @handle, straight to the friend's wallet on the chain the cash is on.
+   margin from Trading, liquidation price shown before opening, one tap to close, and the money comes back
+   to Trading. Pick take-profit and stop-loss when opening, or edit them on a position later.
+7. **Earn:** pick a venue (Jupiter Lend, Morpho, Aave, Jito), then what to save in, best rate first; put in
+   from Spendable or take out any time.
+8. **Withdraw** from Home's Withdraw sheet, the mirror of Add money, each screen showing Spendable on a pink
+   card (with what's in Trading and a way to move it over). Everything here is paid from Spendable:
+   - **Atlas Friends:** to an @handle, straight to the friend's Spendable.
    - **Atlas Link:** a link anyone can claim on the web, no app needed.
    - **Send to bank:** naira to any Nigerian bank account. Typing an account number suggests matching
      recent recipients with their bank logo, name and account number; recents refresh on returning.
@@ -52,10 +59,12 @@ on Solana and Base. Network details are shown when needed to select a deposit or
      Availability and minimum amounts come from the live route.
 9. **The bottom bar:** Home, Trade, Perps, Atlas Predictions (opens the mini app straight away; it's under More's
    mini apps too) and More. Predictions shows live Polymarket events, fee-inclusive minimum spend, outcome
-   shares, resolved winnings and cash return. Returning cash lands the amount entered, with fees added on top.
+   shares, resolved winnings and cash return, paid from and returned to Trading. Returning cash lands the
+   amount entered, with fees added on top.
    The desktop sidebar and Home dashboard also link straight to Predictions and Send money.
-10. **Errors speak money:** "Not enough in your balance for this. You have ₦12,400 to spend", with an
-   **Add money** button right there.
+10. **Errors speak money:** "Not enough in your trading balance for this. You have ₦12,400 to trade", with
+   an **Add money** button that fills in what's missing and moves it from Spendable; a send short in
+   Spendable offers **Move from trading** when Trading has money.
 
 ---
 
