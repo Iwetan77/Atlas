@@ -151,9 +151,13 @@ export default function MoveScreen() {
           <Text color="textSecondary">
             {from === 'spendable'
               ? 'Add money first. It lands in Spendable, then you can move it here to trade.'
-              : 'Money from your sales, closed positions and predictions lands here.'}
+              : 'Add money from Spendable to trade. What you make here can move back any time.'}
           </Text>
-          {from === 'spendable' ? <PillButton label="Add money" icon="add" size="sm" onPress={addMoney} style={styles.start} /> : null}
+          {from === 'spendable' ? (
+            <PillButton label="Add money" icon="add" size="sm" onPress={addMoney} style={styles.start} />
+          ) : (
+            <PillButton label="Add to trading" icon="swap-horizontal" size="sm" onPress={flip} style={styles.start} />
+          )}
         </Card>
       ) : (
         <>
