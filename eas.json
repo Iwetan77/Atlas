@@ -12,6 +12,7 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -22,6 +23,7 @@
       "autoIncrement": true
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_ENGINE_URL": "https://justatlas.xyz"
