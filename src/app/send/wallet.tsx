@@ -11,6 +11,7 @@ import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
 import { MoneyError } from '@/components/money-error';
 import { ResultView } from '@/components/result-view';
+import { oneFee } from '@/components/send/send-review';
 import { SpendableCard } from '@/components/send/spendable-card';
 import { TokenChainLogo } from '@/components/token-chain-logo';
 import { BackHeader } from '@/components/ui/back-header';
@@ -201,9 +202,8 @@ function WithdrawReview({
         <Row label="To" value={short(quote.address)} />
         <Row label="They receive" value={formatMoney(quote.receive.value)} strong />
         <Row label="In coins" value={`${formatTokenNumber(quote.receive.amount)} ${quote.receive.symbol}`} strong />
-        <Row label="Fee" value={formatMoney(quote.fee)} />
+        <Row label="Fee" value={formatMoney(oneFee(quote.fee, quote.networkFee))} />
         <Row label="Total from cash" value={formatMoney(quote.send)} strong />
-        {Number(quote.networkFee.amount) > 0 ? <Row label="Network fee estimate" value={formatMoney(quote.networkFee)} /> : null}
         {minutes ? <Row label="Arrives" value={`In about ${minutes} min`} /> : null}
         <Text variant="caption" color="textSecondary">
           Fees are added on top. Any unused price buffer goes back to your balance.

@@ -126,8 +126,8 @@ export default function PredictionDetail() {
         <View style={styles.between}><Text color="textSecondary">Shares</Text><Text variant="bodyStrong">{(Number(quote.shares) / 1_000_000).toFixed(2)}</Text></View>
         {quote.potentialPayout ? <View style={styles.between}><Text color="textSecondary">If your choice wins</Text>
           <Text variant="bodyStrong" color="success">{formatMoney(quote.potentialPayout)}</Text></View> : null}
-        <View style={styles.between}><Text color="textSecondary">Fees included</Text><Text>{formatMoney(quote.fee)}</Text></View>
-        {Number(quote.gasReserve.amount) > 0 ? <View style={styles.between}><Text color="textSecondary">Network fee reserve included</Text><Text>{formatMoney(quote.gasReserve)}</Text></View> : null}
+        <View style={styles.between}><Text color="textSecondary">Fee</Text><Text>{formatMoney(quote.fee)}</Text></View>
+        {Number(quote.gasReserve.amount) > 0 ? <View style={styles.between}><Text color="textSecondary">Gas top-up (one time)</Text><Text>{formatMoney(quote.gasReserve)}</Text></View> : null}
         <Text variant="caption" color="textSecondary">All shares or none. Your payout depends on the event&apos;s resolution rules.</Text>
       </Card> : null}
       {quoting ? <ActivityIndicator color={colors.accentPink} /> : null}

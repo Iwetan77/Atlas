@@ -141,7 +141,7 @@ export default function AddByBankScreen() {
                 label="Fee"
                 value={preview.receive.currency === preview.pay.currency
                   ? formatMoney({ amount: Math.max(0, Number(preview.pay.amount) - Number(preview.receive.amount)).toFixed(2), currency: preview.pay.currency })
-                  : `${formatMoney(preview.fee)} + ${preview.networkFee}`}
+                  : preview.totalFee ? formatMoney(preview.totalFee) : `${formatMoney(preview.fee)} + ${preview.networkFee}`}
               />
               <Row label="Rate" value={preview.rate} />
             </Card>

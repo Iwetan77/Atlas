@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, Share, View } from 'react-native';
 import type { Bank, Money } from '@/api/contract';
 import { bankTransferProgress, useTransactionReceipt } from '@/api/transactions';
 import { BankLogo } from '@/components/send/bank-picker';
+import { feeText, oneFee } from '@/components/send/send-review';
 import { Card } from '@/components/ui/card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
@@ -48,9 +49,7 @@ export function TransferDone({
     `${formatMoney(t.receive)} to ${t.accountName}`,
     `${t.bank.name} · ${t.accountNumber}`,
     `You pay ${live?.summary.find(line => line.label === 'You pay')?.value ?? formatMoney(t.send)}`,
-    `Fee: ${live?.summary.find(line => line.label === 'Fee')?.value ?? formatMoney(t.fee)}`,
-    ...(live?.summary.some(line => line.label === 'Network fee') || t.networkFee
-      ? [`Network fee: ${live?.summary.find(line => line.label === 'Network fee')?.value ?? (t.networkFee && Number(t.networkFee.amount) !== 0 ? formatMoney(t.networkFee) : 'Free')}`] : []),
+    `Fee: ${live?.summary.find(line => line.label === 'Fee')?.value ?? feeText(oneFee(t.fee, t.networkFee))}`,
     `Status: ${progress.title}`,
     when,
     `Reference: ${t.intentId}`,

@@ -127,7 +127,7 @@ export function HeroBalance(props: Props) {
             </View>
             {elsewhere >= 0.01 ? (
               <Text variant="caption" color="textOnAccent" style={styles.center}>
-                + {show(elsewhere)} in savings, perps, your assets and your fee reserve
+                + {show(elsewhere)} in your assets below
               </Text>
             ) : null}
             {currency !== 'USD' ? (

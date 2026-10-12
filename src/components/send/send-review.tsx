@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import type { SendQuote } from '@/api/contract';
+import type { Money, SendQuote } from '@/api/contract';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { MoneyError } from '@/components/money-error';
@@ -28,8 +28,7 @@ export function SendReview({
       <Card variant="outlined" style={styles.card}>
         <Row label="To" value={quote.destinationLabel} />
         <Row label="They get" value={formatMoney(quote.receive)} strong />
-        <Row label="Fee" value={Number(quote.fee.amount) === 0 ? 'Free' : formatMoney(quote.fee)} />
-        {quote.networkFee ? <Row label="Network fee" value={Number(quote.networkFee.amount) === 0 ? 'Free' : formatMoney(quote.networkFee)} /> : null}
+        <Row label="Fee" value={feeText(oneFee(quote.fee, quote.networkFee))} />
         {/* A bank payout's fee goes on top: what leaves the balance is more than they get. */}
         {quote.send.currency === quote.receive.currency && Number(quote.send.amount) > Number(quote.receive.amount) ? (
           <Row label="You pay" value={formatMoney(quote.send)} />
@@ -82,3 +81,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 });
+
+// One fee line: an older server's separate network fee is added into it (same currency).
+export function oneFee(fee: Money, networkFee?: Money | null): Money {
+  if (!networkFee || networkFee.currency !== fee.currency) return fee;
+  const cents = Math.round((Number(fee.amount) + Number(networkFee.amount)) * 100);
+  return { amount: (cents / 100).toFixed(2), currency: fee.currency };
+}
+
+export function feeText(fee: Money): string {
+  return Number(fee.amount) === 0 ? 'Free' : formatMoney(fee);
+}

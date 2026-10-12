@@ -289,7 +289,7 @@ export default function AssetTradeScreen() {
             <View style={styles.funding}>
               <Icon name="information-circle-outline" size={16} color="textSecondary" />
               <Text variant="caption" color="textSecondary" style={styles.fundingText}>
-                Includes a {formatMoney(quote.funding.fee)} network fee. Takes about 30 seconds.
+                Your cash moves over first. Takes about 30 seconds.
               </Text>
             </View>
           ) : null}
