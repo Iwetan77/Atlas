@@ -182,7 +182,7 @@ function PocketCard({ icon, name, uses, amount, onPress, onAdd }: {
       <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit>
         {amount}
       </Text>
-      <Text variant="caption" color="textDisabled" numberOfLines={1}>
+      <Text variant="caption" color="textDisabled" numberOfLines={2}>
         {uses}
       </Text>
     </Pressable>
