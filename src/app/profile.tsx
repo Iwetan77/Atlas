@@ -181,7 +181,7 @@ export default function ProfileScreen() {
           <Card style={styles.group}>
             <Text variant="caption" color="textSecondary">
               A little SOL and ETH pays the network fees when your money moves. Atlas fills it from your
-              cash when it runs low, so you never have to. It isn&apos;t counted in your balance.
+              cash only when it runs out, so you never have to. It&apos;s your money and counts in your balance.
             </Text>
             {gas.map((tank) => (
               <View key={tank.chain} style={styles.row}>

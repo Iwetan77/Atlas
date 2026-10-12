@@ -260,7 +260,8 @@ export default function PerpTicketScreen() {
             ) : null}
             {quote.funding ? (
               <>
-                <Row label="From your balance to Hyperliquid" value={formatMoney(quote.funding.amount)} />
+                <Row label="From your trading balance" value={formatMoney(quote.funding.amount)} />
+                {quote.gasTopup ? <Row label="Gas top-up (one time)" value={formatMoney(quote.gasTopup)} /> : null}
                 <Text variant="caption" color="textSecondary">
                   Your perps account is short of this margin, so it moves over first, in the same confirmation. It takes a
                   few seconds, then your order goes in.

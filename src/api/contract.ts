@@ -604,6 +604,9 @@ export type PerpQuote = {
   // Set when the Hyperliquid account is short: this much moves from the Atlas balance to it in the
   // same confirmation (plus Relay's few cents), then the order is placed.
   funding?: { amount: Money } | null;
+  // When the margin moves from Trading and its wallet can't pay the move's fee: the cash turned
+  // into SOL first (kept, it counts in the balance). Absent when none is needed.
+  gasTopup?: Money | null;
   // Where the take-profit and stop-loss would sit at this price (when asked for).
   takeProfitPrice?: Money | null;
   stopLossPrice?: Money | null;
