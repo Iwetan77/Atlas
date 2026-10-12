@@ -165,26 +165,30 @@ function PocketCard({ icon, name, uses, amount, onPress, onAdd }: {
       accessibilityRole="button"
       accessibilityLabel={`${name} balance ${amount}`}
       style={({ pressed }) => [styles.pocket, pressed && styles.pocketPressed]}>
-      <View style={styles.pocketTop}>
-        <View style={styles.pocketIcon}>
-          <Icon name={icon} size={18} color="tilePinkInk" />
-        </View>
-        {onAdd ? (
-          <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
-            <Icon name="add" size={14} color="textOnAccent" />
-            <Text variant="label" color="textOnAccent">Add</Text>
-          </Pressable>
-        ) : (
-          <Icon name="chevron-forward" size={16} color="textDisabled" />
-        )}
+      <View style={styles.pocketIcon}>
+        <Icon name={icon} size={20} color="tilePinkInk" />
       </View>
-      <Text variant="caption" color="textDisabled">{name}</Text>
-      <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit>
-        {amount}
-      </Text>
-      <Text variant="caption" color="textDisabled" numberOfLines={2}>
-        {uses}
-      </Text>
+      <View style={styles.pocketBody}>
+        <View style={styles.pocketLine}>
+          <Text variant="bodyStrong" color="textOnLight">{name}</Text>
+          <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit style={styles.pocketAmount}>
+            {amount}
+          </Text>
+        </View>
+        <View style={styles.pocketLine}>
+          <Text variant="caption" color="textDisabled" numberOfLines={1} style={styles.pocketUses}>
+            {uses}
+          </Text>
+          {onAdd ? (
+            <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
+              <Icon name="add" size={14} color="textOnAccent" />
+              <Text variant="label" color="textOnAccent">Add</Text>
+            </Pressable>
+          ) : (
+            <Icon name="chevron-forward" size={16} color="textDisabled" />
+          )}
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -299,34 +303,48 @@ const styles = themedStyles(() => ({
     height: 1,
     backgroundColor: colors.onAccentSoft,
   },
+  // The two balances, one full-width row each: name and amount, then what it's for and its action.
   pockets: {
-    flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   pocket: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xxs,
-    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
     backgroundColor: colors.surfaceLight,
   },
   pocketPressed: {
     transform: [{ scale: 0.98 }],
   },
-  pocketTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
   pocketIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tilePink,
+  },
+  pocketBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  pocketLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    minHeight: 24,
+  },
+  pocketAmount: {
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  pocketUses: {
+    flex: 1,
   },
   add: {
     flexDirection: 'row',
