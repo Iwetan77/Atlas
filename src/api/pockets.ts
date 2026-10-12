@@ -28,10 +28,12 @@ export function elsewhereAmount(balance: BalanceResponse): number {
 }
 
 // How much more a trade of `amount` (display currency) needs in Trading, for an Add money button to
-// fill in. Undefined until the balance is known.
+// fill in. Undefined until the balance is known. Room for the trade's own costs, which are partly a
+// share and partly fixed (moving margin, a network fee reserve): 3% and about $0.25, so one Add is
+// normally enough. The person can still change it before moving.
 export function useTradingShortfall(amount: number): number | undefined {
   const { data } = useBalance();
   if (!data || !(amount > 0)) return undefined;
-  // A little room for the trade's own fees, so one Add is enough.
-  return Math.max(0, amount * 1.01 - tradingAmount(data));
+  const perDollar = Number(data.totalUsd) > 0 ? Number(data.total.amount) / Number(data.totalUsd) : 0;
+  return Math.max(0, amount * 1.03 + 0.25 * perDollar - tradingAmount(data));
 }
