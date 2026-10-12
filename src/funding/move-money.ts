@@ -6,6 +6,6 @@ import type { MoveDirection } from '@/api/contract';
 // `amount` (in the display currency) is filled in, e.g. what a trade is short of.
 export function openMove(direction: MoveDirection, amount?: number) {
   const params: { direction: MoveDirection; amount?: string } = { direction };
-  if (amount && amount > 0) params.amount = String(Math.ceil(amount));
+  if (amount && Number.isFinite(amount) && amount > 0) params.amount = (Math.ceil(amount * 100) / 100).toFixed(2);
   router.push({ pathname: '/move', params });
 }
