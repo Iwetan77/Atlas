@@ -7,6 +7,7 @@ import { usePerpMarkets, usePerpPositions } from '@/api/perps';
 import { useMe } from '@/api/send';
 import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
+import { TradingBalanceCard } from '@/components/trade/trading-balance';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { PillButton } from '@/components/ui/pill-button';
@@ -65,6 +66,7 @@ export default function PerpsScreen() {
         <Text variant="title">Perps</Text>
       </View>
       <Text color="textSecondary">Go long or short with leverage. Know your liquidation price before you open.</Text>
+      <TradingBalanceCard />
 
       <View style={styles.segment}>
         {(['markets', 'positions'] as const).map((v) => (

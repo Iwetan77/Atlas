@@ -56,7 +56,7 @@ export function HomeContent({
   useEffect(() => {
     if (asOf) reloadPositions();
   }, [asOf, reloadPositions]);
-  const { stealthMode, showEmptyPockets, displayCurrency, dismissedPromos, update } = useSettings();
+  const { stealthMode, displayCurrency, dismissedPromos, update } = useSettings();
   const { data } = balance;
   const hasFunds = !!data && Number(data.total.amount) > 0;
 
@@ -81,7 +81,7 @@ export function HomeContent({
 
   if (desktop) return <Screen><DesktopHome
     greeting={me?.displayName?.split(' ')[0] || me?.handle || 'there'} onRefresh={onRefresh} refreshing={refreshing} onDeposit={addMoney}
-    hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} showEmptyPockets={showEmptyPockets} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={withdraw} />}
+    hero={<HeroBalance balance={data} loading={balance.loading} error={balance.error} currency={displayCurrency} stealth={stealthMode} onToggleStealth={() => update({ stealthMode: !stealthMode })} onRetry={balance.refresh} onDeposit={addMoney} onWithdraw={withdraw} />}
     pending={<>{banner ? <Text variant="caption" color="accentPinkTint">{banner}</Text> : null}<PendingPurchases onFinished={balance.refresh} /></>}
     assets={<YourAssets balance={data} positions={positions.data} stealth={stealthMode} />}
     earn={<EarnCard stealth={stealthMode} refreshKey={refreshKey} />}
@@ -128,7 +128,6 @@ export function HomeContent({
         error={balance.error}
         currency={displayCurrency}
         stealth={stealthMode}
-        showEmptyPockets={showEmptyPockets}
         onToggleStealth={() => update({ stealthMode: !stealthMode })}
         onRetry={balance.refresh}
         onDeposit={addMoney}

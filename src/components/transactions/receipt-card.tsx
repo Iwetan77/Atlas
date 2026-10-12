@@ -27,6 +27,8 @@ const isGas = (label: string) => label.startsWith('Gas top-up');
 const isFootnote = (label: string) => label === 'Rate' || isGas(label);
 
 const BALANCE: Stop = { name: 'Your Atlas balance', detail: null, icon: 'wallet-outline' };
+const SPENDABLE: Stop = { name: 'Spendable balance', detail: 'Send, cash out, save', icon: 'wallet-outline' };
+const TRADING: Stop = { name: 'Trading balance', detail: 'Trade, perps, predictions', icon: 'trending-up' };
 
 // "Moniepoint · 5164131897 · ITAFO JOY": the name first, the bank and number under it.
 function recipientStop(value: string, icon: IconName): Stop {
@@ -61,6 +63,10 @@ function route(r: TransactionReceipt): { from: Stop; to: Stop } | null {
       return { from: BALANCE, to: { name: 'Savings', detail: r.symbol || null, icon: 'leaf-outline' } };
     case 'earn_withdraw':
       return { from: { name: 'Savings', detail: r.symbol || null, icon: 'leaf-outline' }, to: BALANCE };
+    case 'move_to_trading':
+      return { from: SPENDABLE, to: TRADING };
+    case 'move_to_spendable':
+      return { from: TRADING, to: SPENDABLE };
     default:
       return null;
   }

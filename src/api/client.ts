@@ -74,6 +74,8 @@ async function engineAttempt<T>(
         ...(auth ? { Authorization: `Bearer ${accessToken}` } : {}),
         Accept: 'application/json',
         'x-atlas-payment-pin': '1',
+        // This app knows the balance is Spendable and Trading, and can move money between them.
+        'x-atlas-balances': '1',
         ...(pinAuthorization ? { 'x-atlas-pin-authorization': pinAuthorization } : {}),
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },

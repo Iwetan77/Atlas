@@ -68,7 +68,7 @@ export default function ProfileScreen() {
       reload();
     }, [reload]),
   );
-  const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
+  const { displayCurrency, stealthMode, update } = useSettings();
   const light = useSyncExternalStore(subscribeTheme, themeName, themeName) === 'light';
   const gas = useBalance().data?.gas ?? [];
   const emails = useEmailSettings();
@@ -168,14 +168,6 @@ export default function ProfileScreen() {
           value={stealthMode}
           onChange={(v) => update({ stealthMode: v })}
         />
-        <Divider />
-        <ToggleRow
-          icon="wallet-outline"
-          title="Show empty pockets"
-          subtitle="List assets with a zero balance"
-          value={showEmptyPockets}
-          onChange={(v) => update({ showEmptyPockets: v })}
-        />
       </Card>
 
       {gas.length > 0 ? (
@@ -189,7 +181,7 @@ export default function ProfileScreen() {
           <Card style={styles.group}>
             <Text variant="caption" color="textSecondary">
               A little SOL and ETH pays the network fees when your money moves. Atlas fills it from your
-              cash when it runs low, so you never have to. It isn&apos;t counted in your balance.
+              cash only when it runs out, so you never have to. It&apos;s your money and counts in your balance.
             </Text>
             {gas.map((tank) => (
               <View key={tank.chain} style={styles.row}>

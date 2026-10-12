@@ -193,7 +193,7 @@ export default function EarnScreen() {
       </View>
 
       <AmountInput
-        label={action === 'deposit' ? 'From your balance' : 'From savings'}
+        label={action === 'deposit' ? 'From your spendable balance' : 'From savings'}
         value={amount}
         onChange={setAmount}
         currency={displayCurrency}
@@ -201,10 +201,15 @@ export default function EarnScreen() {
 
       {quote ? (
         <Card variant="outlined" style={styles.quote}>
-          <Row label={action === 'deposit' ? 'Goes into savings' : 'Comes back to your balance'} value={quote.all ? 'Everything, with interest' : formatMoney(quote.amount)} />
+          <Row
+            label={action === 'deposit' ? 'Goes into savings' : `Comes back to ${option?.chain === 'solana' ? 'Trading' : 'Spendable'}`}
+            value={quote.all ? 'Everything, with interest' : formatMoney(quote.amount)}
+          />
           <Row label="Rate now" value={`${quote.apyPct}% a year`} />
           <Text variant="caption" color="textSecondary">
-            {option?.chain === 'base' ? 'Your cash moves on Base as USDC. Gas is on Atlas.' : `Your cash moves on ${chainName} as USDC.`}
+            {action === 'deposit'
+              ? 'Paid from your spendable balance. Any network fee comes out of it too.'
+              : `Your savings come back as cash in your ${option?.chain === 'solana' ? 'trading' : 'spendable'} balance.`}
           </Text>
         </Card>
       ) : quoting ? (

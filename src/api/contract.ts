@@ -40,7 +40,9 @@ export type IntentKind =
   | 'earn_deposit'
   | 'earn_withdraw'
   // Cash leaving Atlas as a coin, for a wallet address outside it.
-  | 'withdraw';
+  | 'withdraw'
+  // Cash moving between the user's own Spendable and Trading balances.
+  | 'move';
 
 // 'fund': money is moving to the venue first (perps margin into Hyperliquid, usually seconds).
 // 'sign': a two-step plan's second transaction is ready (GET /v1/intents/{id}/next → { transactions });
@@ -155,6 +157,10 @@ export type BalanceResponse = {
   // Everything the user owns in spendable form, including `pending`.
   total: Money;
   totalUsd: string;
+  // The two balances cash moves between, inside `total`. Spendable pays sends, cash-outs and savings;
+  // Trading pays trades, perps and predictions. Older engines leave them out (see src/api/pockets.ts).
+  spendable?: Money;
+  trading?: Money;
   // Counted in `total` but still settling (e.g. a Gateway deposit awaiting finality). Null when nothing is.
   pending: Money | null;
   holdings: Holding[];
@@ -164,6 +170,26 @@ export type BalanceResponse = {
 };
 
 export type GasTank = { chain: Chain; symbol: string; amount: string; value: Money };
+
+// ── Moving money between Spendable and Trading ─────────────────────────────────────────
+// POST /v1/moves/quote { direction, amount: Money, all? } → MoveQuote (the amount is what arrives;
+// with `all`, everything in the balance it leaves). POST /v1/moves/quotes/{quoteId}/execute →
+// ExecutionPlan (kind 'move').
+export type MoveDirection = 'to_trading' | 'to_spendable';
+export type MoveQuote = {
+  quoteId: string;
+  direction: MoveDirection;
+  from: string;
+  to: string;
+  receive: Money;
+  fee: Money;
+  // What leaves: receive + fee.
+  send: Money;
+  // What the balance it leaves holds now.
+  available: Money;
+  eta: string;
+  expiresAtUnixMs: number;
+};
 
 // ── Deposits ────────────────────────────────────────────────────────────────────────────
 // Naira in by bank transfer: GET /v1/deposit/bank-account → the user's virtual account.
@@ -231,7 +257,7 @@ export type WithdrawQuote = {
   expiresAtUnixMs: number;
 };
 // Each hop a deposit takes, with its transactions as they happen: the deposit on its own network, the
-// swap on NEAR Intents, the payout to the user's Solana wallet. `url` opens it in that chain's explorer.
+// swap on NEAR Intents, the payout to the user's Base wallet (Spendable). `url` opens it in that chain's explorer.
 export type DepositHopTx = { hash: string; url: string | null };
 export type DepositJourney = { deposit: DepositHopTx[]; swap: DepositHopTx[]; payout: DepositHopTx[] };
 
@@ -578,6 +604,9 @@ export type PerpQuote = {
   // Set when the Hyperliquid account is short: this much moves from the Atlas balance to it in the
   // same confirmation (plus Relay's few cents), then the order is placed.
   funding?: { amount: Money } | null;
+  // When the margin moves from Trading and its wallet can't pay the move's fee: the cash turned
+  // into SOL first (kept, it counts in the balance). Absent when none is needed.
+  gasTopup?: Money | null;
   // Where the take-profit and stop-loss would sit at this price (when asked for).
   takeProfitPrice?: Money | null;
   stopLossPrice?: Money | null;

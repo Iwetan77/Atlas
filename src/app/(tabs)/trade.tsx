@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import type { AssetCategory, MarketAsset } from '@/api/contract';
 import { useAssets } from '@/api/markets';
 import { TokenChainLogo } from '@/components/token-chain-logo';
+import { TradingBalanceCard } from '@/components/trade/trading-balance';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -30,6 +31,7 @@ export default function TradeScreen() {
   return (
     <Screen>
       <Text variant="title">Trade</Text>
+      <TradingBalanceCard />
       {/* Search and categories stay at the top while the list scrolls. */}
       <Pinned>
         <Field

@@ -20,6 +20,7 @@ import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { useTradingShortfall } from '@/api/pockets';
 import { MoneyError } from '@/components/money-error';
 import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
 import { useSettings } from '@/settings/context';
@@ -65,6 +66,7 @@ export default function PerpTicketScreen() {
   const takeProfit = takeProfitPick !== null && (side === 'long' || takeProfitPick < 100 * leverage) ? takeProfitPick : null;
 
   const value = Number(margin) || 0;
+  const shortfall = useTradingShortfall(value);
   const request = useCallback(
     () =>
       requestPerpQuote(getAccessToken, {
@@ -258,7 +260,8 @@ export default function PerpTicketScreen() {
             ) : null}
             {quote.funding ? (
               <>
-                <Row label="From your balance to Hyperliquid" value={formatMoney(quote.funding.amount)} />
+                <Row label="From your trading balance" value={formatMoney(quote.funding.amount)} />
+                {quote.gasTopup ? <Row label="Gas top-up (one time)" value={formatMoney(quote.gasTopup)} /> : null}
                 <Text variant="caption" color="textSecondary">
                   Your perps account is short of this margin, so it moves over first, in the same confirmation. It takes a
                   few seconds, then your order goes in.
@@ -286,10 +289,10 @@ export default function PerpTicketScreen() {
           <Text color="textSecondary">Working out your liquidation price…</Text>
         </View>
       ) : error ? (
-        <MoneyError message={error} />
+        <MoneyError message={error} shortfall={shortfall} />
       ) : null}
 
-      {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}
+      {phase.kind === 'failed' ? <MoneyError message={phase.message} shortfall={shortfall} /> : null}
       <PillButton
         label={`Open ${long ? 'long' : 'short'} ${leverage}×`}
         disabled={!quote || quoting}

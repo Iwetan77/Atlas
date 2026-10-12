@@ -8,6 +8,8 @@ import { executePrediction, predictionQuote, usePredictionAccount, type Predicti
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
 import { AmountInput } from '@/components/amount-input';
+import { MoneyError } from '@/components/money-error';
+import { useTradingShortfall } from '@/api/pockets';
 import { ProbabilityChart } from '@/components/predictions/probability-chart';
 import { MarketArt } from '@/components/predictions/market-art';
 import { MarketComments } from '@/components/predictions/comments';
@@ -34,6 +36,7 @@ export default function PredictionDetail() {
   const [outcome, setOutcome] = useState(tokenId ?? '');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
+  const shortfall = useTradingShortfall(Number(amount) || 0);
   const [shares, setShares] = useState('');
   const [rules, setRules] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -128,7 +131,7 @@ export default function PredictionDetail() {
         <Text variant="caption" color="textSecondary">All shares or none. Your payout depends on the event&apos;s resolution rules.</Text>
       </Card> : null}
       {quoting ? <ActivityIndicator color={colors.accentPink} /> : null}
-      {error ? <Text color="danger">{error}</Text> : null}
+      {error ? <MoneyError message={error} shortfall={side === 'buy' ? shortfall : undefined} /> : null}
       {!ready ? <View style={styles.notice}><Icon name="information-circle-outline" size={20} color="accentPinkTint" /><Text variant="caption" color="textSecondary" style={{ flex: 1 }}>{market.closed ? 'This event has closed.' : availability?.reason ?? 'Checking trading availability…'}</Text></View> : null}
       {result ? <Card><Text>{result}</Text><PillButton label="View activity" size="sm" tone="secondary" onPress={() => router.push('/transactions')} /></Card> : null}
       <PillButton label={(side === 'buy' ? 'Buy ' : 'Sell ') + (market.outcomes.find((o) => o.tokenId === outcome)?.label ?? 'shares')}
