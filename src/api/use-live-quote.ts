@@ -22,6 +22,8 @@ export function useLiveQuote<Q extends { expiresAtUnixMs: number }>(request: (()
   const busy = useRef(false);
   // The quote already renewed early, so a renewal that failed isn't retried every second.
   const renewed = useRef<Q | null>(null);
+  // The inputs the shown quote was made for. Typing a new amount makes it someone else's price.
+  const [quotedFor, setQuotedFor] = useState<(() => Promise<Q>) | null>(null);
 
   const refresh = useCallback(
     async (quiet = false) => {
@@ -41,6 +43,7 @@ export function useLiveQuote<Q extends { expiresAtUnixMs: number }>(request: (()
       try {
         const q = await request();
         if (mine === seq.current) {
+          setQuotedFor(() => request);
           setQuote(q);
           setError(null);
         }
@@ -84,6 +87,7 @@ export function useLiveQuote<Q extends { expiresAtUnixMs: number }>(request: (()
   const reload = useCallback(() => void refresh(), [refresh]);
   // A price that has run out can't be used, even for the moment before its renewal lands.
   const stale = !!quote && now >= quote.expiresAtUnixMs;
+  const outdated = !!quote && !!request && quotedFor !== request;
   const secondsLeft = quote ? Math.max(0, Math.ceil((quote.expiresAtUnixMs - now) / 1000)) : 0;
-  return { quote, error, quoting: quoting || stale, secondsLeft, reload, clear: () => setQuote(null) };
+  return { quote, error, quoting: quoting || stale || outdated, secondsLeft, reload, clear: () => setQuote(null) };
 }

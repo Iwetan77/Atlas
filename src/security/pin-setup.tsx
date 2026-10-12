@@ -6,6 +6,7 @@ import { setPin } from '@/api/pin';
 import { claimHandle, HANDLE_RE, normaliseHandle } from '@/api/send';
 import { errorMessage, useAtlasAuth } from '@/auth/context';
 import { Field } from '@/components/ui/field';
+import { useAndroidKeyboardRoom } from '@/components/ui/screen-base';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
 import { Text } from '@/components/ui/text';
@@ -47,11 +48,13 @@ export function PinSetup({ handle: initialHandle, onDone, change = false, onCanc
     catch (e) { setProblem(errorMessage(e)); setCurrent(''); setFirst(''); setStage(change ? 'current' : 'new'); setReset((n) => n+1); }
     finally { setBusy(false); }
   };
+  // The handle field and its Continue button stay above the Android keyboard.
+  const { scrollRef, room } = useAndroidKeyboardRoom(true);
   const steps = change || !initialHandle ? 3 : 2;
   const step = !handle || stage === 'current' ? 1 : stage === 'repeat' ? steps : steps - 1;
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.scroll, room]} keyboardShouldPersistTaps="handled">
         <View style={styles.wrap}>
           <View style={styles.header}>
             <View style={styles.wordmark}>

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, View } from 'react-native';
 
 import type { CashLink, IntentStatus } from '@/api/contract';
 import { StillSettling, waitForIntent } from '@/api/intents';
@@ -24,7 +24,10 @@ export default function ClaimScreen() {
   const { linkId, code, k } = useLocalSearchParams<{ linkId?: string; code?: string; k?: string }>();
   const id = linkId ?? code ?? '';
   const pathname = usePathname();
-  const fromUrl = typeof window !== 'undefined' ? new URLSearchParams(window.location.hash.replace(/^#/, '')).get('k') : k;
+  // Only the web has a URL to read: in the app `window` exists but has no location.
+  const fromUrl = Platform.OS === 'web' && typeof window !== 'undefined' && window.location
+    ? new URLSearchParams(window.location.hash.replace(/^#/, '')).get('k')
+    : k;
   const secret = decodeLinkSecret(fromUrl ?? k ?? '') || pendingClaimSecret(id);
   const paymentPin = usePaymentPin();
   const { authenticated, userId, getAccessToken, loginWithGoogle, googleLoading, googleError, emailLogin } = useAtlasAuth();
