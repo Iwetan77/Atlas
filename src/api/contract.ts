@@ -450,9 +450,9 @@ export type SendQuote = {
   send: Money;
   // What the recipient gets (NGN for a bank payout).
   receive: Money;
-  // Bank payout charge, excluding any fresh USDC needed for network fees.
+  // The one fee: the bank payout charge and any network cost together.
   fee: Money;
-  // Absent on older servers; zero means existing gas reserves cover delivery.
+  // Only from older servers, which listed the network cost apart; it's added into the fee.
   networkFee?: Money;
   feeBreakdown?: { label: string; amount: Money }[];
   // "Instant", "Within 5 minutes"…
@@ -494,6 +494,8 @@ export type BankTransferQuote = {
   fee: Money;
   // The flat charge for sending the USDC, already taken off `receive`.
   networkFee: string;
+  // Everything that doesn't land, in naira: the one fee, when `receive` is in another currency.
+  totalFee?: Money;
   receive: Money;
   rate: string;
 };
