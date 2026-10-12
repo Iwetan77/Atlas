@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
-import type { MoveDirection, MoveQuote } from '@/api/contract';
+import type { Money, MoveDirection, MoveQuote } from '@/api/contract';
 import { StillSettling, useRunIntent } from '@/api/intents';
 import { executeMove, requestMoveQuote } from '@/api/moves';
 import { spendableAmount, tradingAmount } from '@/api/pockets';
@@ -63,6 +63,8 @@ export default function MoveScreen() {
   const value = Number(amount) || 0;
   const show = (n: number | null) =>
     n === null ? '…' : stealthMode ? hiddenMoney(displayCurrency) : formatMoney({ amount: n.toFixed(2), currency: displayCurrency });
+
+  const showMoney = (money: Money) => stealthMode ? hiddenMoney(money.currency) : formatMoney(money);
 
   const request = useCallback(
     () =>
@@ -173,9 +175,9 @@ export default function MoveScreen() {
 
           {quote ? (
             <Card variant="outlined" style={styles.quote}>
-              <Row label={`Arrives in ${POCKETS[to].name}`} value={formatMoney(quote.receive)} strong />
-              <Row label="Fee" value={formatMoney(quote.fee)} />
-              <Row label={`Total from ${POCKETS[from].name}`} value={formatMoney(quote.send)} />
+              <Row label={`Arrives in ${POCKETS[to].name}`} value={showMoney(quote.receive)} strong />
+              <Row label="Fee" value={showMoney(quote.fee)} />
+              <Row label={`Total from ${POCKETS[from].name}`} value={showMoney(quote.send)} />
               <QuoteTimer
                 text={quoting ? 'Updating…' : `${quote.eta} · price held for ${secondsLeft}s`}
                 onReload={phase.kind === 'edit' ? reload : undefined}
@@ -200,7 +202,7 @@ export default function MoveScreen() {
           ) : null}
 
           <PillButton
-            label={quote ? `Move ${formatMoney(quote.send)}` : 'Move'}
+            label={quote ? `Move ${showMoney(quote.send)}` : 'Move'}
             icon="swap-horizontal"
             disabled={!quote || quoting || busy}
             loading={busy}
