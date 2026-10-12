@@ -44,9 +44,11 @@ export function PendingPurchases({ onFinished }: { onFinished: () => void }) {
   if (!rows.length) return null;
   return <View style={{ gap: 12 }}>
     {rows.map(row => <View key={row.intentId} style={{ gap: 8 }}>
-      <Text variant="bodyStrong">{row.kind === 'perp_close' ? 'Cash return waiting' : `${row.symbol} ${row.kind === 'sell' ? 'sale' : row.kind === 'withdraw' ? 'withdrawal' : 'purchase'} waiting`}</Text>
+      <Text variant="bodyStrong">{row.kind === 'perp_close' ? 'Cash return waiting' : row.kind === 'refund' ? `${row.symbol} refund waiting` : `${row.symbol} ${row.kind === 'sell' ? 'sale' : row.kind === 'withdraw' ? 'withdrawal' : 'purchase'} waiting`}</Text>
       <Text color="textSecondary">{row.kind === 'perp_close'
         ? 'Your position closed. Finish moves its cash back to your balance.'
+        : row.kind === 'refund'
+          ? 'The price moved, so it was refunded on Robinhood Chain. Finish brings the money back to your trading balance.'
         : row.kind === 'withdraw'
           ? `Your ${row.symbol} withdrawal is ready to go. Finish sends it, with no new payment.`
         : row.kind === 'sell'
