@@ -22,7 +22,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { useTradingShortfall } from '@/api/pockets';
 import { MoneyError } from '@/components/money-error';
-import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount } from '@/format/money';
+import { formatExactMoney, formatMoney, formatPrice, formatTokenAmount, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { friendlyTxError } from '@/signing/errors';
 import { colors, radii, spacing, themedStyles } from '@/theme';
@@ -49,7 +49,7 @@ export default function PerpTicketScreen() {
     iconUrl: string;
   }>();
   const { getAccessToken } = useAtlasAuth();
-  const { displayCurrency } = useSettings();
+  const { displayCurrency, stealthMode } = useSettings();
   const runIntent = useRunIntent();
 
   const maxLeverage = Math.max(1, Number(params.maxLeverage) || 1);
@@ -260,8 +260,8 @@ export default function PerpTicketScreen() {
             ) : null}
             {quote.funding ? (
               <>
-                <Row label="From your trading balance" value={formatMoney(quote.funding.amount)} />
-                {quote.gasTopup ? <Row label="Gas top-up (one time)" value={formatMoney(quote.gasTopup)} /> : null}
+                <Row label="From your trading balance" value={stealthMode ? hiddenMoney(quote.funding.amount.currency) : formatMoney(quote.funding.amount)} />
+                {quote.gasTopup ? <Row label="Gas top-up (one time)" value={stealthMode ? hiddenMoney(quote.gasTopup.currency) : formatMoney(quote.gasTopup)} /> : null}
                 <Text variant="caption" color="textSecondary">
                   Your perps account is short of this margin, so it moves over first, in the same confirmation. It takes a
                   few seconds, then your order goes in.
