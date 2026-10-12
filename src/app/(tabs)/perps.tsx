@@ -7,7 +7,7 @@ import { usePerpMarkets, usePerpPositions } from '@/api/perps';
 import { useMe } from '@/api/send';
 import { PositionCard } from '@/components/perps/position-card';
 import { AssetAvatar } from '@/components/trade/asset-avatar';
-import { TradingBalanceCard } from '@/components/trade/trading-balance';
+import { TradingBalanceCard, TradingBalancePill } from '@/components/trade/trading-balance';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { PillButton } from '@/components/ui/pill-button';
@@ -105,7 +105,7 @@ export default function PerpsScreen() {
 
       {/* Search and categories stay at the top while the list scrolls. */}
       {view === 'markets' && markets ? (
-        <Pinned>
+        <Pinned aside={<TradingBalancePill />}>
           <Field
             clearable
             prefix={<Icon name="search" size={20} color="textSecondary" />}

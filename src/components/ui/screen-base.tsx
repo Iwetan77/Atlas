@@ -112,12 +112,30 @@ const PinnedSpot = createContext<((y: number) => void) | null>(null);
 // A screen's search and filters: they scroll with the page until they reach the top, then stay
 // there (a copy takes over at exactly that spot, under the slim title bar when there is one), so
 // searching never means scrolling back up. Give it as a direct child of <Screen>.
-export function Pinned({ children }: { children: ReactNode }) {
+// `aside`: what scrolled away above it, kept small beside the search (its first child) only while
+// it's pinned: Trade's balance. The search gives it a little room.
+type PinnedProps = { children: ReactNode; aside?: ReactNode };
+export function Pinned({ children }: PinnedProps) {
   const report = useContext(PinnedSpot);
   return (
     <View style={styles.pinned} onLayout={report ? (e) => report(e.nativeEvent.layout.y) : undefined}>
       {children}
     </View>
+  );
+}
+
+// The pinned copy: with an aside, the search and the aside share the first row.
+function PinnedContent({ children, aside }: PinnedProps) {
+  if (!aside) return <>{children}</>;
+  const [first, ...rest] = Children.toArray(children);
+  return (
+    <>
+      <View style={styles.pinnedRow}>
+        <View style={styles.pinnedMain}>{first}</View>
+        {aside}
+      </View>
+      {rest}
+    </>
   );
 }
 
@@ -163,7 +181,7 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   // The pinned section: what's in it, where it sits, the title bar's height above it, and whether
   // it has reached the top.
   const pinned = Children.toArray(children).find(
-    (c): c is ReactElement<{ children: ReactNode }> => isValidElement(c) && c.type === Pinned,
+    (c): c is ReactElement<PinnedProps> => isValidElement(c) && c.type === Pinned,
   );
   const [pinnedY, setPinnedY] = useState<number | null>(null);
   const [barHeight, setBarHeight] = useState(0);
@@ -243,7 +261,7 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
                   column?.maxWidth !== undefined && { maxWidth: column.maxWidth },
                   column?.paddingHorizontal !== undefined && { paddingHorizontal: column.paddingHorizontal },
                 ]}>
-                {pinned.props.children}
+                <PinnedContent aside={pinned.props.aside}>{pinned.props.children}</PinnedContent>
               </View>
             </View>
           ) : null}
@@ -304,6 +322,14 @@ function StickyBar({
 const styles = themedStyles(() => ({
   pinned: {
     gap: spacing.md,
+  },
+  pinnedRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  pinnedMain: {
+    flex: 1,
+    minWidth: 0,
   },
   // The pinned copy: the page's own background, a hairline and a soft shadow, so the list slides
   // under it.

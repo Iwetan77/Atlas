@@ -8,6 +8,7 @@ import { useRunIntent } from '@/api/intents';
 import { useAtlasAuth } from '@/auth/context';
 import { MarketArt } from '@/components/predictions/market-art';
 import { MarketCard } from '@/components/predictions/market-card';
+import { TradingBalancePill } from '@/components/trade/trading-balance';
 import { BackHeader } from '@/components/ui/back-header';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -91,9 +92,10 @@ export function PredictionsHome({ inTab = false }: { inTab?: boolean }) {
         ))}
       </View>
 
-      {/* Search and topics stay at the top while the markets scroll. */}
+      {/* Search and topics stay at the top while the markets scroll, with the trading balance (what
+          predictions are paid from) beside the search. */}
       {tab === 'discover' ? (
-        <Pinned>
+        <Pinned aside={<TradingBalancePill />}>
           <Field clearable value={query} onChangeText={setQuery} placeholder="Search events, teams or topics"
             accessibilityLabel="Search prediction markets" autoCapitalize="none"
             prefix={<Icon name="search" color="textSecondary" />} />
