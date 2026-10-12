@@ -47,7 +47,8 @@ export type IntentKind =
 // 'fund': money is moving to the venue first (perps margin into Hyperliquid, usually seconds).
 // 'sign': a two-step plan's second transaction is ready (GET /v1/intents/{id}/next → { transactions });
 // the app signs it without asking again, because the user confirmed the whole action once.
-export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' | 'settle';
+// 'refund': a Robinhood trade Relay refunded there, on its way back to the trading balance.
+export type IntentStage = 'discover' | 'validate' | 'fund' | 'sign' | 'execute' | 'settle' | 'refund';
 
 // A transaction the user's embedded wallet must sign. The engine builds it; the app never does.
 export type TypedData = {

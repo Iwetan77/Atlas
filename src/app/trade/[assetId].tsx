@@ -311,7 +311,11 @@ export default function AssetTradeScreen() {
           text={
             phase.stage === 'fund'
               ? 'Getting your money ready… about 30 seconds'
-              : `${side === 'buy' ? 'Buying' : 'Selling'} ${symbol}… this usually takes a few seconds`
+              : phase.stage === 'refund'
+                ? side === 'buy'
+                  ? 'The price moved, so this buy is being refunded to your trading balance…'
+                  : 'Bringing your cash to your trading balance…'
+                : `${side === 'buy' ? 'Buying' : 'Selling'} ${symbol}… this usually takes a few seconds`
           }
         />
       ) : null}
