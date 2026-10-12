@@ -1,31 +1,26 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
-import type { BalanceResponse } from '@/api/contract';
+import { spendableAmount, tradingAmount } from '@/api/pockets';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { formatMoney, hiddenMoney } from '@/format/money';
+import { openMove } from '@/funding/move-money';
 import { useSettings } from '@/settings/context';
-import { colors, spacing, themedStyles } from '@/theme';
+import { colors, radii, spacing, themedStyles } from '@/theme';
 
-// Cash that can leave right now: USDC in the Base and Solana wallets. Coins, savings, perps margin
-// and Arc cash count in the balance but have to be sold or moved back first.
-export function spendableAmount(balance: BalanceResponse): number {
-  return balance.holdings
-    .filter((h) => h.kind === 'cash' && (h.location ?? 'wallet') === 'wallet' && (h.chain === 'base' || h.chain === 'solana'))
-    .reduce((sum, h) => sum + Number(h.value.amount), 0);
-}
-
-// On Send and Withdraw: what can be sent, next to the whole balance, on the hero card's Atlas pink.
+// On Send and Withdraw: what can be sent (Spendable), next to the whole balance, on the hero card's
+// Atlas pink. Money in Trading can be moved back here in a few seconds.
 export function SpendableCard() {
   const { data } = useBalance();
   const { stealthMode } = useSettings();
   if (!data) return null;
   const currency = data.total.currency;
   const spendable = spendableAmount(data);
+  const trading = tradingAmount(data);
   const total = Number(data.total.amount);
   const show = (amount: number) => (stealthMode ? hiddenMoney(currency) : formatMoney({ amount: amount.toFixed(2), currency }));
-  const locked = total - spendable > 0.01;
+  const locked = total - spendable - trading > 0.01;
   return (
     <View style={styles.card} accessibilityLabel={'Spendable now ' + show(spendable)}>
       <View style={styles.wash} />
@@ -43,6 +38,20 @@ export function SpendableCard() {
           <Text variant="caption" color="textOnAccent" style={styles.soft}>Your total balance</Text>
           <Text variant="label" color="textOnAccent">{show(total)}</Text>
         </View>
+        {trading >= 0.01 ? (
+          <Pressable
+            onPress={() => openMove('to_spendable')}
+            accessibilityRole="button"
+            accessibilityLabel={'Move from trading, ' + show(trading) + ' there'}
+            style={({ pressed }) => [styles.move, pressed && styles.pressed]}>
+            <Icon name="swap-horizontal" size={16} color="textOnAccent" />
+            <Text variant="label" color="textOnAccent" style={styles.moveText}>
+              {show(trading)} in Trading
+            </Text>
+            <Text variant="label" color="textOnAccent">Move here</Text>
+            <Icon name="chevron-forward" size={14} color="textOnAccent" />
+          </Pressable>
+        ) : null}
         {locked ? (
           <Text variant="caption" color="textOnAccent" style={styles.soft}>
             The rest is in your coins, savings or perps. Sell or withdraw them when you need more cash.
@@ -96,6 +105,21 @@ const styles = themedStyles(() => ({
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.onAccentSoft,
+  },
+  move: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentPinkDeep,
+  },
+  pressed: {
+    opacity: 0.85,
+  },
+  moveText: {
+    flex: 1,
   },
   totalRow: {
     flexDirection: 'row',

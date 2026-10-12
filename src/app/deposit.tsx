@@ -23,12 +23,13 @@ import { useAddMoney } from '@/funding/add-money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 
-// Base and Solana USDC go straight to the user's own wallets; every other network gets a one-off
-// deposit address that turns what arrives into USDC in the balance.
+// Base and Solana USDC go straight to the user's own wallets: Base is Spendable, where deposits
+// belong, so it comes first; Solana is Trading. Every other network gets a one-off deposit address
+// that turns what arrives into USDC in Spendable.
 const LOGOS = 'https://cdn.layerswap.io/layerswap';
-const OWN: { id: 'base' | 'solana'; label: string; network: string; chainIcon: string }[] = [
-  { id: 'solana', label: 'USDC on Solana', network: 'Solana', chainIcon: `${LOGOS}/networks/solana_mainnet.png` },
-  { id: 'base', label: 'USDC on Base', network: 'Base', chainIcon: `${LOGOS}/networks/base_mainnet.png` },
+const OWN: { id: 'base' | 'solana'; label: string; network: string; chainIcon: string; lands: string }[] = [
+  { id: 'base', label: 'USDC on Base', network: 'Base', chainIcon: `${LOGOS}/networks/base_mainnet.png`, lands: 'Lands in your spendable balance' },
+  { id: 'solana', label: 'USDC on Solana', network: 'Solana', chainIcon: `${LOGOS}/networks/solana_mainnet.png`, lands: 'Lands in your trading balance' },
 ];
 
 // Receive money from a wallet or an exchange, on the network the user picks. Chain names show only
@@ -37,7 +38,7 @@ export default function DepositScreen() {
   const { wallets, getAccessToken } = useAtlasAuth();
   const { displayCurrency } = useSettings();
   const [networks, setNetworks] = useState<DepositNetwork[]>([]);
-  const [picked, setPicked] = useState<string>('solana');
+  const [picked, setPicked] = useState<string>('base');
   const [amount, setAmount] = useState('');
   const [deposit, setDeposit] = useState<DepositAddress | null>(null);
   const [state, setState] = useState<DepositState>('waiting');
@@ -134,13 +135,13 @@ export default function DepositScreen() {
           ...OWN.map((o) => ({
             key: o.id,
             label: o.label,
-            detail: 'Straight to your Atlas wallet',
+            detail: o.lands,
             leadingNode: <TokenChainLogo symbol="USDC" iconUrl={null} chainIconUrl={o.chainIcon} />,
           })),
           ...networks.map((n) => ({
             key: n.id,
             label: n.label,
-            detail: n.asset === 'USDC' || n.asset === 'USDT' ? 'Arrives as dollars in your balance' : 'Turned into dollars in your balance',
+            detail: n.asset === 'USDC' || n.asset === 'USDT' ? 'Arrives as dollars you can spend' : 'Turned into dollars you can spend',
             leadingNode: <TokenChainLogo symbol={n.asset} iconUrl={n.assetIcon} chainIconUrl={n.chainIcon} />,
             more: n.featured === false,
           })),
@@ -183,7 +184,10 @@ export default function DepositScreen() {
               ) : null}
             </>
           ) : (
-            <Text variant="bodyStrong">{own?.label}</Text>
+            <>
+              <Text variant="bodyStrong">{own?.label}</Text>
+              <Text variant="caption" color="textSecondary">{own?.lands}</Text>
+            </>
           )}
           <View style={styles.qr}>
             <QRCodeStyled

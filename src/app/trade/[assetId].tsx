@@ -10,6 +10,7 @@ import type { IntentStage, Quote, TradeSide } from '@/api/contract';
 import { useRunIntent } from '@/api/intents';
 import { executeQuote, requestQuote } from '@/api/markets';
 import { useSpotPositions } from '@/api/positions';
+import { useTradingShortfall } from '@/api/pockets';
 import { useMe } from '@/api/send';
 import { useLiveQuote } from '@/api/use-live-quote';
 import { useAtlasAuth } from '@/auth/context';
@@ -103,6 +104,7 @@ export default function AssetTradeScreen() {
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
 
   const value = Number(amount) || 0;
+  const shortfall = useTradingShortfall(side === 'buy' ? value : 0);
   const change = asset?.change24hPct ? Number(asset.change24hPct) : null;
 
   const request = useCallback(
@@ -145,7 +147,7 @@ export default function AssetTradeScreen() {
         title={`${q.side === 'buy' ? 'You bought' : 'You sold'} ${formatTokenAmount(got.amount, got.symbol)}`}
         subtitle={
           q.side === 'buy'
-            ? `${formatMoney(q.pay.value)} from your balance`
+            ? `${formatMoney(q.pay.value)} from your trading balance`
             : `${formatMoney(q.receive.value)} added to your balance`
         }>
         <PillButton label="Done" onPress={() => router.navigate('/')} />
@@ -300,7 +302,7 @@ export default function AssetTradeScreen() {
       ) : quoting ? (
         <Busy text="Getting the best price…" />
       ) : quoteError ? (
-        <MoneyError message={quoteError} />
+        <MoneyError message={quoteError} shortfall={shortfall} />
       ) : null}
 
       {phase.kind === 'failed' ? <Text color="danger">{phase.message}</Text> : null}

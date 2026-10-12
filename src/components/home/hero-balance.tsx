@@ -1,11 +1,13 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { BalanceResponse, DisplayCurrency } from '@/api/contract';
-import { TokenChainLogo } from '@/components/token-chain-logo';
+import { elsewhereAmount, pocketMoney, spendableAmount, tradingAmount } from '@/api/pockets';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { formatMoney, formatTokenNumber, formatUsd, HIDDEN, hiddenMoney } from '@/format/money';
+import { formatMoney, formatUsd, hiddenMoney } from '@/format/money';
+import { openMove } from '@/funding/move-money';
 import { colors, radii, spacing, themedStyles } from '@/theme';
 
 type Props = {
@@ -14,25 +16,23 @@ type Props = {
   error: string | null;
   currency: DisplayCurrency;
   stealth: boolean;
-  showEmptyPockets: boolean;
   onToggleStealth: () => void;
   onRetry: () => void;
   onDeposit?: () => void;
   onWithdraw?: () => void;
 };
 
-// MiniPay's hero card in Atlas pink: one number in the user's currency, the two money-in/money-out
-// actions, and where the cash sits folded inside behind the chevron tab: USDC on each chain, in
-// perps, earning. That's what buys are paid from; the coins themselves are under Your assets.
+// The hero card in Atlas pink: one number in the user's currency, the two money-in/money-out
+// actions, and folded inside behind the chevron tab the two balances it's made of: Spendable (sends,
+// cash-outs, savings) and Trading (trades, perps, predictions). The rest is savings, perps margin
+// and coins, under Your assets and Earn.
 export function HeroBalance(props: Props) {
-  const { balance, loading, error, currency, stealth, showEmptyPockets } = props;
+  const { balance, loading, error, currency, stealth } = props;
   const [open, setOpen] = useState(false);
-  const cash = (balance?.holdings ?? []).filter((h) => h.kind === 'cash');
-  const holdings = showEmptyPockets ? cash : cash.filter((h) => Number(h.amount) !== 0);
-  // What the coins add to the balance, so the cards plus this line make the total.
-  const inAssets = (balance?.holdings ?? [])
-    .filter((h) => h.kind !== 'cash')
-    .reduce((sum, h) => sum + Number(h.value.amount), 0);
+  const show = (amount: number) =>
+    balance ? (stealth ? hiddenMoney(balance.total.currency) : formatMoney(pocketMoney(balance, amount))) : '';
+  // What savings, perps and coins add, so the two cards plus this line make the total.
+  const elsewhere = balance ? elsewhereAmount(balance) : 0;
 
   return (
     <View style={styles.wrap}>
@@ -105,41 +105,29 @@ export function HeroBalance(props: Props) {
           <HeroAction icon="arrow-up" label="Send" onPress={props.onWithdraw} />
         </View>
 
-        {open ? (
+        {open && balance ? (
           <View style={styles.breakdown}>
             <View style={styles.divider} />
-            {holdings.length === 0 ? (
-              <Text color="textOnAccent" style={styles.center}>
-                No cash here yet. Deposit to get started.
-              </Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assets}>
-                {holdings.map((h) => (
-                  <View key={`${h.assetId}:${h.chain}:${h.location ?? 'wallet'}`} style={styles.asset}>
-                    <View style={styles.assetAvatar}>
-                      <TokenChainLogo symbol={h.symbol} iconUrl={h.iconUrl ?? null} chain={h.chain} size={36} />
-                    </View>
-                    <Text variant="heading" color="textOnLight" numberOfLines={1}>
-                      {stealth ? HIDDEN : formatTokenNumber(h.amount)}
-                    </Text>
-                    <Text variant="caption" color="textDisabled">
-                      {h.symbol}
-                      {h.location === 'gateway_pending' ? ' · Arriving' : h.location === 'perps' ? ' · In perps' : h.location === 'earn' ? ' · Earning' : h.location === 'predictions' ? ' · Predictions' : ''}
-                    </Text>
-                    <Text variant="label" color="textOnLight">
-                      {stealth ? hiddenMoney(h.value.currency) : formatMoney(h.value)}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-            {inAssets > 0 && balance ? (
+            <View style={styles.pockets}>
+              <PocketCard
+                icon="wallet-outline"
+                name="Spendable"
+                uses="Send, cash out, save"
+                amount={show(spendableAmount(balance))}
+                onPress={props.onWithdraw}
+              />
+              <PocketCard
+                icon="trending-up"
+                name="Trading"
+                uses="Trade, perps, predictions"
+                amount={show(tradingAmount(balance))}
+                onPress={() => router.push('/trade')}
+                onAdd={() => openMove('to_trading')}
+              />
+            </View>
+            {elsewhere >= 0.01 ? (
               <Text variant="caption" color="textOnAccent" style={styles.center}>
-                +{' '}
-                {stealth
-                  ? hiddenMoney(balance.total.currency)
-                  : formatMoney({ amount: inAssets.toFixed(2), currency: balance.total.currency })}{' '}
-                in your assets below
+                + {show(elsewhere)} in savings, perps and your assets below
               </Text>
             ) : null}
             {currency !== 'USD' ? (
@@ -163,6 +151,41 @@ export function HeroBalance(props: Props) {
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+// One of the two balances, on a white card: tap it to use it; Trading also has Add (from Spendable).
+function PocketCard({ icon, name, uses, amount, onPress, onAdd }: {
+  icon: IconName; name: string; uses: string; amount: string; onPress?: () => void; onAdd?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${name} balance ${amount}`}
+      style={({ pressed }) => [styles.pocket, pressed && styles.pocketPressed]}>
+      <View style={styles.pocketTop}>
+        <View style={styles.pocketIcon}>
+          <Icon name={icon} size={18} color="tilePinkInk" />
+        </View>
+        {onAdd ? (
+          <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
+            <Icon name="add" size={14} color="textOnAccent" />
+            <Text variant="label" color="textOnAccent">Add</Text>
+          </Pressable>
+        ) : (
+          <Icon name="chevron-forward" size={16} color="textDisabled" />
+        )}
+      </View>
+      <Text variant="caption" color="textDisabled">{name}</Text>
+      <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit>
+        {amount}
+      </Text>
+      <Text variant="caption" color="textDisabled" numberOfLines={1}>
+        {uses}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -276,18 +299,44 @@ const styles = themedStyles(() => ({
     height: 1,
     backgroundColor: colors.onAccentSoft,
   },
-  assets: {
+  pockets: {
+    flexDirection: 'row',
     gap: spacing.md,
   },
-  asset: {
-    width: 150,
+  pocket: {
+    flex: 1,
+    minWidth: 0,
     gap: spacing.xxs,
     padding: spacing.lg,
     borderRadius: radii.md,
     backgroundColor: colors.surfaceLight,
   },
-  assetAvatar: {
+  pocketPressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  pocketTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.sm,
+  },
+  pocketIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tilePink,
+  },
+  add: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    paddingVertical: spacing.xs,
+    paddingLeft: spacing.sm,
+    paddingRight: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentPink,
   },
   center: {
     textAlign: 'center',

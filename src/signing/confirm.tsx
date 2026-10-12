@@ -10,7 +10,7 @@ import type { ExecutionPlan, IntentKind, SentTx, SignedTx } from '@/api/contract
 import { useBalance } from '@/api/balance';
 import { Icon } from '@/components/ui/icon';
 import { PillButton } from '@/components/ui/pill-button';
-import { spendableAmount } from '@/components/send/spendable-card';
+import { pocketMoney, spendableAmount, tradingAmount } from '@/api/pockets';
 import { formatMoney, hiddenMoney } from '@/format/money';
 import { useSettings } from '@/settings/context';
 import { Text } from '@/components/ui/text';
@@ -60,11 +60,12 @@ const TITLES: Record<IntentKind, string> = {
   earn_deposit: 'Put in savings',
   earn_withdraw: 'Take out of savings',
   withdraw: 'Withdraw',
+  move: 'Move money',
 };
 
 // The confirmation reads like a payment slip: the total big at the top, who it goes to, then the
 // details. Status lines belong on the receipt, not on a confirmation.
-const HEADLINES = ['Total from cash', 'You pay', 'You sell', 'Margin moved', 'Margin moved to Hyperliquid'];
+const HEADLINES = ['Total from cash', 'You pay', 'You sell', 'You move', 'Margin moved', 'Margin moved to Hyperliquid'];
 const RECIPIENTS = ['Send to', 'To'];
 const HIDDEN = ['Bank payout', 'Status'];
 type Row = { label: string; value: string };
@@ -291,7 +292,7 @@ function Slip({ plan, phase, expired, ready, waiting, pinError, pinReset, onPay,
             <Text variant={row === headline ? 'bodyStrong' : 'body'} style={styles.rowValue}>{row.value}</Text>
           </View>
         ))}
-        <PayFrom />
+        <PayFrom plan={plan} />
       </View>
 
       {phase.kind === 'review' ? (
@@ -300,7 +301,7 @@ function Slip({ plan, phase, expired, ready, waiting, pinError, pinReset, onPay,
           {!expired && !ready ? (
             <View style={styles.waiting}><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary" style={styles.waitingText}>{waiting ?? 'Connecting your wallet…'}</Text></View>
           ) : null}
-          <PillButton label={total ? `Pay ${total}` : 'Continue'} onPress={onPay} disabled={expired || !ready} />
+          <PillButton label={total ? `${plan.kind === 'move' ? 'Move' : 'Pay'} ${total}` : 'Continue'} onPress={onPay} disabled={expired || !ready} />
         </View>
       ) : null}
 
@@ -325,18 +326,38 @@ function Slip({ plan, phase, expired, ready, waiting, pinError, pinReset, onPay,
   );
 }
 
-// Where the money comes from: the cash that can actually pay (coins, savings and perps margin count
-// in the balance but can't). Mounted only while a confirmation is open, so it never keeps the
-// balance polling on its own.
-function PayFrom() {
+// Which balance pays: Trading for buys, perps margin and predictions; Spendable for sends, cash-outs,
+// withdrawals and savings. Sales and moves name their own (none here).
+function payingPocket(plan: ExecutionPlan): 'spendable' | 'trading' | null {
+  if (plan.intentId.startsWith('prediction-')) return plan.kind === 'buy' ? 'trading' : null;
+  switch (plan.kind) {
+    case 'buy':
+    case 'perp_open':
+      return 'trading';
+    case 'send':
+    case 'off_ramp':
+    case 'withdraw':
+    case 'earn_deposit':
+      return 'spendable';
+    default:
+      return null;
+  }
+}
+
+// Where the money comes from, and what that balance holds. Mounted only while a confirmation is
+// open, so it never keeps the balance polling on its own.
+function PayFrom({ plan }: { plan: ExecutionPlan }) {
   const { data } = useBalance();
   const { stealthMode } = useSettings();
-  const spendable = data ? { amount: spendableAmount(data).toFixed(2), currency: data.total.currency } : null;
+  const pocket = payingPocket(plan);
+  if (!pocket) return null;
+  const name = pocket === 'trading' ? 'Trading balance' : 'Spendable balance';
+  const held = data ? pocketMoney(data, pocket === 'trading' ? tradingAmount(data) : spendableAmount(data)) : null;
   return (
     <View style={styles.row}>
       <Text color="textSecondary" style={styles.rowLabel}>Pay from</Text>
       <Text style={styles.rowValue}>
-        {spendable ? `Spendable balance (${stealthMode ? hiddenMoney(spendable.currency) : formatMoney(spendable)})` : 'Spendable balance'}
+        {held ? `${name} (${stealthMode ? hiddenMoney(held.currency) : formatMoney(held)})` : name}
       </Text>
     </View>
   );

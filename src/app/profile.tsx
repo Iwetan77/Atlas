@@ -68,7 +68,7 @@ export default function ProfileScreen() {
       reload();
     }, [reload]),
   );
-  const { displayCurrency, stealthMode, showEmptyPockets, update } = useSettings();
+  const { displayCurrency, stealthMode, update } = useSettings();
   const light = useSyncExternalStore(subscribeTheme, themeName, themeName) === 'light';
   const gas = useBalance().data?.gas ?? [];
   const emails = useEmailSettings();
@@ -167,14 +167,6 @@ export default function ProfileScreen() {
           subtitle="Hide balances on screen"
           value={stealthMode}
           onChange={(v) => update({ stealthMode: v })}
-        />
-        <Divider />
-        <ToggleRow
-          icon="wallet-outline"
-          title="Show empty pockets"
-          subtitle="List assets with a zero balance"
-          value={showEmptyPockets}
-          onChange={(v) => update({ showEmptyPockets: v })}
         />
       </Card>
 

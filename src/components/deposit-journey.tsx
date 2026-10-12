@@ -10,13 +10,13 @@ import { colors, radii, spacing, themedStyles } from '@/theme';
 const short = (hash: string) => (hash.length > 14 ? `${hash.slice(0, 6)}…${hash.slice(-6)}` : hash);
 
 // Every hop a deposit takes, folded under its status line: sent on its own network, swapped on NEAR
-// Intents, paid out as USDC to the user's Solana wallet. Each transaction opens in its explorer.
+// Intents, paid out as USDC to the user's Base wallet (Spendable). Each transaction opens in its explorer.
 export function DepositJourney({ journey, network }: { journey: Journey | null; network: string }) {
   const [open, setOpen] = useState(false);
   const hops: { key: keyof Journey; title: string; waiting: string }[] = [
     { key: 'deposit', title: `Your deposit on ${network}`, waiting: 'Waiting for it to arrive' },
     { key: 'swap', title: 'Turned into dollars on NEAR Intents', waiting: 'Starts once your deposit arrives' },
-    { key: 'payout', title: 'USDC sent to your Solana wallet', waiting: 'Last step' },
+    { key: 'payout', title: 'USDC added to your spendable balance', waiting: 'Last step' },
   ];
   return (
     <View style={styles.wrap}>
