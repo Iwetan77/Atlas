@@ -1,10 +1,11 @@
-import { Pressable, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, Pressable, View } from 'react-native';
 
 import { useBalance } from '@/api/balance';
 import { pocketMoney, pocketsLive, tradingAmount } from '@/api/pockets';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { formatMoney, hiddenMoney } from '@/format/money';
+import { formatCompactMoney, formatMoney, hiddenMoney } from '@/format/money';
 import { openMove } from '@/funding/move-money';
 import { useSettings } from '@/settings/context';
 import { colors, radii, spacing, themedStyles } from '@/theme';
@@ -71,7 +72,73 @@ export function TradingBalanceCard() {
   );
 }
 
+// The widest the pinned balance gets, so the search keeps most of the row.
+const PILL_MAX = 132;
+
+// Once the card above has scrolled away, the trading balance stays in sight beside the pinned search:
+// small, in the card's pink, with + to add money. It slides in as the search makes room for it.
+export function TradingBalancePill() {
+  const { data } = useBalance();
+  const { stealthMode } = useSettings();
+  const [shown] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(shown, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [shown]);
+  if (!data || !pocketsLive(data)) return null;
+  const money = pocketMoney(data, tradingAmount(data));
+  // Bigger balances read short here ("₦53.14K"); the card above has the exact figure.
+  const amount = stealthMode
+    ? hiddenMoney(data.total.currency)
+    : Number(money.amount) >= 10_000
+      ? formatCompactMoney(money)
+      : formatMoney(money);
+  return (
+    <Animated.View
+      style={{
+        maxWidth: shown.interpolate({ inputRange: [0, 1], outputRange: [0, PILL_MAX] }),
+        marginLeft: shown.interpolate({ inputRange: [0, 1], outputRange: [0, spacing.sm] }),
+        opacity: shown,
+        overflow: 'hidden',
+      }}>
+      <Pressable
+        onPress={() => openMove('to_trading')}
+        accessibilityRole="button"
+        accessibilityLabel={`Trading balance ${amount}. Add money`}
+        style={({ pressed }) => [styles.pill, pressed && styles.pressed]}>
+        <Text variant="label" color="textOnAccent" numberOfLines={1} style={styles.pillAmount}>
+          {amount}
+        </Text>
+        <View style={styles.pillAdd}>
+          <Icon name="add" size={14} color="accentPinkDeep" />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 const styles = themedStyles(() => ({
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.accentPink,
+  },
+  pillAmount: {
+    flexShrink: 1,
+    fontSize: 14,
+  },
+  pillAdd: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceLight,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
