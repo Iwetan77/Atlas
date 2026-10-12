@@ -39,6 +39,7 @@ export function AmountInput({
   percentOf?: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const plainWhileTyping = Platform.OS === 'android';
   // A share of what's held, rounded down to the cent so it never asks for more than there is.
   const share = (pct: number) => (Math.floor(Number(percentOf) * pct) / 100).toFixed(2);
   const maxChip = onMax ? (
@@ -62,8 +63,10 @@ export function AmountInput({
           {currencySymbol(currency)}
         </Text>
         <TextInput
-          value={groupDigits(value)}
-          onChangeText={(t) => onChange(t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+          value={plainWhileTyping && focused ? value : groupDigits(value)}
+          onChangeText={(t) =>
+            onChange((plainWhileTyping && focused ? t.replace(/,/g, '.') : t).replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))
+          }
           placeholder="0"
           placeholderTextColor={colors.textDisabled}
           keyboardType="decimal-pad"

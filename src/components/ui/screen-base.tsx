@@ -1,5 +1,5 @@
 import { Children, createContext, isValidElement, type ReactElement, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type GestureResponderEvent, type ViewProps } from 'react-native';
+import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View, type GestureResponderEvent, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { goBack } from '@/components/ui/back-header';
@@ -123,8 +123,43 @@ export function Pinned({ children }: { children: ReactNode }) {
 
 // Every screen keeps what you're typing in sight: a scrolling screen moves the focused field above
 // the keyboard (iOS insets for it, then scrolls it into view); a fixed one shrinks to make room.
+// The Android keyboard's height while it's up (0 when it's down), including when the screen opens
+// with it already showing.
+function useAndroidKeyboard(enabled: boolean) {
+  const [height, setHeight] = useState(() => (enabled && Keyboard.isVisible() ? (Keyboard.metrics()?.height ?? 0) : 0));
+  useEffect(() => {
+    if (!enabled) return;
+    const shown = Keyboard.addListener('keyboardDidShow', (e) => setHeight(e.endCoordinates.height));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setHeight(0));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, [enabled]);
+  return height;
+}
+// How much of the form below the field stays in sight above the keyboard (the quote, the button).
+const KEYBOARD_GAP = 140;
+// For a ScrollView on Android: room below its content while the keyboard is up, and the focused
+// field (with what follows it) scrolled above the keyboard, the way the website keeps it in sight.
+export function useAndroidKeyboardRoom(enabled: boolean) {
+  const scrollRef = useRef<ScrollView>(null);
+  const keyboard = useAndroidKeyboard(Platform.OS === 'android' && enabled);
+  useEffect(() => {
+    if (keyboard <= 0) return;
+    // After the room below is laid out, bring the focused field above the keyboard.
+    const id = setTimeout(() => {
+      const field = TextInput.State.currentlyFocusedInput();
+      if (field) scrollRef.current?.getScrollResponder()?.scrollResponderScrollNativeHandleToKeyboard(field as never, KEYBOARD_GAP, true);
+    }, 60);
+    return () => clearTimeout(id);
+  }, [keyboard]);
+  return { scrollRef, room: keyboard > 0 ? { paddingBottom: keyboard + KEYBOARD_GAP } : null };
+}
+
 export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTitle, children, style, ...rest }: Props) {
   const [scrolled, setScrolled] = useState(false);
+  const { scrollRef, room: keyboardRoom } = useAndroidKeyboardRoom(scroll);
   // The pinned section: what's in it, where it sits, the title bar's height above it, and whether
   // it has reached the top.
   const pinned = Children.toArray(children).find(
@@ -143,7 +178,8 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   const content = <View style={[styles.content, style, room]} {...rest}>{children}</View>;
   const scroller = scroll ? (
     <ScrollView
-      contentContainerStyle={styles.scroll}
+      ref={scrollRef}
+      contentContainerStyle={[styles.scroll, keyboardRoom]}
       // Browsers re-anchor the scroll when the list above the fold changes, which threw the page back
       // to the top as a search narrowed it (and closed the pinned search). Phones don't do this.
       style={pinned && Platform.OS === 'web' ? ({ overflowAnchor: 'none' } as object) : undefined}
@@ -191,10 +227,10 @@ export function Screen({ scroll = true, refreshing = false, onRefresh, stickyTit
   const top = stickyTitle !== undefined && scrolled ? barHeight : 0;
   // The pinned copy lines up with the page's own column (wider on the desktop website).
   const column = StyleSheet.flatten(style);
-  // Android draws edge to edge, so it no longer shrinks the app for the keyboard: the screen shrinks
-  // itself to the space above it, and the scroller keeps the field being typed in visible. iOS
+  // Android draws edge to edge, so it no longer shrinks the app for the keyboard: a scrolling screen
+  // makes room below and scrolls the field up (above), a fixed one shrinks to the space above it. iOS
   // scrolling screens inset themselves (automaticallyAdjustKeyboardInsets); fixed ones pad.
-  const avoid = Platform.OS === 'android' ? 'height' : Platform.OS === 'ios' && !scroller ? 'padding' : undefined;
+  const avoid = Platform.OS === 'android' ? (scroller ? undefined : 'height') : Platform.OS === 'ios' && !scroller ? 'padding' : undefined;
   const body = scroller && watching ? (
         <View style={styles.root}>
           {scroller}

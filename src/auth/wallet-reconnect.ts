@@ -19,6 +19,8 @@ type Scheduler = {
   clear: (timer: unknown) => void;
 };
 const delays = [750, 1_500, 3_000];
+// After the quick tries, one every 15 seconds while the wallet is still down.
+const slowDelay = 15_000;
 
 export function createWalletReconnect(
   scheduler: Scheduler = {
@@ -44,7 +46,7 @@ export function createWalletReconnect(
     // Privy already has a connection attempt running in these other states.
     if (!['disconnected', 'error', 'needs-recovery'].includes(state.status)) { clear(); return; }
     const operation = state.status === 'needs-recovery' ? state.recover : state.connect;
-    if (!operation || attempts >= delays.length) { clear(); return; }
+    if (!operation) { clear(); return; }
     if (timer !== null) return;
     timer = scheduler.set(() => {
       timer = null;
@@ -64,13 +66,19 @@ export function createWalletReconnect(
         inFlight = false;
         reconcile();
       });
-    }, delays[attempts]);
+    }, delays[attempts] ?? slowDelay);
   };
   return {
     update(next: Snapshot) {
       const nextOwner = next.ready ? next.userId : null;
       if (nextOwner !== owner) { clear(); attempts = 0; owner = nextOwner; }
       snapshot = next;
+      reconcile();
+    },
+    // Back in the foreground: try again now rather than at the next slow retry.
+    retryNow() {
+      attempts = 0;
+      clear();
       reconcile();
     },
     cancel() {

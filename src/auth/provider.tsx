@@ -10,6 +10,7 @@ import {
   usePrivy,
 } from '@privy-io/expo';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { markSigningOut } from '@/auth/device-session';
@@ -68,6 +69,12 @@ function AuthBridge({ children }: { children: ReactNode }) {
     });
   }, [reconnect, isReady, user?.id, sol, hasSolanaWallet]);
   useEffect(() => () => reconnect.cancel(), [reconnect]);
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reconnect.retryNow();
+    });
+    return () => listener.remove();
+  }, [reconnect]);
 
   // Every signed-in user ends up with both wallets, with no "create wallet" step.
   const creating = useRef(false);

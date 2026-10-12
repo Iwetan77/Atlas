@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { engineGet, enginePost } from '@/api/client';
@@ -23,6 +23,9 @@ export function AssetPriceAlert({ assetId, symbol, name, iconUrl, price, visible
   const { displayCurrency } = useSettings();
   const insets = useSafeAreaInsets();
   const [target, setTarget] = useState('');
+  const [typing, setTyping] = useState(false);
+  const { height } = useWindowDimensions();
+  const aboveKeyboard = Platform.OS === 'android' && typing;
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -74,8 +77,8 @@ export function AssetPriceAlert({ assetId, symbol, name, iconUrl, price, visible
     finally { working.current = false; setBusy(false); }
   };
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-    <View style={[styles.backdrop, { paddingTop: Math.max(insets.top, spacing.lg), paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-      <View style={styles.sheet}>
+    <View style={[styles.backdrop, { paddingTop: Math.max(insets.top, spacing.lg), paddingBottom: Math.max(insets.bottom, spacing.lg) }, aboveKeyboard && styles.backdropTop]}>
+      <View style={[styles.sheet, aboveKeyboard && { maxHeight: height * 0.45 }]}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.heading}><View style={styles.intro}>
             <Text variant="heading">Price alert</Text><Text variant="caption" color="textSecondary">Your price. We’ll keep an eye on it.</Text>
@@ -92,7 +95,10 @@ export function AssetPriceAlert({ assetId, symbol, name, iconUrl, price, visible
             <Text variant="label" color="textSecondary">Notify me at</Text><View style={styles.currency}><Text variant="label" color="accentPinkTint">{displayCurrency}</Text></View>
           </View>
             <View style={styles.amount}><Text style={styles.symbol} color="textSecondary">{currencySymbol(displayCurrency)}</Text>
-              <TextInput value={target} onChangeText={raw => setTarget(raw.replace(/,/g, '').replace(/[^0-9.]/g, ''))}
+              <TextInput value={target}
+                // A comma from an Android number pad is its decimal point; elsewhere it groups thousands.
+                onChangeText={raw => setTarget((Platform.OS === 'android' ? raw.replace(/,/g, '.') : raw.replace(/,/g, '')).replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+                onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
                 placeholder="0.00" placeholderTextColor={colors.textDisabled} selectionColor={colors.accentPink} underlineColorAndroid="transparent" keyboardType="decimal-pad" returnKeyType="done"
                 onSubmitEditing={() => void save()} editable={!busy} accessibilityLabel={'Target price in ' + displayCurrency} style={styles.input} />
             </View>
@@ -123,6 +129,7 @@ export function AssetPriceAlert({ assetId, symbol, name, iconUrl, price, visible
 }
 const styles = themedStyles(() => ({
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
+  backdropTop: { justifyContent: 'flex-start' },
   sheet: { width: '100%', maxWidth: 440, maxHeight: '100%', alignSelf: 'center', backgroundColor: colors.bgSurface, borderRadius: radii.lg, overflow: 'hidden' },
   content: { padding: spacing.lg, gap: spacing.lg },
   heading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
