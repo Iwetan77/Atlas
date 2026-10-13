@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Modal, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { engineGet } from '@/api/client';
@@ -77,15 +77,20 @@ function PinSession({ person, children }: { person: string | null; children: Rea
   // Checked only for the user Privy names (never the stand-in above), so one person's account is
   // never kept under another's id.
   const liveId = auth.userId;
+  // What the account check is waiting on, shown under its spinner when it takes a while (to find
+  // where an iPhone home-screen sign-in stalls).
+  const [phase, setPhase] = useState('starting');
   const reload = useCallback(async () => {
-    if (!authenticated || !liveId) return;
+    if (!authenticated || !liveId) { setPhase(authenticated ? 'waiting for Privy to name the user' : 'not signed in'); return; }
     const userId = liveId;
     const round = ++generation.current;
     setProblem(null);
     for (let attempt = 1; ; attempt++) {
       try {
+        setPhase(`waiting for the sign-in token (try ${attempt}/${TRIES})`);
         const token = await tokenWithin(getAccessToken(), TOKEN_WAIT_MS);
         if (!token) throw new Error(STALLED);
+        setPhase(`asking Atlas for the account (try ${attempt}/${TRIES})`);
         const [me, pin] = await Promise.all([engineGet<Me>('/v1/me', token, { timeoutMs: 15_000 }), pinStatus(async () => token)]);
         if (!mounted.current || generation.current !== round) return;
         const next = { owner: userId, handle: me.handle, configured: pin.configured };
@@ -94,6 +99,7 @@ function PinSession({ person, children }: { person: string | null; children: Rea
         return;
       } catch (e) {
         if (!mounted.current || generation.current !== round) return;
+        setPhase(`try ${attempt} failed: ${errorMessage(e)}`);
         if (attempt >= TRIES) { setProblem(errorMessage(e)); return; }
         await new Promise((r) => setTimeout(r, 1_500));
       }
@@ -131,11 +137,19 @@ function PinSession({ person, children }: { person: string | null; children: Rea
   // The check is taking a while: a way out shows under the spinner instead of waiting it out.
   const checkingAccount = setup && !mine && !problem;
   const [slow, setSlow] = useState(false);
+  const [waited, setWaited] = useState(0);
   useEffect(() => {
     if (!checkingAccount) return;
     const timer = setTimeout(() => setSlow(true), 10_000);
-    return () => clearTimeout(timer);
+    const started = Date.now();
+    const tick = setInterval(() => setWaited(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => { clearTimeout(timer); clearInterval(tick); };
   }, [checkingAccount]);
+  const details = [
+    `${waited}s · ${phase}`,
+    `signed in: ${authenticated ? 'yes' : 'no'} · user named: ${auth.userId ? 'yes' : 'no'} · same person: ${person ? 'yes' : 'no'}`,
+    `PIN remembered here: ${userId && pinReadyHere(userId) ? 'yes' : 'no'} · checked this run: ${userId && confirmed.has(userId) ? 'yes' : 'no'} · ${homeScreenApp() ? 'home-screen app' : Platform.OS}`,
+  ];
   useEffect(() => {
     if (mine && userId) rememberPinReady(userId, mine.configured && !!mine.handle);
   }, [mine, userId]);
@@ -145,6 +159,7 @@ function PinSession({ person, children }: { person: string | null; children: Rea
         <View key={theme} testID="atlas-account-check" style={styles.loading}>
           {problem ? <><Text variant="heading">Securing your Atlas account</Text><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
             : <><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Securing your account…</Text>
+              {waited >= 3 ? <View style={styles.details}>{details.map((line) => <Text key={line} variant="caption" color="textSecondary" style={styles.detail}>{line}</Text>)}</View> : null}
               {slow ? <PillButton label="Sign out" tone="secondary" size="sm" onPress={logout} /> : null}</>}
         </View>
       ) : <PinSetup key={theme} handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
@@ -170,7 +185,16 @@ function PinSession({ person, children }: { person: string | null; children: Rea
     </Context.Provider>
   );
 }
+// Opened from the iPhone home screen (Safari's standalone web app) rather than in a browser tab.
+function homeScreenApp(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true || window.matchMedia?.('(display-mode: standalone)').matches === true;
+}
+
 const styles = themedStyles(() => ({
+  details: { gap: spacing.xxs, alignItems: 'center', opacity: 0.8 },
+  detail: { textAlign: 'center' },
   loading: { flex: 1, width: '100%', alignSelf: 'stretch', minHeight: '100%', backgroundColor: colors.bgBase, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, gap: spacing.lg },
   backdrop: { flex: 1, backgroundColor: colors.scrim, justifyContent: 'center', padding: spacing.lg },
   sheet: { width: '100%', maxWidth: 440, maxHeight: '92%', alignSelf: 'center', borderRadius: radii.lg, backgroundColor: colors.bgSurface },
