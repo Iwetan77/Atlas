@@ -12,6 +12,7 @@ import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { useAtlasAuth } from '@/auth/context';
 import { solana } from '@/config';
 import { evmChainFor } from '@/signing/chains';
+import { withDomainType } from '@/signing/typed-data';
 import type { Signer } from '@/signing/types';
 
 const noWalletUi = { showWalletUIs: false } as const;
@@ -64,7 +65,7 @@ export function useSigner(): Signer {
       if ('typedData' in tx) {
         if (tx.chain === 'polygon' && !await predictionGeo()) throw new Error('Predictions trading is not available in your location.');
         if (!addresses.base) throw new Error('EVM wallet is not ready');
-        const { signature } = await signTypedData(tx.typedData, { address: addresses.base, uiOptions: noWalletUi });
+        const { signature } = await signTypedData(withDomainType(tx.typedData), { address: addresses.base, uiOptions: noWalletUi });
         return signature;
       }
       if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
