@@ -27,6 +27,18 @@ const readyKey = (userId: string) => `atlas.pinReady.${userId.replace(/[^A-Za-z0
 function pinReadyHere(userId: string) { return readDeviceValue(readyKey(userId)) === '1'; }
 function rememberPinReady(userId: string, ready: boolean) { writeDeviceValue(readyKey(userId), ready ? '1' : null); }
 
+// Privy's token can stall right after signing back in without restarting the app; waiting on it for
+// good left "Securing your account…" up forever. Each try gives it a few seconds, the check tries a
+// few times on its own, and then the screen says so, with Try again and Sign out.
+const TOKEN_WAIT_MS = 6_000;
+const TRIES = 3;
+const STALLED = "Couldn't confirm your sign-in. Try again, or sign out and back in.";
+function tokenWithin<T>(token: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(STALLED)), ms); });
+  return Promise.race([token, late]).finally(() => clearTimeout(timer));
+}
+
 export function PinProvider({ children }: { children: ReactNode }) {
   const { userId } = useAtlasAuth();
   return <PinSession key={userId ?? 'signed-out'}>{children}</PinSession>;
@@ -50,12 +62,21 @@ function PinSession({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     if (!authenticated || !userId) return;
     const round = ++generation.current;
-    try {
-      const token = await getAccessToken();
-      const [me, pin] = await Promise.all([engineGet<Me>('/v1/me', token, { timeoutMs: 15_000 }), pinStatus(async () => token)]);
-      if (!mounted.current || generation.current !== round) return;
-      setAccount({ owner: userId, handle: me.handle, configured: pin.configured }); setProblem(null);
-    } catch (e) { if (mounted.current && generation.current === round) setProblem(errorMessage(e)); }
+    setProblem(null);
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const token = await tokenWithin(getAccessToken(), TOKEN_WAIT_MS);
+        if (!token) throw new Error(STALLED);
+        const [me, pin] = await Promise.all([engineGet<Me>('/v1/me', token, { timeoutMs: 15_000 }), pinStatus(async () => token)]);
+        if (!mounted.current || generation.current !== round) return;
+        setAccount({ owner: userId, handle: me.handle, configured: pin.configured }); setProblem(null);
+        return;
+      } catch (e) {
+        if (!mounted.current || generation.current !== round) return;
+        if (attempt >= TRIES) { setProblem(errorMessage(e)); return; }
+        await new Promise((r) => setTimeout(r, 1_500));
+      }
+    }
   }, [authenticated, userId, getAccessToken]);
   useEffect(() => {
     mounted.current = true;
@@ -86,6 +107,14 @@ function PinSession({ children }: { children: ReactNode }) {
   // Set up on this device before: open straight to the lock while the engine confirms it.
   const ready = mine ? mine.configured && !!mine.handle : !!userId && pinReadyHere(userId);
   const setup = authenticated && !ready;
+  // The check is taking a while: a way out shows under the spinner instead of waiting it out.
+  const checkingAccount = setup && !mine && !problem;
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!checkingAccount) return;
+    const timer = setTimeout(() => setSlow(true), 10_000);
+    return () => clearTimeout(timer);
+  }, [checkingAccount]);
   useEffect(() => {
     if (mine && userId) rememberPinReady(userId, mine.configured && !!mine.handle);
   }, [mine, userId]);
@@ -94,7 +123,8 @@ function PinSession({ children }: { children: ReactNode }) {
       {setup ? !mine ? (
         <View key={theme} testID="atlas-account-check" style={styles.loading}>
           {problem ? <><Text variant="heading">Securing your Atlas account</Text><Text color="danger">{problem}</Text><PillButton label="Try again" onPress={reload} /><PillButton label="Sign out" tone="secondary" onPress={logout} /></>
-            : <><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Securing your account…</Text></>}
+            : <><ActivityIndicator color={colors.accentPink} /><Text color="textSecondary">Securing your account…</Text>
+              {slow ? <PillButton label="Sign out" tone="secondary" size="sm" onPress={logout} /> : null}</>}
         </View>
       ) : <PinSetup key={theme} handle={mine.handle} onDone={() => { setJustSetUp(true); void reload(); }} /> : (
         <AppLock active={authenticated} startLocked={!justSetUp} userId={userId} handle={mine?.handle ?? null}>{children}</AppLock>
