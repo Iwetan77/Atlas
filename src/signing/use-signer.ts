@@ -9,6 +9,7 @@ import { numberToHex } from 'viem';
 import { predictionGeo } from '@/api/predictions';
 import type { PrivyApprovalRequest, SentTx, UnsignedTx } from '@/api/contract';
 import { evmChainFor, solanaConnection } from '@/signing/chains';
+import { withDomainType } from '@/signing/typed-data';
 import type { Signer } from '@/signing/types';
 
 export function useSigner(): Signer {
@@ -90,7 +91,7 @@ export function useSigner(): Signer {
         const provider = await ethWallet.getProvider();
         checkSession(session);
         return String(await provider.request({ method: 'eth_signTypedData_v4',
-          params: [ethWallet.address, JSON.stringify(tx.typedData)] }));
+          params: [ethWallet.address, JSON.stringify(withDomainType(tx.typedData))] }));
       }
       if (tx.chain !== 'solana') throw new Error('Only Solana transactions are engine-submitted');
       if (!solWallet) throw new Error('Solana wallet is not ready');
