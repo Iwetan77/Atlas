@@ -454,6 +454,8 @@ export type SendQuote = {
   fee: Money;
   // Only from older servers, which listed the network cost apart; it's added into the fee.
   networkFee?: Money;
+  // A first send from an empty gas tank fills it once (kept as ETH in the balance); in `send`.
+  gasTopup?: Money;
   feeBreakdown?: { label: string; amount: Money }[];
   // "Instant", "Within 5 minutes"…
   eta: string;
