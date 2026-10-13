@@ -29,6 +29,8 @@ export function SendReview({
         <Row label="To" value={quote.destinationLabel} />
         <Row label="They get" value={formatMoney(quote.receive)} strong />
         <Row label="Fee" value={feeText(oneFee(quote.fee, quote.networkFee))} />
+        {/* A first send fills an empty gas tank once (about ₦100 that stays in the balance as ETH). */}
+        {quote.gasTopup && Number(quote.gasTopup.amount) > 0 ? <Row label="Gas top-up (one time)" value={formatMoney(quote.gasTopup)} /> : null}
         {/* A bank payout's fee goes on top: what leaves the balance is more than they get. */}
         {quote.send.currency === quote.receive.currency && Number(quote.send.amount) > Number(quote.receive.amount) ? (
           <Row label="You pay" value={formatMoney(quote.send)} />
