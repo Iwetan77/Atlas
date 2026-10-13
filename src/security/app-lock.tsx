@@ -19,6 +19,9 @@ import { colors, radii, spacing, themedStyles } from '@/theme';
 const LOCK_AFTER_MS = 60_000;
 const DESKTOP_LOCK_AFTER_MS = 10 * 60_000;
 
+// Who opened the lock during this run (cleared on signing out or coming back after a while).
+let unlockedFor: string | null = null;
+
 function lockAfter(): number {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return LOCK_AFTER_MS;
   return window.matchMedia?.('(pointer: fine)').matches ? DESKTOP_LOCK_AFTER_MS : LOCK_AFTER_MS;
@@ -30,13 +33,30 @@ export function AppLock({ active, startLocked = true, userId, handle, children }
   active: boolean; startLocked?: boolean; userId: string | null; handle: string | null; children: ReactNode;
 }) {
   // Google/email restores identity; a configured Atlas account still needs its server-verified PIN.
-  const [locked, setLocked] = useState(startLocked);
+  // Once someone has unlocked, a lock rebuilt for them in this run (the session redrawn while a
+  // sign-in settles) stays open instead of asking for the PIN a second time.
+  const [locked, setLocked] = useState(() => startLocked && !(userId && unlockedFor === userId));
   const [requirePin, setRequirePin] = useState(() => startLocked && !startedWithSession());
+  // Signing out locks it: whoever signs in next, the same person included, enters the PIN again.
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active) {
+      setLocked(true);
+      setRequirePin(true);
+    }
+  }
+  useEffect(() => {
+    if (!active) unlockedFor = null;
+  }, [active]);
   useEffect(() => {
     let awayAt: number | null = null;
     const away = () => { awayAt ??= Date.now(); };
     const back = () => {
-      if (awayAt !== null && Date.now() - awayAt >= lockAfter()) setLocked(true);
+      if (awayAt !== null && Date.now() - awayAt >= lockAfter()) {
+        unlockedFor = null;
+        setLocked(true);
+      }
       awayAt = null;
     };
     if (Platform.OS === 'web') {
@@ -51,7 +71,7 @@ export function AppLock({ active, startLocked = true, userId, handle, children }
     });
     return () => subscription.remove();
   }, []);
-  const unlock = useCallback(() => { setRequirePin(false); setLocked(false); }, []);
+  const unlock = useCallback(() => { unlockedFor = userId; setRequirePin(false); setLocked(false); }, [userId]);
   return (
     <>
       {active && locked && userId

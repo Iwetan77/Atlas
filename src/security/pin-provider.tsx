@@ -39,16 +39,31 @@ function tokenWithin<T>(token: Promise<T>, ms: number): Promise<T> {
   return Promise.race([token, late]).finally(() => clearTimeout(timer));
 }
 
+type Account = { owner: string; handle: string | null; configured: boolean };
+// Who each person was last confirmed as during this run: a session rebuilt for them starts from it
+// instead of checking from scratch (and showing "Securing your account" again).
+const confirmed = new Map<string, Account>();
+
 export function PinProvider({ children }: { children: ReactNode }) {
   const { userId } = useAtlasAuth();
-  return <PinSession key={userId ?? 'signed-out'}>{children}</PinSession>;
+  // One session per person. It stays mounted while Privy settles a sign-in (the user briefly gone and
+  // back), which used to rebuild it and show "Securing your account" a second time, after the PIN.
+  // Someone else signing in gets a fresh session; signing out locks this one (AppLock).
+  const [person, setPerson] = useState(userId);
+  if (userId && userId !== person) setPerson(userId);
+  return <PinSession key={person ?? 'signed-out'} person={person}>{children}</PinSession>;
 }
-function PinSession({ children }: { children: ReactNode }) {
+function PinSession({ person, children }: { person: string | null; children: ReactNode }) {
   // Its own screens redraw on a theme switch (keyed by it); its state, and the lock, stay.
   const theme = useSyncExternalStore(subscribeTheme, themeName, themeName);
-  const { authenticated, userId, getAccessToken, logout } = useAtlasAuth();
+  const auth = useAtlasAuth();
+  const { authenticated, getAccessToken, logout } = auth;
+  // Privy's website SDK reports "signed in" and the user separately, so a sign-in passes through a
+  // moment of signed in with no user yet. That's still this session's person, not someone unknown:
+  // treating it as unknown showed "Securing your account" (again, after the PIN) and rebuilt the lock.
+  const userId = auth.userId ?? (authenticated ? person : null);
   const insets = useSafeAreaInsets();
-  const [account, setAccount] = useState<{ owner: string; handle: string | null; configured: boolean } | null>(null);
+  const [account, setAccount] = useState<Account | null>(() => (userId ? confirmed.get(userId) ?? null : null));
   const [problem, setProblem] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<Waiting | null>(null);
   const [checking, setChecking] = useState(false);
@@ -59,8 +74,12 @@ function PinSession({ children }: { children: ReactNode }) {
   const mounted = useRef(true);
   const active = useRef<Waiting | null>(null);
   const generation = useRef(0);
+  // Checked only for the user Privy names (never the stand-in above), so one person's account is
+  // never kept under another's id.
+  const liveId = auth.userId;
   const reload = useCallback(async () => {
-    if (!authenticated || !userId) return;
+    if (!authenticated || !liveId) return;
+    const userId = liveId;
     const round = ++generation.current;
     setProblem(null);
     for (let attempt = 1; ; attempt++) {
@@ -69,7 +88,9 @@ function PinSession({ children }: { children: ReactNode }) {
         if (!token) throw new Error(STALLED);
         const [me, pin] = await Promise.all([engineGet<Me>('/v1/me', token, { timeoutMs: 15_000 }), pinStatus(async () => token)]);
         if (!mounted.current || generation.current !== round) return;
-        setAccount({ owner: userId, handle: me.handle, configured: pin.configured }); setProblem(null);
+        const next = { owner: userId, handle: me.handle, configured: pin.configured };
+        confirmed.set(userId, next);
+        setAccount(next); setProblem(null);
         return;
       } catch (e) {
         if (!mounted.current || generation.current !== round) return;
@@ -77,7 +98,7 @@ function PinSession({ children }: { children: ReactNode }) {
         await new Promise((r) => setTimeout(r, 1_500));
       }
     }
-  }, [authenticated, userId, getAccessToken]);
+  }, [authenticated, liveId, getAccessToken]);
   useEffect(() => {
     mounted.current = true;
     void Promise.resolve().then(reload);
