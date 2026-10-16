@@ -166,28 +166,29 @@ function PocketCard({ icon, name, uses, amount, onPress, onAdd }: {
       accessibilityLabel={`${name} balance ${amount}`}
       style={({ pressed }) => [styles.pocket, pressed && styles.pocketPressed]}>
       <View style={styles.pocketIcon}>
-        <Icon name={icon} size={20} color="tilePinkInk" />
+        <Icon name={icon} size={18} color="tilePinkInk" />
       </View>
       <View style={styles.pocketBody}>
-        <View style={styles.pocketLine}>
-          <Text variant="bodyStrong" color="textOnLight">{name}</Text>
-          <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit style={styles.pocketAmount}>
+        <Text variant="bodyStrong" color="textOnLight" numberOfLines={1}>{name}</Text>
+        <Text variant="caption" color="textDisabled" numberOfLines={2} style={styles.pocketUses}>
+          {uses}
+        </Text>
+      </View>
+      {/* The amount in the middle of the row: then its arrow, or Trading's Add under it. */}
+      <View style={styles.pocketSide}>
+        <View style={styles.pocketValue}>
+          <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.pocketAmount, amount.length > 9 && styles.pocketAmountLong]}>
             {amount}
           </Text>
+          {onAdd ? null : <Icon name="chevron-forward" size={16} color="textDisabled" />}
         </View>
-        <View style={styles.pocketLine}>
-          <Text variant="caption" color="textDisabled" numberOfLines={1} style={styles.pocketUses}>
-            {uses}
-          </Text>
-          {onAdd ? (
-            <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
-              <Icon name="add" size={14} color="textOnAccent" />
-              <Text variant="label" color="textOnAccent">Add</Text>
-            </Pressable>
-          ) : (
-            <Icon name="chevron-forward" size={16} color="textDisabled" />
-          )}
-        </View>
+        {onAdd ? (
+          <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
+            <Icon name="add" size={14} color="textOnAccent" />
+            <Text variant="label" color="textOnAccent">Add</Text>
+          </Pressable>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -303,16 +304,18 @@ const styles = themedStyles(() => ({
     height: 1,
     backgroundColor: colors.onAccentSoft,
   },
-  // The two balances, one full-width row each: name and amount, then what it's for and its action.
+  // The two balances, one full-width row each: the name over what it's for, and the amount in the
+  // middle of the row with its arrow (or Trading's Add).
   pockets: {
     gap: spacing.sm,
   },
   pocket: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    minHeight: 68,
+    gap: spacing.sm + 2,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radii.md,
     backgroundColor: colors.surfaceLight,
   },
@@ -320,9 +323,9 @@ const styles = themedStyles(() => ({
     transform: [{ scale: 0.98 }],
   },
   pocketIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tilePink,
@@ -330,21 +333,32 @@ const styles = themedStyles(() => ({
   pocketBody: {
     flex: 1,
     minWidth: 0,
-    gap: spacing.xxs,
+    gap: 2,
   },
-  pocketLine: {
+  pocketSide: {
+    flexShrink: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  pocketValue: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    minHeight: 24,
+    gap: spacing.xxs,
   },
   pocketAmount: {
     flexShrink: 1,
     textAlign: 'right',
   },
+  // A long figure (₦79,707.60 and up) steps down so the name and its line keep their room.
+  pocketAmountLong: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  // Both descriptions the same small size, so the longer one never reaches the Add button.
   pocketUses: {
-    flex: 1,
+    fontSize: 11.5,
+    lineHeight: 15,
   },
   add: {
     flexDirection: 'row',
