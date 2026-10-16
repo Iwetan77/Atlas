@@ -174,21 +174,23 @@ function PocketCard({ icon, name, uses, amount, onPress, onAdd }: {
           {uses}
         </Text>
       </View>
-      {/* The amount in the middle of the row: then its arrow, or Trading's Add under it. */}
-      <View style={styles.pocketSide}>
-        <View style={styles.pocketValue}>
-          <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.pocketAmount, amount.length > 9 && styles.pocketAmountLong]}>
-            {amount}
-          </Text>
-          {onAdd ? null : <Icon name="chevron-forward" size={16} color="textDisabled" />}
+      {/* The amount in the middle of the row, ending at the same edge in both rows, then one control
+          in the same spot: Spendable's arrow, Trading's add. */}
+      <View style={styles.pocketEnd}>
+        <Text variant="heading" color="textOnLight" numberOfLines={1} adjustsFontSizeToFit
+          style={[styles.pocketAmount, amount.length > 11 ? styles.pocketAmountLonger : amount.length > 9 && styles.pocketAmountLong]}>
+          {amount}
+        </Text>
+        <View style={styles.pocketTrail}>
+          {onAdd ? (
+            <Pressable onPress={onAdd} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`}
+              style={({ pressed }) => [styles.addRound, pressed && styles.pocketPressed]}>
+              <Icon name="add" size={16} color="textOnAccent" />
+            </Pressable>
+          ) : (
+            <Icon name="chevron-forward" size={18} color="textDisabled" />
+          )}
         </View>
-        {onAdd ? (
-          <Pressable onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Add money to ${name}`} style={styles.add}>
-            <Icon name="add" size={14} color="textOnAccent" />
-            <Text variant="label" color="textOnAccent">Add</Text>
-          </Pressable>
-        ) : null}
       </View>
     </Pressable>
   );
@@ -305,7 +307,7 @@ const styles = themedStyles(() => ({
     backgroundColor: colors.onAccentSoft,
   },
   // The two balances, one full-width row each: the name over what it's for, and the amount in the
-  // middle of the row with its arrow (or Trading's Add).
+  // middle of the row, aligned across both, with its arrow (or Trading's add).
   pockets: {
     gap: spacing.sm,
   },
@@ -330,45 +332,50 @@ const styles = themedStyles(() => ({
     justifyContent: 'center',
     backgroundColor: colors.tilePink,
   },
+  // Room for the name always ("Spendable" whole); what it's for wraps under it if it must.
   pocketBody: {
     flex: 1,
-    minWidth: 0,
+    minWidth: 86,
     gap: 2,
   },
-  pocketSide: {
+  pocketEnd: {
     flexShrink: 1,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  pocketValue: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xxs,
+    gap: 6,
+  },
+  // The same width in both rows, so the two amounts end at the same edge.
+  pocketTrail: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addRound: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentPink,
   },
   pocketAmount: {
     flexShrink: 1,
     textAlign: 'right',
   },
-  // A long figure (₦79,707.60 and up) steps down so the name and its line keep their room.
+  // Long figures step down so the name and its line keep their room: ₦79,707.60, then ₦1,234,567.89.
   pocketAmountLong: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  pocketAmountLonger: {
+    fontSize: 12.5,
+    lineHeight: 16,
   },
   // Both descriptions the same small size, so the longer one never reaches the Add button.
   pocketUses: {
     fontSize: 11.5,
     lineHeight: 15,
-  },
-  add: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xxs,
-    paddingVertical: spacing.xs,
-    paddingLeft: spacing.sm,
-    paddingRight: spacing.md,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accentPink,
   },
   center: {
     textAlign: 'center',
