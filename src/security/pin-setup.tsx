@@ -16,7 +16,7 @@ import { colors, radii, spacing, themedStyles } from '@/theme';
 export function PinSetup({ handle: initialHandle, onDone, change = false, onCancel }: {
   handle: string | null; onDone: () => void; change?: boolean; onCancel?: () => void;
 }) {
-  const { getAccessToken, logout } = useAtlasAuth();
+  const { getAccessToken, logout, walletsReady } = useAtlasAuth();
   const desktop = useWindowDimensions().width >= 760;
   const [handle, setHandle] = useState(initialHandle);
   const [rawHandle, setRawHandle] = useState('');
@@ -85,7 +85,10 @@ export function PinSetup({ handle: initialHandle, onDone, change = false, onCanc
               <Field prefix="@" placeholder="yourname" value={rawHandle} onChangeText={setRawHandle}
                 autoCapitalize="none" autoCorrect={false} maxLength={21} accessibilityLabel="Your handle" />
               <Text variant="caption" color="textSecondary">3–20 letters, numbers or underscores. Your handle is permanent.</Text>
-              <PillButton label="Continue" loading={busy} disabled={!HANDLE_RE.test(name)} onPress={saveHandle} />
+              {/* A handle belongs to the account's wallet: a brand-new account waits the moment its
+                  wallets take to be created, instead of hearing the wallet "is not ready". */}
+              <PillButton label="Continue" loading={busy || !walletsReady} disabled={!HANDLE_RE.test(name) || !walletsReady} onPress={saveHandle} />
+              {!walletsReady ? <Text variant="caption" color="textSecondary" style={styles.error}>Setting up your wallets…</Text> : null}
             </View> : <>
               <PinPad label={stage === 'repeat' ? 'Repeat payment PIN' : stage === 'current' ? 'Current payment PIN' : 'New payment PIN'}
                 resetKey={reset} disabled={busy} onComplete={enter} />
