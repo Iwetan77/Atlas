@@ -117,9 +117,11 @@ export default function AssetTradeScreen() {
       }),
     [getAccessToken, params.assetId, side, value, displayCurrency, sellAll],
   );
+  // A quote is good for one confirm: after a failed one the price is asked for afresh, and the
+  // spent quote can't be confirmed again ("quote not found").
   const { quote, error: quoteError, quoting, secondsLeft, reload, clear } = useLiveQuote(
     value > 0 ? request : null,
-    phase.kind === 'edit',
+    phase.kind === 'edit' || phase.kind === 'failed',
   );
 
   const trade = async () => {
@@ -133,8 +135,12 @@ export default function AssetTradeScreen() {
       );
       if (!final) setPhase({ kind: 'edit' });
       else if (final.state === 'filled') setPhase({ kind: 'done', quote });
-      else setPhase({ kind: 'failed', message: final.error ?? 'The trade did not go through.' });
+      else {
+        clear();
+        setPhase({ kind: 'failed', message: final.error ?? 'The trade did not go through.' });
+      }
     } catch (e) {
+      clear();
       setPhase({ kind: 'failed', message: friendlyTxError(e) });
     }
   };
