@@ -10,10 +10,11 @@ import {
 } from '@privy-io/react-auth';
 import { useCreateWallet as useCreateSolanaWallet } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
-import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, type ReactNode, useCallback, useMemo } from 'react';
 
 import { AtlasAuthContext, errorMessage } from '@/auth/context';
 import { markSigningOut } from '@/auth/device-session';
+import { useEnsureWallets } from '@/auth/ensure-wallets';
 import { useOtpFlow } from '@/auth/otp';
 import type { AtlasAuth } from '@/auth/types';
 import { privy, solana } from '@/config';
@@ -90,25 +91,13 @@ function AuthBridge({ children }: { children: ReactNode }) {
   const baseAddress = embeddedAddress(accounts, 'ethereum');
   const solanaAddress = embeddedAddress(accounts, 'solana');
 
-  // Every signed-in user ends up with both wallets, with no "create wallet" step.
-  const creating = useRef(false);
-  const [walletError, setWalletError] = useState<string | null>(null);
-  useEffect(() => {
-    if (!ready || !authenticated || !user || creating.current) return;
-    if (baseAddress && solanaAddress) return;
-    creating.current = true;
-    (async () => {
-      try {
-        if (!baseAddress) await createEthWallet();
-        if (!solanaAddress) await createSolWallet();
-        setWalletError(null);
-      } catch (e) {
-        setWalletError(errorMessage(e));
-      } finally {
-        creating.current = false;
-      }
-    })();
-  }, [ready, authenticated, user, baseAddress, solanaAddress, createEthWallet, createSolWallet]);
+  const walletError = useEnsureWallets(
+    ready && authenticated && user ? user.id : null,
+    !baseAddress,
+    !solanaAddress,
+    createEthWallet,
+    createSolWallet,
+  );
 
   const value = useMemo<AtlasAuth>(
     () => ({
